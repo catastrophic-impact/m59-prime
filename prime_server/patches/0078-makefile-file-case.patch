@@ -1,0 +1,32 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/deathrealmM/makefile
++++ b/kod/object/active/holder/nomoveon/battler/monster/deathrealmM/makefile
+@@ -6,7 +6,7 @@
+ 
+ DEPEND = ..\deathrealmM.bof
+ BOFS  = vajra.bof revenantb.bof chimera.bof cyclops.bof followerofqor.bof \
+-		minotaurbeserker.bof Tyrant.bof fallenmonk.bof hellwasp.bof vozun.bof \
++		minotaurbeserker.bof tyrant.bof fallenmonk.bof hellwasp.bof vozun.bof \
+ 		croco.bof dulahan.bof grandpatrent.bof spittersprout.bof crushersprout.bof \
+ 		frenzysprout.bof blackhydra.bof redhydra.bof goldhydra.bof greenhydra.bof \
+ 		greyseeker.bof greenseeker.bof brownseeker.bof dthmitemage.bof dthmitescout.bof \
+--- a/kod/object/active/holder/nomoveon/battler/monster/towns/wanderer/makefile
++++ b/kod/object/active/holder/nomoveon/battler/monster/towns/wanderer/makefile
+@@ -5,7 +5,7 @@
+ !include $(TOPDIR)\common.mak
+ 
+ DEPEND = ..\wanderer.bof
+-BOFS  =  jgeneral.bof minstrel.bof heretic.bof dkwizard.bof huntghst.bof izzio.bof \
++BOFS  =  jGeneral.bof minstrel.bof heretic.bof dkwizard.bof huntghst.bof izzio.bof \
+ 	 deathbank.bof 
+ 
+ !include $(KODDIR)\kod.mak
+--- a/kod/object/active/holder/nomoveon/battler/monster/towns/pirates/makefile
++++ b/kod/object/active/holder/nomoveon/battler/monster/towns/pirates/makefile
+@@ -5,6 +5,6 @@
+ !include $(TOPDIR)\common.mak
+ 
+ DEPEND = ..\pirates.bof
+-BOFS  = boatcaptain.bof quartermaster.bof Fortuna.bof zimmucas.bof
++BOFS  = boatcaptain.bof quartermaster.bof fortuna.bof zimmucas.bof
+ 
+ !include $(KODDIR)\kod.mak

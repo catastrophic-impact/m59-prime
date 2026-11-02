@@ -865,6 +865,30 @@ messages:
       return piBotHuntFailLimit;
    }
 
+   PBotHuntMargin()
+   "The rule piBotHuntMargin (percent): how much faster than it would die a hunter must be able to kill a foe it picks."
+   {
+      return piBotHuntMargin;
+   }
+
+   PBotFightMargin()
+   "The rule piBotFightMargin (percent): the same test for a creature that blocks a bot's way."
+   {
+      return piBotFightMargin;
+   }
+
+   PBotFleePct()
+   "The rule piBotFleePct: below this percent of its health a bot that fights a blocker flees."
+   {
+      return piBotFleePct;
+   }
+
+   PBotHuntPauseSecs()
+   "The rule piBotHuntPauseSecs scaled by piBotTimeScale: seconds a hunter stands after a kill and its loot."
+   {
+      return Send(self,@PBotScale,#seconds=piBotHuntPauseSecs);
+   }
+
    PBotHuntGiveUp(id = 0)
    "A hunter that could not find or reach a foe the rule's number of times in a row ends its hunt: its activity is over now, the next one is chosen at the next tick (PBotFinish, PBotChoose)."
    {
@@ -1640,7 +1664,7 @@ messages:
       lFit = $;
       foreach i in plPBotRooms
       {
-         if Nth(i,2) * 100 >= iHealth * 40 AND Nth(i,2) * 100 <= iHealth * 75
+         if Nth(i,2) * 100 >= iHealth * piBotHuntBandLow AND Nth(i,2) * 100 <= iHealth * piBotHuntBandHigh
             AND NOT Send(self,@PBotNightRoomClosed,#rid=First(i))
          {
             bReach = FALSE;

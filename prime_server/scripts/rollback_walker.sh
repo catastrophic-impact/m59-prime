@@ -18,6 +18,7 @@ if [ -n "$PID" ]; then flatpak-spawn --host kill "$PID"; for i in $(seq 1 20); d
 cp "$BK/blakserv" "$TARGET/blakserv.old" && mv "$TARGET/blakserv.old" "$TARGET/blakserv"
 rm -f "$TARGET"/loadkod/*.bof; cp -a "$BK"/loadkod/. "$TARGET/loadkod/" 2>/dev/null
 cp "$BK/kodbase.txt" "$BK/rsc0000.rsb" "$BK/blakserv.cfg" "$TARGET/"
+[ -d "$BK/rsc" ] && cp "$BK"/rsc/*.rsc "$TARGET/rsc/"     # backups made since 2026-11-02 hold the server's rsc folder
 rm -rf "$TARGET/savegame"; cp -a "$BK/savegame" "$TARGET/savegame"
 rm -rf "$TARGET/memmap"; cp -a "$BK/memmap" "$TARGET/memmap"     # the old running code
 echo "restored from $BK"

@@ -1,0 +1,481 @@
+--- a/apps/client/src/game/audio.ts
++++ b/apps/client/src/game/audio.ts
+@@ -23,8 +23,6 @@
+ 
+ const MAX_SOUNDS = 24;
+ 
+-/** The Audio Effects settings, as the Preferences window has them before OK */
+-export type AudioPreview = Partial<Pick<Settings, "music" | "musicVolume" | "sound" | "soundVolume" | "loopSounds" | "randomSounds">>;
+ const ROLLOFF = 0.00016;
+ const MAX_DIST = FINENESS * 32;
+ /** Ours: at most this many ambient sounds at once */
+@@ -158,10 +156,8 @@
+   /** The room's track, kept while music is off so switching it on restarts it (MusicRestart). */
+   private wantedMusic: string | null = null;
+   private listener = { x: 0, y: 0, angle: 0 };
+-  /** What's playing by: the saved settings with the Preferences window's preview on top */
++  /** What's playing by: the settings (the Preferences window applies its choices as they're made) */
+   private settings: Settings;
+-  private saved: Settings;
+-  private previewing: AudioPreview = {};
+   private readonly assets: AssetStore;
+   /** Where an object is, for sounds that come from one (GamePlaySound: obj->motion.x/y) */
+   objectPosition: (id: number) => { x: number; y: number } | undefined = () => undefined;
+@@ -169,17 +165,13 @@
+   objectName: (id: number) => string | undefined = () => undefined;
+   /** Log of what plays, for the dev console (window.shards.audio.log) */
+   readonly log: string[] = [];
+-  private readonly listeners = new Set<(line: string) => void>();
+ 
+   private readonly offSettings: () => void;
+ 
+   constructor(assets: AssetStore) {
+     this.assets = assets;
+-    this.settings = this.saved = getSettings();
+-    this.offSettings = onSettings((s) => {
+-      this.saved = s;
+-      this.setSettings({ ...s, ...this.previewing });
+-    });
++    this.settings = getSettings();
++    this.offSettings = onSettings((s) => this.setSettings(s));
+     for (const type of UNLOCK_EVENTS) window.addEventListener(type, this.unlock, true);
+   }
+ 
+@@ -458,15 +450,6 @@
+     for (const v of this.ambientVoices) if (v.at) this.placeAmbient(v, 60);
+   }
+ 
+-  /**
+-   * The Preferences window's audio choices, heard while it's open (the original applies them
+-   * on OK); null goes back to the saved settings (Cancel, or after OK has saved them).
+-   */
+-  preview(p: AudioPreview | null): void {
+-    this.previewing = p ?? {};
+-    this.setSettings({ ...this.saved, ...this.previewing });
+-  }
+-
+   private setSettings(s: Settings): void {
+     const prev = this.settings;
+     this.settings = s;
+@@ -487,13 +470,6 @@
+   private note(line: string): void {
+     this.log.push(line);
+     if (this.log.length > 200) this.log.shift();
+-    for (const fn of this.listeners) fn(line);
+-  }
+-
+-  /** Each line of the log as it's written (the admins' Debug tab) */
+-  onLog(fn: (line: string) => void): () => void {
+-    this.listeners.add(fn);
+-    return () => this.listeners.delete(fn);
+   }
+ 
+   dispose(): void {
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -25,7 +25,7 @@
+ import { WelcomeControls } from "./ui/WelcomeControls.tsx";
+ import { QuestsPanel } from "./ui/QuestsPanel.tsx";
+ import type { AssetStore } from "../assets.ts";
+-import type { AudioPreview, GameAudio } from "./audio.ts";
++import type { GameAudio } from "./audio.ts";
+ import { GameScene, type GameSceneStatus, type TouchMove, type ViewMode } from "./gameScene.ts";
+ import type { IconRenderer } from "./icons.ts";
+ import { ACTION_TABS, actionsFor, bindingLabel, getSettings, onSettings, touchUi, updateSettings, type Action, type ChatTab, type Settings } from "./settings.ts";
+@@ -88,8 +88,6 @@
+   { tab: "server", label: "Server" },
+   { tab: "debug", label: "Debug" },
+ ];
+-/** The Debug tab (admins only) keeps this many lines */
+-const MAX_DEBUG_LINES = 300;
+ /** The camera views' names (gameScene.ts ViewMode), shown for VIEW_NOTE_MS when one is chosen */
+ const VIEW_NAMES: Record<ViewMode, string> = { first: "First person", chase: "Chase camera", behind: "Behind", front: "Front" };
+ const VIEW_NOTE_MS = 1500;
+@@ -545,7 +543,8 @@
+     return () => window.removeEventListener("keydown", esc);
+   }, [emoteMenu]);
+   /** The Debug tab's lines (admins only) */
+-  const [debugLines, setDebugLines] = useState<ChatLine[]>([]);
++  /** The Debug tab (admins only): nothing writes to it for now */
++  const [debugLines] = useState<ChatLine[]>([]);
+   /** The chess module's window (module/chess), while the server has it loaded */
+   const [chess, setChess] = useState<ChessState | null>(null);
+   /** The same, for the toolbar's Rest/Stand toggle */
+@@ -873,7 +872,6 @@
+   const hotkeyRef = useRef<(n: number) => void>(() => {});
+   const lookRef = useRef<(id: number) => void>(() => {});
+   /** The Preferences window's audio choices, heard before OK */
+-  const previewAudio = useCallback((p: AudioPreview | null) => audio.preview(p), [audio]);
+ 
+   useEffect(() => onSettings(setSettings), []);
+ 
+@@ -1082,13 +1080,6 @@
+   useEffect(() => admin((text) => setAdminConsole((a) => (a ? { ...a, text: appendAdminText(a.text, text) } : a))), [admin]);
+   // admin.c admin_key_table: Shift+4 opens the console (in the game, not while typing)
+   const adminLoaded = adminConsole !== null;
+-  // Ours: the Debug tab, the admins' console.log: every sound played (to find one), and the like
+-  useEffect(() => {
+-    if (!adminLoaded) return;
+-    return audio.onLog((text) =>
+-      setDebugLines((d) => [...d.slice(-(MAX_DEBUG_LINES - 1)), { kind: "system", channel: "debug", spans: [{ text }], time: Date.now() }]),
+-    );
+-  }, [adminLoaded, audio]);
+   useEffect(() => {
+     if (!adminLoaded) return;
+     const onKey = (e: KeyboardEvent) => {
+@@ -2784,10 +2775,9 @@
+             serverFlags={serverPrefs}
+             onApply={(patch, flags) => {
+               updateSettings(patch);
+-              // maindlg.c IDOK -> InterfaceConfigChanged: SendPreferences
++              // maindlg.c InterfaceConfigChanged: SendPreferences (ours: as each is changed)
+               if (flags !== null) session.sendPreferences(flags);
+             }}
+-            onPreview={previewAudio}
+             onClose={() => setModal(null)}
+           />
+         )}
+--- a/apps/client/src/game/LoginScreen.tsx
++++ b/apps/client/src/game/LoginScreen.tsx
+@@ -14,6 +14,7 @@
+ import type { AssetStore } from "../assets.ts";
+ import logoUrl from "../icons/prime-logo.png";
+ import { desktop, devPagesEnabled, isAndroid, type DesktopBridge, type DesktopUpdate, type RequiredUpdate } from "../host.ts";
++import { getSettings, onSettings, updateSettings } from "./settings.ts";
+ import { Backdrop, Button, GroupBox, MessageBox, Select, Text, TextField, Window, at, type Rect } from "./ui/kit.tsx";
+ 
+ /** Control rectangles: client.rc IDD_LOGIN (251 x 175, a little roomier) for the desktop, the same less the Server row for the browser. */
+@@ -85,6 +86,43 @@
+   return names;
+ }
+ 
++/**
++ * Ours: the login screen's sound on and off, at its top right: the music and the sounds together
++ * (the Options' Music and Sound), so the choice holds in the game too.
++ */
++function AudioToggle() {
++  const audible = () => {
++    const s = getSettings();
++    return s.music || s.sound;
++  };
++  const [on, setOn] = useState(audible);
++  useEffect(() => onSettings(() => setOn(audible())), []);
++  const label = on ? "Turn the sound off" : "Turn the sound on";
++  return (
++    <button
++      type="button"
++      className="login-audio"
++      aria-label={label}
++      aria-pressed={!on}
++      title={label}
++      onClick={(e) => {
++        updateSettings({ music: !on, sound: !on });
++        // Don't keep the focus: Enter goes on opening the login
++        e.currentTarget.blur();
++      }}
++    >
++      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
++        <path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor" />
++        {on ? (
++          <path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
++        ) : (
++          <path d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
++        )}
++      </svg>
++    </button>
++  );
++}
++
+ export function LoginScreen({
+   assets, required, onLogin, error, onClearError, initialUsername, initialPassword, behind,
+ }: {
+@@ -174,6 +212,7 @@
+           {desktop && update && <UpdateNotice update={update} install={() => desktop?.installUpdate()} />}
+         </p>
+       </div>
++      <AudioToggle />
+       {error && !required && <MessageBox text={error} onResult={onClearError} />}
+       {required && <UpdateRequired required={required} update={update} />}
+     </Backdrop>
+--- a/apps/client/src/game/ui/OptionsDialogs.tsx
++++ b/apps/client/src/game/ui/OptionsDialogs.tsx
+@@ -5,17 +5,17 @@
+ //   Actions         merintr actions.c without the emotes: Who (msgfiltr.c IDD_WHO), groups
+ //                   (groupdlg.c IDD_GROUP), hotkey and command aliases (alias.c IDD_ALIAS,
+ //                   IDD_CMDALIAS), guild configuration
+-// Options and Configuration edit a copy and apply it on OK, like the originals; Cancel
+-// keeps what was there.
++// Ours: Preferences and Configuration apply each choice as it's made (the originals waited for
++// OK), so the HUD size, the sounds and the rest change as you watch; OK keeps them, and Cancel
++// or the close box puts back what was there when the window opened (useLiveSettings).
+ 
+-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
++import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+ import { CF, STAT_GROUP, objId } from "@shards/protocol";
+ import type { AmbientLevel, GameSession } from "@shards/world";
+ import {
+   ACTION_LABELS, ACTION_TABS, DEFAULT_SETTINGS, PRESETS, bindingLabel, mouseCode, presetSettings,
+   type Action, type ActionTab, type HaloColor, type HotkeyAlias, type KeyBinding, type Settings,
+ } from "../settings.ts";
+-import type { AudioPreview } from "../audio.ts";
+ import { MAX_PROFANE_TERM, trainCommand, trainableAmount } from "@shards/world";
+ import { STAT_NUM } from "../statRows.ts";
+ import { useWorld } from "./hooks.ts";
+@@ -50,6 +50,41 @@
+   );
+ }
+ 
++/** The settings that differ between two, as a patch; null when none do */
++function settingsDiff(from: Settings, to: Settings): Patch | null {
++  const patch: Record<string, unknown> = {};
++  let any = false;
++  for (const k of Object.keys(to) as (keyof Settings)[]) {
++    if (!Object.is(from[k], to[k])) {
++      patch[k] = to[k];
++      any = true;
++    }
++  }
++  return any ? (patch as Patch) : null;
++}
++
++/**
++ * A settings window's copy of the settings, each change applied as it's made (only what changed,
++ * so nothing else is overwritten). revert() puts back what was there when the window opened.
++ */
++function useLiveSettings(settings: Settings, apply: (patch: Patch) => void) {
++  const [d, setD] = useState<Settings>(settings);
++  const opened = useRef(settings);
++  const applied = useRef(settings);
++  useEffect(() => {
++    const patch = settingsDiff(applied.current, d);
++    applied.current = d;
++    if (patch) apply(patch);
++  }, [d, apply]);
++  const set = useCallback((patch: Patch) => setD((s) => ({ ...s, ...patch })), []);
++  const revert = () => {
++    const patch = settingsDiff(applied.current, opened.current);
++    applied.current = opened.current;
++    if (patch) apply(patch);
++  };
++  return { d, setD, set, revert };
++}
++
+ /** The players logged on now (BP_ADD_PLAYER / BP_REMOVE_PLAYER), sorted by name. */
+ function usePlayers(session: GameSession): { id: number; name: string }[] {
+   const [version, setVersion] = useState(0);
+@@ -81,27 +116,31 @@
+  * `serverFlags` is the server's CF_* preferences (null until UC_RECEIVE_PREFERENCES).
+  */
+ export function PreferencesDialog({
+-  settings, serverFlags, onApply, onPreview, onClose,
++  settings, serverFlags, onApply, onClose,
+ }: {
+   settings: Settings;
+   serverFlags: number | null;
++  /** A change: to our settings, and the server's flags when they changed (else null) */
+   onApply: (patch: Patch, serverFlags: number | null) => void;
+-  /** Hear the Audio Effects choices while the window is open; null when it closes */
+-  onPreview?: (audio: AudioPreview | null) => void;
+   onClose: () => void;
+ }) {
+-  const [d, setD] = useState<Settings>(settings);
+-  // The music and sound change as you choose (the original waits for OK); Cancel undoes it
+-  const { music, musicVolume, sound, soundVolume, loopSounds, randomSounds } = d;
+-  useEffect(() => {
+-    onPreview?.({ music, musicVolume, sound, soundVolume, loopSounds, randomSounds });
+-  }, [onPreview, music, musicVolume, sound, soundVolume, loopSounds, randomSounds]);
+-  useEffect(() => () => onPreview?.(null), [onPreview]);
++  const applySettings = useCallback((patch: Patch) => onApply(patch, null), [onApply]);
++  const { d, set, revert } = useLiveSettings(settings, applySettings);
++  // The server's options are sent as they change too; Cancel sends back the ones it had
+   const [flags, setFlags] = useState(serverFlags ?? 0);
++  const openedFlags = useRef(serverFlags);
+   const [profanityOpen, setProfanityOpen] = useState(false);
+-  const set = (patch: Patch) => setD((s) => ({ ...s, ...patch }));
+-  const flag = (f: number, on: boolean) => setFlags((v) => (on ? v | f : v & ~f));
+   const known = serverFlags !== null;
++  const flag = (f: number, on: boolean) => {
++    const next = on ? flags | f : flags & ~f;
++    setFlags(next);
++    if (known && next !== flags) onApply({}, next);
++  };
++  const cancel = () => {
++    revert();
++    if (known && openedFlags.current !== null && flags !== openedFlags.current) onApply({}, openedFlags.current);
++    onClose();
++  };
+   const check = (label: string, r: Rect, key: keyof Settings, notYet = false) => (
+     <Check at={r} label={label} title={notYet ? NOT_YET : undefined} className={notYet ? "not-yet" : undefined} checked={d[key] as boolean} onChange={(v) => set({ [key]: v } as Patch)} />
+   );
+@@ -110,13 +149,12 @@
+   );
+   const ok = (e: FormEvent) => {
+     e.preventDefault();
+-    onApply(d, known && flags !== serverFlags ? flags : null);
+     onClose();
+   };
+   return (
+     <>
+       {/* On a phone, 30% wider: its font crowded the template's labels into each other */}
+-      <DluDialog title="Preferences" size={[375, 288]} wide={1.3} onClose={onClose}>
++      <DluDialog title="Preferences" size={[375, 288]} wide={1.3} onClose={cancel}>
+         <form onSubmit={ok}>
+           <GroupBox at={[6, 3, 91, 67]} label="Targeting" />
+           <Check
+@@ -190,7 +228,7 @@
+           <Button at={[131, 272, 50, 12]} type="submit" isDefault>
+             OK
+           </Button>
+-          <Button at={[193, 272, 50, 12]} onClick={onClose}>
++          <Button at={[193, 272, 50, 12]} onClick={cancel}>
+             Cancel
+           </Button>
+         </form>
+@@ -594,10 +632,13 @@
+ 
+ /** The Bind Editor (m59bind.exe) without Classic Key Binding and Software Renderer. */
+ export function ConfigurationDialog({ settings, onApply, onClose }: { settings: Settings; onApply: (patch: Patch) => void; onClose: () => void }) {
+-  const [d, setD] = useState<Settings>(settings);
++  const { d, setD, set, revert } = useLiveSettings(settings, onApply);
+   const [tab, setTab] = useState<ConfigTab>("Options");
+   const [listening, setListening] = useState<{ action: Action; index: number } | null>(null);
+-  const set = (patch: Patch) => setD((s) => ({ ...s, ...patch }));
++  const cancel = () => {
++    revert();
++    onClose();
++  };
+   const onKey = useMemo(
+     () => (b: KeyBinding | null) => {
+       setListening((l) => {
+@@ -611,7 +652,7 @@
+         return null;
+       });
+     },
+-    [],
++    [setD],
+   );
+   useKeyListener(listening !== null, onKey);
+   const remove = (a: Action, i: number) => set({ keys: { ...d.keys, [a]: d.keys[a].filter((_, j) => j !== i) } });
+@@ -624,7 +665,7 @@
+   );
+   return (
+     <Modal>
+-      <Window title="Bind Editor" onClose={() => !listening && onClose()} className="options-dialog bind-editor">
++      <Window title="Bind Editor" onClose={() => !listening && cancel()} className="options-dialog bind-editor">
+         <div className="bind-layout">
+           <Tabs tabs={CONFIG_TABS} active={tab} onChange={setTab} />
+           <div className="mk-page bind-page">
+@@ -739,16 +780,10 @@
+           <div className="bind-footer">
+             <Button onClick={() => set({ ...presetSettings("modern"), keys: PRESETS.modern })}>Restore Defaults</Button>
+             <div className="bind-buttons">
+-              <Button
+-                isDefault
+-                onClick={() => {
+-                  onApply(d);
+-                  onClose();
+-                }}
+-              >
++              <Button isDefault onClick={onClose}>
+                 OK
+               </Button>
+-              <Button onClick={onClose}>Cancel</Button>
++              <Button onClick={cancel}>Cancel</Button>
+             </div>
+           </div>
+         </div>
+@@ -1103,11 +1138,14 @@
+  * drag looks around, and the Bind Editor's options that matter on a touch screen.
+  */
+ export function TouchConfigDialog({ settings, onApply, onClose }: { settings: Settings; onApply: (patch: Patch) => void; onClose: () => void }) {
+-  const [d, setD] = useState<Settings>(settings);
+-  const set = (patch: Patch) => setD((s) => ({ ...s, ...patch }));
++  const { d, set, revert } = useLiveSettings(settings, onApply);
++  const cancel = () => {
++    revert();
++    onClose();
++  };
+   return (
+     <Modal>
+-      <Window title="Configuration" onClose={onClose} className="options-dialog touch-config">
++      <Window title="Configuration" onClose={cancel} className="options-dialog touch-config">
+         <label className="touch-config-scale">
+           <span>Look Speed</span>
+           <Trackbar min={1} max={30} value={d.touchLookScale} onChange={(v) => set({ touchLookScale: v })} label="Look Speed" />
+@@ -1132,36 +1170,10 @@
+         <Check label="Attack On Target" checked={d.attackOnTarget} onChange={(v) => set({ attackOnTarget: v })} />
+         <div className="touch-config-buttons">
+           <Button onClick={() => set({ touchLookScale: DEFAULT_SETTINGS.touchLookScale })}>Default Speed</Button>
+-          <Button
+-            isDefault
+-            onClick={() => {
+-              onApply({
+-                touchLookScale: d.touchLookScale,
+-                dynamicLighting: d.dynamicLighting,
+-                enhanced: d.enhanced,
+-                ambientLife: d.ambientLife,
+-                ambientSounds: d.ambientSounds,
+-                frameLimit: d.frameLimit,
+-                ambientVolume: d.ambientVolume,
+-                critters: d.critters,
+-                flyers: d.flyers,
+-                nature: d.nature,
+-                groundDetail: d.groundDetail,
+-                seasons: d.seasons,
+-                enhancedWater: d.enhancedWater,
+-                showPets: d.showPets,
+-                showPetNames: d.showPetNames,
+-                questMarkers: d.questMarkers,
+-                showWay: d.showWay,
+-                damageNumbers: d.damageNumbers,
+-                attackOnTarget: d.attackOnTarget,
+-              });
+-              onClose();
+-            }}
+-          >
++          <Button isDefault onClick={onClose}>
+             OK
+           </Button>
+-          <Button onClick={onClose}>Cancel</Button>
++          <Button onClick={cancel}>Cancel</Button>
+         </div>
+       </Window>
+     </Modal>
+--- a/apps/client/src/styles.css
++++ b/apps/client/src/styles.css
+@@ -2356,6 +2356,35 @@
+   image-rendering: pixelated;
+ }
+ 
++/* Ours: the login screen's sound on/off (LoginScreen.tsx AudioToggle), at its top right */
++.mk-backdrop.login {
++  position: relative;
++}
++
++.mk-backdrop.login > button.login-audio {
++  position: absolute;
++  top: 12px;
++  right: 12px;
++  z-index: 1;
++  display: grid;
++  place-items: center;
++  width: 40px;
++  height: 40px;
++  padding: 0;
++  border: 1px solid rgba(255, 255, 255, 0.25);
++  border-radius: 50%;
++  background: rgba(0, 0, 0, 0.45);
++  color: #fedf01;
++  cursor: pointer;
++}
++
++.mk-backdrop.login > button.login-audio:hover,
++.mk-backdrop.login > button.login-audio:focus-visible {
++  border-color: #fedf01;
++  background: rgba(0, 0, 0, 0.7);
++  outline: none;
++}
++
+ /* The splash picture behind the login dialog (Intro.tsx SplashPicture, kit.tsx Backdrop behind):
+    filling the screen (cropped to keep its shape) and a little darker, so the dialog stands out;
+    it fades in once drawn */

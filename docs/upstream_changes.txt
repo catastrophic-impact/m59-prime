@@ -80,5 +80,8 @@ OUR PATCHES TO UPSTREAM SERVER FILES (prime_server/patches/, applied in this ord
   0073 [C] explain move bsp                                 function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
   0074 [C] body radius bsp                                  function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
   0075 [C] grid planner + avoid exit squares                             function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
+  0076 [C] linux server fixes (from upstream 7f5e30cd, 7dfb4fb6, garbage.c) adminfn.c, nameid.c, session.c, mutex_linux.c, async_linux.c, garbage.c
+  0077 [C] room file name case (Linux)             roomdata.c
+  0078     makefile file name case                  deathrealmM, wanderer, pirates makefiles (Tyrant, jGeneral, Fortuna were never compiled on Linux)
 
-Server binary: the one patched C server (blakserv) is built from the tree; built from patches 0001-0075.
+Server binary: the one patched C server (blakserv) is built from the tree; built from patches 0001-0078.

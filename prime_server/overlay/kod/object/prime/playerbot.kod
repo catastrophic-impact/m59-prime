@@ -27,12 +27,6 @@ constants:
    PB_WALK_STEP = 16
    // TRAVEL BODY RADIUS (roo units, 1024 = one square): a bot that walks like a player is blocked by creatures and other bots only within this (the client's 0.25 square), not the server's 0.75 monster rule (owner decision 2026-11-01)
    PB_TRAVEL_BODY_RADIUS = 256
-   // FIGHT A BLOCKER (owner's rule, 2026-11-01): the bot fights a creature that blocks its way only when it can kill it: the time it needs to kill it, times this percent, is less than the time the creature needs to kill the bot (PathCanKill)
-   PB_FIGHT_MARGIN = 140
-   // a hunter only picks a foe whose time to kill times this percent is still under its own time to die (200: it must win in half the time it would take to lose): measured 2026-11-01, hunters started fights they lost 9 times in 10 in rooms 593/2901 and died while fleeing
-   PB_HUNT_MARGIN = 200
-   // below this percent of its health a bot that fights a blocker gives the fight up and flees (rescue)
-   PB_FIGHT_FLEE_PCT = 35
    // a walk that gets no measurably closer to its goal for this many ticks (150 ms each) is given up (GiveUp): 200 = 30 seconds; going round a wall or a creature takes a while
    PB_WALK_STALL_TICKS = 200
 
@@ -312,6 +306,9 @@ properties:
    piLootCol = 0
    piLootUntil = 0
    piLootTries = 0
+   // Hunting: a kill is pending its pause (HuntStep: stand piBotHuntPauseSecs after the loot, unless attacked or resting) and when that pause ends (GetTime(), 0 = not started)
+   pbHuntPausePending = FALSE
+   piHuntPauseUntil = 0
    piWant = 0
    ptWander = $
    ptAway = $
@@ -704,8 +701,8 @@ messages:
       return [piPathState,piPathSteps,piPathRefused,piPathPlans,Send(self,@GetRow),Send(self,@GetCol)];
    }
 
-   PathCanKill(oFoe = $,iMargin = PB_FIGHT_MARGIN)
-   "A ROUGH estimate (the owner's 'can take on'): can this bot, with its hit points and skills, kill the creature before the creature kills it? Both are Monsters, so the same numbers are read from both: hit chance = offense against the other's defense (10-95 percent), damage = the average of three GetDamage samples (hundredths of a hit point), time between blows = the average of three GetAttackTime samples. Time to kill = its health / my damage per second; time to die = my health / its damage per second. TRUE when time to kill times iMargin (default PB_FIGHT_MARGIN) percent is less than time to die. Armour, spells and other attackers are not counted."
+   PathCanKill(oFoe = $,iMargin = $)
+   "A ROUGH estimate (the owner's 'can take on'): can this bot, with its hit points and skills, kill the creature before the creature kills it? Both are Monsters, so the same numbers are read from both: hit chance = offense against the other's defense (10-95 percent), damage = the average of three GetDamage samples (hundredths of a hit point), time between blows = the average of three GetAttackTime samples. Time to kill = its health / my damage per second; time to die = my health / its damage per second. TRUE when time to kill times iMargin (default: the rule piBotFightMargin) percent is less than time to die. Armour, spells and other attackers are not counted."
    {
       local iMyHp, iFoeHp, iMyDmg, iFoeDmg, iMyTime, iFoeTime, iK, iMyHit, iFoeHit, iMyDps, iFoeDps, iMyOff, iFoeOff, iTkill, iTdie, bOk;
 
@@ -757,6 +754,10 @@ messages:
          iTdie = iMyHp * 100 / iFoeDps;
       }
 
+      if iMargin = $
+      {
+         iMargin = Send(Send(SYS,@GetPrime),@PBotFightMargin);
+      }
       bOk = (iTkill * iMargin / 100 < iTdie);
       Send(self,@Trace,#what="PLANNER can kill? my hp",#a=iMyHp,#b="its hp",#c=iFoeHp,#d="s to kill",#e=iTkill,#f=iTdie);
       Send(self,@Trace,#what="PLANNER can kill? answer",#a=bOk,#b="my dps",#c=iMyDps,#d="its dps",#e=iFoeDps);
@@ -1037,7 +1038,7 @@ messages:
       if piPathState = 6 AND poOwner <> $
       {
          // fighting the creature that blocked the way: when it is dead (no target) walk on; badly hurt: flee
-         if Send(Send(SYS,@GetPrime),@CompHealthPct,#who=self) < PB_FIGHT_FLEE_PCT
+         if Send(Send(SYS,@GetPrime),@CompHealthPct,#who=self) < Send(Send(SYS,@GetPrime),@PBotFleePct)
          {
             piPathState = 7;
             pbFleeing = TRUE;
@@ -1295,7 +1296,7 @@ messages:
          {
             iDist = Send(self,@SquaredFineDistanceTo3D,#what=o);
             // (only a foe nearer than the best so far is weighed: the estimate costs a few calls)
-            if iDist < iBest AND Send(self,@PathCanKill,#oFoe=o,#iMargin=PB_HUNT_MARGIN)
+            if iDist < iBest AND Send(self,@PathCanKill,#oFoe=o,#iMargin=Send(Send(SYS,@GetPrime),@PBotHuntMargin))
             {
                iBest = iDist;
                oBest = o;
@@ -1333,6 +1334,8 @@ messages:
          piLootCol = Send(what,@GetCol);
          piLootUntil = GetTime() + 25;
          piLootTries = 0;
+         pbHuntPausePending = TRUE;
+         piHuntPauseUntil = 0;
       }
 
       propagate;
@@ -1353,6 +1356,8 @@ messages:
 
       if poTarget <> $
       {
+         // attacked or fighting: any pause waits until after this fight
+         piHuntPauseUntil = 0;
          Send(self,@HuntFight,#iPct=iPct);
 
          return;
@@ -1364,9 +1369,27 @@ messages:
          return;
       }
 
+      // after a kill and its loot the pause starts (it runs while the bot heals): the bot looks for the next foe only when it is whole and the time is up
+      if pbHuntPausePending AND piHuntPauseUntil = 0
+      {
+         piHuntPauseUntil = GetTime() + Send(oPrime,@PBotHuntPauseSecs);
+         Send(self,@Trace,#what="hunt: standing after the kill for seconds",#a=Send(oPrime,@PBotHuntPauseSecs));
+      }
+
       if Send(self,@RestUp,#iSecs=1)
       {
          return;
+      }
+
+      if pbHuntPausePending
+      {
+         if GetTime() < piHuntPauseUntil
+         {
+            return;
+         }
+         pbHuntPausePending = FALSE;
+         piHuntPauseUntil = 0;
+         Send(self,@Trace,#what="hunt: pause over, looking for the next foe");
       }
 
       oFoe = Send(self,@HuntFoe);
@@ -1600,9 +1623,9 @@ messages:
          return;
       }
 
-      // it flees when badly hurt (PB_FIGHT_FLEE_PCT) or as soon as the fight turns losing (it cannot kill the foe before the foe kills it any more): at 35 percent there was no time left, a foe takes
+      // it flees when badly hurt (the rule piBotFleePct) or as soon as the fight turns losing (it cannot kill the foe before the foe kills it any more): at 35 percent there was no time left, a foe takes
       // about a fifth of a bot's health a second
-      if iPct >= PB_FIGHT_FLEE_PCT AND Send(self,@PathCanKill,#oFoe=poTarget)
+      if iPct >= Send(Send(SYS,@GetPrime),@PBotFleePct) AND Send(self,@PathCanKill,#oFoe=poTarget)
       {
          return;
       }

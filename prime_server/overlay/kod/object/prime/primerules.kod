@@ -79,6 +79,18 @@ properties:
    // Playerbots: how many failed attempts in a row to find or reach a foe (a foe it cannot walk to, cannot get closer to, or that will not come) make a hunter give
    // its hunt up and choose another activity; a kill starts the count again. 0 would give up at once, a big number never.
    piBotHuntFailLimit = 3
+   // Playerbot hunting (owner, 2026-11-01), all in percent: a hunter only picks a foe whose time to kill times piBotHuntMargin is still under its own time to die
+   // (200: it must win in half the time it would take to lose); a creature that blocks a bot's way is fought only when the same test with piBotFightMargin
+   // passes (140); a bot that fights a blocker below piBotFleePct of its health gives the fight up and flees (35).
+   piBotHuntMargin = 200
+   piBotFightMargin = 140
+   piBotFleePct = 35
+   // Playerbot hunting: a bot hunts only in rooms whose monsters are between these percents of its own health (1-50 scale rating).
+   piBotHuntBandLow = 1
+   piBotHuntBandHigh = 85
+   // Playerbot hunting: seconds a hunter stands still after a kill, once it has picked up the drops, before it looks for the next foe (immersion: it does not clear
+   // rooms). Cancelled when something attacks it; it runs while the bot heals (it leaves when whole and the time is up). Scaled by piBotTimeScale.
+   piBotHuntPauseSecs = 10
    // Murder is not permanent: TRUE = a murderer (red) who dies becomes an outlaw (orange), and an outlaw who dies is clean (white, as before).
    // FALSE = a murderer stays red until pardoned (the original rule).
    pbMurderNotPermanent = TRUE

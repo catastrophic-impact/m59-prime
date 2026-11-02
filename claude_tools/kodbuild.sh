@@ -10,6 +10,8 @@ DONE="$W/build/kodbuild.done"; rm -f "$DONE"; cd "$W/build/tree" || exit 1
 [ "$1" = "--c" ] && make -f makefile.linux Bcompiler Butil > "$W/build/compiler_build.log" 2>&1
 for i in 1 2 3; do make -f makefile.linux Bkod RELEASE=1 > "$W/build/kod_pass_$i.log" 2>&1; grep -q "Need to recompile" "$W/build/kod_pass_$i.log" || break; done
 [ "$1" = "--c" ] && make -f makefile.linux Bserver > "$W/build/server_build.log" 2>&1
+# the string table the clients and the server read: every .rsc merged into rsc0000.rsb (without this a new resource, e.g. a sound, is not in it: "SetResourceName can't find resource id" at every start)
+(cd "$W/build/tree/run/server/rsc" && ../../../bin/rscmerge -o ../rsc0000.rsb *.rsc > "$W/build/rscmerge.log" 2>&1)
 echo done > "$DONE"
 # afterwards: check grep -c "Need to recompile" on the last pass is 0; the only 'Error 1 (ignored)' lines (makedirs) and 'Unable to save rsc file' are normal.
 # deploy to server2: kill it by pid, cp $W/build/tree/blakserv/debug/blakserv $W/build/server2/ (only if the C changed), then prime_server/scripts/test_redeploy.sh (WIPES server2's savegame).

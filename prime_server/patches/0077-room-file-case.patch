@@ -1,0 +1,34 @@
+--- a/blakserv/roomdata.c
++++ b/blakserv/roomdata.c
+@@ -91,7 +91,30 @@
+    sprintf(s, "%s%s", ConfigStr(PATH_ROOMS), r->resource_val[0]);
+ 
+    // try load it
+-   if (!BSPLoadRoom(s, &newnode->data))
++   bool loaded = BSPLoadRoom(s, &newnode->data);
++#ifndef _WIN32
++   // Windows file names are not case sensitive, Linux's are: the room files are lower case but the Kod
++   // names a few as MazeFoyer.roo, RazaBank.roo ... (7 rooms): try the lower case name before giving up
++   if (!loaded)
++   {
++      char lower[MAX_PATH + FILENAME_MAX];
++      int skip = (int)strlen(ConfigStr(PATH_ROOMS));
++      bool changed = false;
++
++      strcpy(lower, s);
++      for (char *c = lower + skip; *c; c++)
++      {
++         if (*c >= 'A' && *c <= 'Z')
++         {
++            *c = *c - 'A' + 'a';
++            changed = true;
++         }
++      }
++      if (changed)
++         loaded = BSPLoadRoom(lower, &newnode->data);
++   }
++#endif
++   if (!loaded)
+    {
+       FreeMemorySIMD(MALLOC_ID_ROOM, newnode, sizeof(room_node));
+       bprintf("LoadRoomData couldn't open %s!!!\n",r->resource_val[0]);

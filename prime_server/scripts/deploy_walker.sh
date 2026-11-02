@@ -50,13 +50,14 @@ else say "2. (nothing to stop)"; fi
 say "3. backup"
 BK="$W/build/backup_before_walker_$(date +%Y%m%d_%H%M%S)"; mkdir -p "$BK"
 # memmap/ is the server's RUNNING CODE (it moves the .bof files from loadkod/ into memmap/ when it starts): the backup must have it or a rollback has no old code
-cp -a "$TARGET/blakserv" "$TARGET/loadkod" "$TARGET/memmap" "$TARGET/kodbase.txt" "$TARGET/rsc0000.rsb" "$TARGET/blakserv.cfg" "$TARGET/savegame" "$BK/" || die "the backup failed (nothing was changed)"
+cp -a "$TARGET/blakserv" "$TARGET/loadkod" "$TARGET/memmap" "$TARGET/rsc" "$TARGET/kodbase.txt" "$TARGET/rsc0000.rsb" "$TARGET/blakserv.cfg" "$TARGET/savegame" "$BK/" || die "the backup failed (nothing was changed)"
 echo "backup: $BK ($(du -sh "$BK" | cut -f1))"
 
 say "4. install (binary and kod together)"
 cp "$NEWBIN" "$TARGET/blakserv.new" && mv "$TARGET/blakserv.new" "$TARGET/blakserv"
 rm -f "$TARGET"/loadkod/*.bof; cp "$KODDIR"/*.bof "$TARGET/loadkod/"
 cp "$TREE/kod/kodbase.txt" "$TREE/run/server/rsc0000.rsb" "$TARGET/"
+cp "$TREE"/run/server/rsc/*.rsc "$TARGET/rsc/"     # the server reads rsc/*.rsc (rsc0000.rsb is the clients' merge): without this new resources are unknown to it
 rm -rf "$TARGET/memmap"; mkdir "$TARGET/memmap"
 echo "installed: $(ls "$TARGET"/loadkod/*.bof | wc -l) kod files"
 [ $START -eq 1 ] || { echo "not started (--no-start). Undo: scripts/rollback_walker.sh $BK --target $TARGET --admin-port $PORT"; exit 0; }
