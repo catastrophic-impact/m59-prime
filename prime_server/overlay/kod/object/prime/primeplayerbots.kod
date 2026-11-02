@@ -327,6 +327,247 @@ resources:
    pbn_f148 = "Dagmar Ravenscroft"
    pbn_f149 = "Dorothea Pemberton"
    pbn_f150 = "Xenia Marlowe"
+   // gamer handles (the rule piBotNameType 0): 120 for women, 120 for men
+   pbg_f1 = "Amber"
+   pbg_f2 = "Ruby"
+   pbg_f3 = "Pixie"
+   pbg_f4 = "Chloe"
+   pbg_f5 = "Ivy"
+   pbg_f6 = "Kiki"
+   pbg_f7 = "Jinx"
+   pbg_f8 = "Honey"
+   pbg_f9 = "Velvet"
+   pbg_f10 = "Hazel"
+   pbg_f11 = "Daisy"
+   pbg_f12 = "Emerald"
+   pbg_f13 = "Gigi"
+   pbg_f14 = "Raven"
+   pbg_f15 = "Willow"
+   pbg_f16 = "Scarlet"
+   pbg_f17 = "Jade"
+   pbg_f18 = "Faye"
+   pbg_f19 = "Bree"
+   pbg_f20 = "Dawn"
+   pbg_f21 = "Flora"
+   pbg_f22 = "Glimmer"
+   pbg_f23 = "Sienna"
+   pbg_f24 = "Luna"
+   pbg_f25 = "Echo"
+   pbg_f26 = "Harmony"
+   pbg_f27 = "Crystal"
+   pbg_f28 = "Iris"
+   pbg_f29 = "Poppy"
+   pbg_f30 = "Saffron"
+   pbg_f31 = "Vixen"
+   pbg_f32 = "Sparkle"
+   pbg_f33 = "Satin"
+   pbg_f34 = "Nova"
+   pbg_f35 = "Ember"
+   pbg_f36 = "Winter"
+   pbg_f37 = "Summer"
+   pbg_f38 = "Blossom"
+   pbg_f39 = "Cinnamon"
+   pbg_f40 = "Dalia"
+   pbg_f41 = "Jewel"
+   pbg_f42 = "Lulu"
+   pbg_f43 = "Mimi"
+   pbg_f44 = "Zelda"
+   pbg_f45 = "Pia"
+   pbg_f46 = "Cleo"
+   pbg_f47 = "Gwyn"
+   pbg_f48 = "Lila"
+   pbg_f49 = "Pearl"
+   pbg_f50 = "Bambi"
+   pbg_f51 = "Sassy"
+   pbg_f52 = "Diva"
+   pbg_f53 = "Cherry"
+   pbg_f54 = "Lava"
+   pbg_f55 = "Tinker"
+   pbg_f56 = "Sprite"
+   pbg_f57 = "Bumble"
+   pbg_f58 = "Melody"
+   pbg_f59 = "Serenade"
+   pbg_f60 = "Whisper"
+   pbg_f61 = "Mystic"
+   pbg_f62 = "Velma"
+   pbg_f63 = "Dixie"
+   pbg_f64 = "Fable"
+   pbg_f65 = "Lace"
+   pbg_f66 = "Petal"
+   pbg_f67 = "Pixy"
+   pbg_f68 = "Shimmer"
+   pbg_f69 = "Star"
+   pbg_f70 = "Trixie"
+   pbg_f71 = "Violet"
+   pbg_f72 = "Wicked"
+   pbg_f73 = "Angel"
+   pbg_f74 = "Candy"
+   pbg_f75 = "Cookie"
+   pbg_f76 = "Foxy"
+   pbg_f77 = "Honeybee"
+   pbg_f78 = "Joy"
+   pbg_f79 = "Kitty"
+   pbg_f80 = "Lori"
+   pbg_f81 = "Lucky"
+   pbg_f82 = "Macy"
+   pbg_f83 = "Mini"
+   pbg_f84 = "Pebbles"
+   pbg_f85 = "Peaches"
+   pbg_f86 = "Penny"
+   pbg_f87 = "Rosie"
+   pbg_f88 = "Midnight"
+   pbg_f89 = "Silky"
+   pbg_f90 = "Sugar"
+   pbg_f91 = "Sunny"
+   pbg_f92 = "Sweetie"
+   pbg_f93 = "Trix"
+   pbg_f94 = "Twinkle"
+   pbg_f95 = "Venus"
+   pbg_f96 = "Vesper"
+   pbg_f97 = "Wink"
+   pbg_f98 = "Ziggy"
+   pbg_f99 = "Zoe"
+   pbg_f100 = "Zola"
+   pbg_f101 = "Aria"
+   pbg_f102 = "Bella"
+   pbg_f103 = "Coco"
+   pbg_f104 = "Dolly"
+   pbg_f105 = "Elle"
+   pbg_f106 = "Fern"
+   pbg_f107 = "Gem"
+   pbg_f108 = "Hope"
+   pbg_f109 = "Indie"
+   pbg_f110 = "Jolie"
+   pbg_f111 = "Kira"
+   pbg_f112 = "Lyra"
+   pbg_f113 = "Maple"
+   pbg_f114 = "Nixie"
+   pbg_f115 = "Opal"
+   pbg_f116 = "Plum"
+   pbg_f117 = "Quinn"
+   pbg_f118 = "Rain"
+   pbg_f119 = "Sky"
+   pbg_f120 = "Tilly"
+   pbg_m1 = "Strike"
+   pbg_m2 = "Rage"
+   pbg_m3 = "Havoc"
+   pbg_m4 = "Vortex"
+   pbg_m5 = "Slayz"
+   pbg_m6 = "Axel"
+   pbg_m7 = "Phantom"
+   pbg_m8 = "Razor"
+   pbg_m9 = "Drift"
+   pbg_m10 = "Venom"
+   pbg_m11 = "Blaze"
+   pbg_m12 = "Skillz"
+   pbg_m13 = "Clutch"
+   pbg_m14 = "Shred"
+   pbg_m15 = "Talon"
+   pbg_m16 = "Grit"
+   pbg_m17 = "Titan"
+   pbg_m18 = "Savage"
+   pbg_m19 = "Spike"
+   pbg_m20 = "Nitro"
+   pbg_m21 = "Viper"
+   pbg_m22 = "Riptide"
+   pbg_m23 = "Frost"
+   pbg_m24 = "Bane"
+   pbg_m25 = "Dread"
+   pbg_m26 = "Carnage"
+   pbg_m27 = "Blitz"
+   pbg_m28 = "Fury"
+   pbg_m29 = "Shadow"
+   pbg_m30 = "Cipher"
+   pbg_m31 = "Apex"
+   pbg_m32 = "Torque"
+   pbg_m33 = "Static"
+   pbg_m34 = "Chaos"
+   pbg_m35 = "Slay"
+   pbg_m36 = "Slayor"
+   pbg_m37 = "Grimm"
+   pbg_m38 = "Slash"
+   pbg_m39 = "Reaper"
+   pbg_m40 = "Matrix"
+   pbg_m41 = "Vapor"
+   pbg_m42 = "Overkill"
+   pbg_m43 = "Spectre"
+   pbg_m44 = "Maverick"
+   pbg_m45 = "Oblivion"
+   pbg_m46 = "Wreck"
+   pbg_m47 = "Iron"
+   pbg_m48 = "Steel"
+   pbg_m49 = "Stone"
+   pbg_m50 = "Gunner"
+   pbg_m51 = "Rogue"
+   pbg_m52 = "Hunter"
+   pbg_m53 = "Sentry"
+   pbg_m54 = "Vanguard"
+   pbg_m55 = "Blade"
+   pbg_m56 = "Edge"
+   pbg_m57 = "Cutter"
+   pbg_m58 = "Crash"
+   pbg_m59 = "Smash"
+   pbg_m60 = "Thrust"
+   pbg_m61 = "Impact"
+   pbg_m62 = "Rampage"
+   pbg_m63 = "Brute"
+   pbg_m64 = "Warlord"
+   pbg_m65 = "Overlord"
+   pbg_m66 = "Tyrant"
+   pbg_m67 = "Slayer"
+   pbg_m68 = "Crusher"
+   pbg_m69 = "Roguez"
+   pbg_m70 = "Ragez"
+   pbg_m71 = "Shock"
+   pbg_m72 = "Voltage"
+   pbg_m73 = "Pulse"
+   pbg_m74 = "Circuit"
+   pbg_m75 = "Wipeout"
+   pbg_m76 = "Despair"
+   pbg_m77 = "Scourge"
+   pbg_m78 = "Ruin"
+   pbg_m79 = "Decay"
+   pbg_m80 = "Doom"
+   pbg_m81 = "Plague"
+   pbg_m82 = "Rot"
+   pbg_m83 = "Venomz"
+   pbg_m84 = "Gore"
+   pbg_m85 = "Slaughter"
+   pbg_m86 = "Butcher"
+   pbg_m87 = "Cleaver"
+   pbg_m88 = "Piercer"
+   pbg_m89 = "Thorn"
+   pbg_m90 = "Fang"
+   pbg_m91 = "Claw"
+   pbg_m92 = "Grip"
+   pbg_m93 = "Lock"
+   pbg_m94 = "Breaker"
+   pbg_m95 = "Shatter"
+   pbg_m96 = "Quake"
+   pbg_m97 = "Blast"
+   pbg_m98 = "Surge"
+   pbg_m99 = "Storm"
+   pbg_m100 = "Zenith"
+   pbg_m101 = "Axe"
+   pbg_m102 = "Bolt"
+   pbg_m103 = "Cobra"
+   pbg_m104 = "Dash"
+   pbg_m105 = "Falcon"
+   pbg_m106 = "Glitch"
+   pbg_m107 = "Hawk"
+   pbg_m108 = "Jolt"
+   pbg_m109 = "Knox"
+   pbg_m110 = "Lynx"
+   pbg_m111 = "Mace"
+   pbg_m112 = "Nuke"
+   pbg_m113 = "Onyx"
+   pbg_m114 = "Prowl"
+   pbg_m115 = "Rex"
+   pbg_m116 = "Slate"
+   pbg_m117 = "Tank"
+   pbg_m118 = "Vex"
+   pbg_m119 = "Warg"
+   pbg_m120 = "Zap"
 
 properties:
 
@@ -340,6 +581,11 @@ properties:
    // [ room number, average level of its monsters, how many ] of the rooms with monsters worth hunting, made once after a start (PBotSurvey)
    plPBotRooms = $
    piPBotUp = 0
+   // the piBotNameType the bots' names were last made for (-1 = none yet): when the rule differs, PBotsTick renames them all
+   piBotNamesApplied = -1
+   // townsfolk lines: [ room, when it may speak again ] per room, and [ player, when a bot may greet them again ] per player (the lists keep only what is still waiting)
+   plPBotRoomSay = $
+   plPBotGreeted = $
    // GetTime() of the last PBotsTick: a gap of more than 30 s means the server was down (a restart): every bot is then taken home like a Rescue and chooses a new activity (PBotRestartReset)
    piPBotSeen = 0
    piPBotNoRisk = 0
@@ -889,6 +1135,109 @@ messages:
       return Send(self,@PBotScale,#seconds=piBotHuntPauseSecs);
    }
 
+   PBotSayOn()
+   "The rule pbBotSocialSay: bots say townsfolk lines now and then."
+   {
+      return pbBotSocialSay;
+   }
+
+   PBotGreetOn()
+   "The rule pbBotSocialGreet: bots greet a player who is near."
+   {
+      return pbBotSocialGreet;
+   }
+
+   PBotPlaceOf(rid = 0)
+   "Which town a street or inn room belongs to: 1 Tos, 2 Barloque, 3 Cor Noth, 4 Marion, 5 Raza, 6 Jasper, 7 Ko'catan, 8 Bergensdorf, 9 Jixa; 0 when it is none."
+   {
+      local i, iTown, t;
+
+      iTown = 0;
+      foreach t in Send(self,@NavTowns)
+      {
+         ++iTown;
+         foreach i in Nth(t,2)
+         {
+            if i = rid
+            {
+               return iTown;
+            }
+         }
+
+         foreach i in Nth(t,3)
+         {
+            if i = rid
+            {
+               return iTown;
+            }
+         }
+      }
+
+      return 0;
+   }
+
+   PBotSayAllowed(rid = 0)
+   "One townsfolk line per room every one to two minutes (all bots together): TRUE when this room may have one now, and it starts the wait."
+   {
+      local i, lKeep, bOk;
+
+      bOk = TRUE;
+      lKeep = $;
+      foreach i in plPBotRoomSay
+      {
+         if First(i) = rid
+         {
+            if GetTime() < Nth(i,2)
+            {
+               bOk = FALSE;
+               lKeep = Cons(i,lKeep);
+            }
+         }
+         else
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      if bOk
+      {
+         lKeep = Cons([rid,GetTime() + Send(self,@PBotScale,#seconds=Random(60,120))],lKeep);
+      }
+
+      plPBotRoomSay = lKeep;
+
+      return bOk;
+   }
+
+   PBotGreetAllowed(oUser = $)
+   "A player is greeted by one bot, then by none for one to five minutes: TRUE when this player may be greeted now, and it starts the wait."
+   {
+      local i, lKeep, bOk;
+
+      bOk = TRUE;
+      lKeep = $;
+      foreach i in plPBotGreeted
+      {
+         if GetTime() < Nth(i,2)
+         {
+            lKeep = Cons(i,lKeep);
+            if First(i) = oUser
+            {
+               bOk = FALSE;
+            }
+         }
+      }
+
+      if bOk
+      {
+         lKeep = Cons([oUser,GetTime() + Send(self,@PBotScale,#seconds=Random(60,300))],lKeep);
+      }
+
+      plPBotGreeted = lKeep;
+
+      return bOk;
+   }
+
    PBotHuntGiveUp(id = 0)
    "A hunter that could not find or reach a foe the rule's number of times in a row ends its hunt: its activity is over now, the next one is chosen at the next tick (PBotFinish, PBotChoose)."
    {
@@ -1216,12 +1565,115 @@ messages:
       return $;
    }
 
+   PBotGamerNames(iGender = GENDER_MALE,part = 1)
+   "The gamer handles of this gender in three parts of 40 (a list literal may hold only 40): the names bots have under the rule piBotNameType 0."
+   {
+      if iGender = GENDER_FEMALE
+      {
+         if part = 1
+         {
+            return [ pbg_f1, pbg_f2, pbg_f3, pbg_f4, pbg_f5, pbg_f6, pbg_f7, pbg_f8, pbg_f9, pbg_f10, pbg_f11, pbg_f12, pbg_f13, pbg_f14, pbg_f15, pbg_f16, pbg_f17, pbg_f18, pbg_f19, pbg_f20, pbg_f21, pbg_f22, pbg_f23, pbg_f24, pbg_f25, pbg_f26, pbg_f27, pbg_f28, pbg_f29, pbg_f30, pbg_f31, pbg_f32, pbg_f33, pbg_f34, pbg_f35, pbg_f36, pbg_f37, pbg_f38, pbg_f39, pbg_f40 ];
+         }
+
+         if part = 2
+         {
+            return [ pbg_f41, pbg_f42, pbg_f43, pbg_f44, pbg_f45, pbg_f46, pbg_f47, pbg_f48, pbg_f49, pbg_f50, pbg_f51, pbg_f52, pbg_f53, pbg_f54, pbg_f55, pbg_f56, pbg_f57, pbg_f58, pbg_f59, pbg_f60, pbg_f61, pbg_f62, pbg_f63, pbg_f64, pbg_f65, pbg_f66, pbg_f67, pbg_f68, pbg_f69, pbg_f70, pbg_f71, pbg_f72, pbg_f73, pbg_f74, pbg_f75, pbg_f76, pbg_f77, pbg_f78, pbg_f79, pbg_f80 ];
+         }
+
+         if part = 3
+         {
+            return [ pbg_f81, pbg_f82, pbg_f83, pbg_f84, pbg_f85, pbg_f86, pbg_f87, pbg_f88, pbg_f89, pbg_f90, pbg_f91, pbg_f92, pbg_f93, pbg_f94, pbg_f95, pbg_f96, pbg_f97, pbg_f98, pbg_f99, pbg_f100, pbg_f101, pbg_f102, pbg_f103, pbg_f104, pbg_f105, pbg_f106, pbg_f107, pbg_f108, pbg_f109, pbg_f110, pbg_f111, pbg_f112, pbg_f113, pbg_f114, pbg_f115, pbg_f116, pbg_f117, pbg_f118, pbg_f119, pbg_f120 ];
+         }
+
+      }
+      else
+      {
+         if part = 1
+         {
+            return [ pbg_m1, pbg_m2, pbg_m3, pbg_m4, pbg_m5, pbg_m6, pbg_m7, pbg_m8, pbg_m9, pbg_m10, pbg_m11, pbg_m12, pbg_m13, pbg_m14, pbg_m15, pbg_m16, pbg_m17, pbg_m18, pbg_m19, pbg_m20, pbg_m21, pbg_m22, pbg_m23, pbg_m24, pbg_m25, pbg_m26, pbg_m27, pbg_m28, pbg_m29, pbg_m30, pbg_m31, pbg_m32, pbg_m33, pbg_m34, pbg_m35, pbg_m36, pbg_m37, pbg_m38, pbg_m39, pbg_m40 ];
+         }
+
+         if part = 2
+         {
+            return [ pbg_m41, pbg_m42, pbg_m43, pbg_m44, pbg_m45, pbg_m46, pbg_m47, pbg_m48, pbg_m49, pbg_m50, pbg_m51, pbg_m52, pbg_m53, pbg_m54, pbg_m55, pbg_m56, pbg_m57, pbg_m58, pbg_m59, pbg_m60, pbg_m61, pbg_m62, pbg_m63, pbg_m64, pbg_m65, pbg_m66, pbg_m67, pbg_m68, pbg_m69, pbg_m70, pbg_m71, pbg_m72, pbg_m73, pbg_m74, pbg_m75, pbg_m76, pbg_m77, pbg_m78, pbg_m79, pbg_m80 ];
+         }
+
+         if part = 3
+         {
+            return [ pbg_m81, pbg_m82, pbg_m83, pbg_m84, pbg_m85, pbg_m86, pbg_m87, pbg_m88, pbg_m89, pbg_m90, pbg_m91, pbg_m92, pbg_m93, pbg_m94, pbg_m95, pbg_m96, pbg_m97, pbg_m98, pbg_m99, pbg_m100, pbg_m101, pbg_m102, pbg_m103, pbg_m104, pbg_m105, pbg_m106, pbg_m107, pbg_m108, pbg_m109, pbg_m110, pbg_m111, pbg_m112, pbg_m113, pbg_m114, pbg_m115, pbg_m116, pbg_m117, pbg_m118, pbg_m119, pbg_m120 ];
+         }
+
+      }
+
+      return $;
+   }
+
+   PBotIsGamerName(rName = $)
+   "TRUE when this name resource is one of the gamer handles."
+   {
+      local iGender, iPart, i;
+
+      foreach iGender in [GENDER_FEMALE,GENDER_MALE]
+      {
+         iPart = 0;
+         while iPart < 3
+         {
+            ++iPart;
+            foreach i in Send(self,@PBotGamerNames,#iGender=iGender,#part=iPart)
+            {
+               if i = rName
+               {
+                  return TRUE;
+               }
+            }
+         }
+      }
+
+      return FALSE;
+   }
+
+   PBotFixName(lId = $)
+   "A character that is about to log in has a name of the other kind than the rule piBotNameType asks for (0 gamer, 1 human): it gets a new name of its gender that nobody has (the name changes as a bot logs in; a restart renames them all)."
+   {
+      local bGamer, rName, iTry;
+
+      if lId = $
+      {
+         return;
+      }
+
+      bGamer = Send(self,@PBotIsGamerName,#rName=Nth(lId,2));
+      if (piBotNameType = 0 AND bGamer) OR (piBotNameType <> 0 AND NOT bGamer)
+      {
+         return;
+      }
+
+      iTry = 0;
+      rName = Send(self,@PBotPickName,#iGender=Nth(lId,3));
+      while Send(self,@PBotNameUsed,#rName=rName) AND iTry < 60
+      {
+         rName = Send(self,@PBotPickName,#iGender=Nth(lId,3));
+         ++iTry;
+      }
+
+      if NOT Send(self,@PBotNameUsed,#rName=rName)
+      {
+         SetNth(lId,2,rName);
+      }
+
+      return;
+   }
+
    PBotPickName(iGender = GENDER_MALE)
    "A random name of this gender's: a man's name for a man, a woman's for a woman."
    {
       local lNames;
 
-      if iGender = GENDER_FEMALE
+      if piBotNameType = 0
+      {
+         lNames = Send(self,@PBotGamerNames,#iGender=iGender,#part=Random(1,3));
+      }
+      else if iGender = GENDER_FEMALE
       {
          lNames = Send(self,@PBotFemaleNames,#part=Random(1,4));
       }
@@ -1287,6 +1739,7 @@ messages:
       local lId, oRoom, oBot, i;
 
       lId = Send(self,@PBotIdentity,#id=id);
+      Send(self,@PBotFixName,#lId=lId);
       if lId = $ OR Send(self,@PBotBodyOf,#id=id) <> $
       {
          return;
@@ -2536,7 +2989,7 @@ messages:
    PBotsTick()
    "Every second (BotsTick): every few seconds the number of bots in the game is brought to the rule piPlayerBotCount, or to none when the rule is off."
    {
-      local iWant, iHave, i, lId, lFree;
+      local iWant, iHave, i, lId, lFree, lRenew;
 
       ++piPBotTicks;
       if piPBotTicks < 5
@@ -2552,6 +3005,24 @@ messages:
 
       piPBotSeen = GetTime();
       ++piPBotUp;
+
+      // the rule piBotNameType changed (or this is the first start): every bot in the game gets a name of the kind asked for, by a fresh login (its who entry is told again)
+      if piBotNamesApplied <> piBotNameType
+      {
+         piBotNamesApplied = piBotNameType;
+         lRenew = $;
+         foreach i in plPBotBodies
+         {
+            lRenew = Cons(First(i),lRenew);
+         }
+
+         foreach i in lRenew
+         {
+            Send(self,@PBotLogout,#id=i);
+            Send(self,@PBotLogin,#id=i);
+         }
+      }
+
       if piPBotUp = 1
       {
          Send(self,@PBotMigrate);

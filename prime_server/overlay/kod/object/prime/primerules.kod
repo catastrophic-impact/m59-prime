@@ -58,7 +58,7 @@ properties:
    // Town life: 0 = the wandering townsfolk (the crowds our client draws; the original ambience), 1 = playerbots instead (persistent characters in who that
    // walk about, speak and answer tells; the townsfolk crowds are not drawn), 2 = both. piPlayerBotCount is how many playerbots are in the game at once.
    piTownLife = 1
-   piPlayerBotCount = 100
+   piPlayerBotCount = 50
    // Playerbot activity lengths in percent of real time (their 5 to 30 minute activities): 100 as the game plays, 10 ten times as fast (for testing)
    piBotTimeScale = 100
    // Playerbots: 1 = the info window of a bot (look at it) also says what it is doing ("Currently: heading to the bank in Marion."), a debugging aid; 0 = only its description
@@ -79,6 +79,12 @@ properties:
    // Playerbots: how many failed attempts in a row to find or reach a foe (a foe it cannot walk to, cannot get closer to, or that will not come) make a hunter give
    // its hunt up and choose another activity; a kill starts the count again. 0 would give up at once, a big number never.
    piBotHuntFailLimit = 3
+   // Playerbot names: 0 = gamer handles (Amber, Ruby, Strike, Havoc ...), 1 = human first and last names (Elspeth Eastwick). A bot gets a name of the kind asked for as it logs in; a server restart renames them all.
+   piBotNameType = 0
+   // Bot social: TRUE = bots say townsfolk lines now and then (at most one line per room every 1-2 minutes, only when a real player is in the room); FALSE = silent
+   pbBotSocialSay = TRUE
+   // Bot social: TRUE = a bot waves and says hello to a player near it (one greeting per player every 1-5 minutes, from any bot, also while it walks)
+   pbBotSocialGreet = TRUE
    // Playerbot hunting (owner, 2026-11-01), all in percent: a hunter only picks a foe whose time to kill times piBotHuntMargin is still under its own time to die
    // (200: it must win in half the time it would take to lose); a creature that blocks a bot's way is fought only when the same test with piBotFightMargin
    // passes (140); a bot that fights a blocker below piBotFleePct of its health gives the fight up and flees (35).

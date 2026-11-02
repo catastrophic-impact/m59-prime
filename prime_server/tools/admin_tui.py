@@ -57,6 +57,13 @@ RULES = [
     ("piSpiritManaPerHit", "Mana a paladin gets back for each hit that lands with a Spiritual Sword or Hammer"),
     ("pbSpiritNeutral", "Spirit weapons ignore a monster's resistance to holy: 1 yes, 0 no"),
     ("piBraxAutoSolveSec", "Brax arena solves itself every this many seconds (0 = off, the original game)"),
+    ("piBotNameType", "Bot names: 0 gamer handles (Amber, Strike), 1 human first and last names; a bot gets its name as it logs in, a restart renames all"),
+    ("piBotHuntMargin", "Bot hunting: a hunter picks a foe only if it kills it in this percent of the time it would take to die (200 = twice as fast)"),
+    ("piBotFightMargin", "Bot travel: the same test for a creature that blocks a bot's way (140)"),
+    ("piBotFleePct", "Bot travel: a bot fighting a blocker flees below this percent of its health (35)"),
+    ("piBotHuntBandLow", "Bot hunting: lowest room, as percent of the bot's own health (1)"),
+    ("piBotHuntBandHigh", "Bot hunting: highest room, as percent of the bot's own health (85)"),
+    ("piBotHuntPauseSecs", "Bot hunting: seconds a hunter stands still after a kill and its loot before the next foe (10)"),
 ]
 
 

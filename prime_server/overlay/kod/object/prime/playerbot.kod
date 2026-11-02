@@ -73,6 +73,75 @@ resources:
 
    pbot_slain = "%s has been slain by %s."
    // the cries a player makes when hit, by how much health is left (player.kod: GetOuchSound)
+   // townsfolk lines (ported from the client's chatter.ts): what a bot says now and then in a town street or inn, and when it greets a player
+   pbc_any1 = "Fine weather today."
+   pbc_any2 = "Have you heard about the rats in the cellar?"
+   pbc_any3 = "Prices keep going up."
+   pbc_any4 = "My cousin swears he saw a dragon."
+   pbc_any5 = "Don't trust anything that sells cheap."
+   pbc_any6 = "I've a mind to try my luck adventuring."
+   pbc_any7 = "The roads aren't safe after dark."
+   pbc_any8 = "Someone's been at my garden again."
+   pbc_any9 = "I could do with a pint."
+   pbc_any10 = "Mind your purse in a crowd."
+   pbc_any11 = "They say the old mines are haunted."
+   pbc_any12 = "Business is slow this week."
+   pbc_any13 = "Have you seen my dog?"
+   pbc_any14 = "Too many sword-swingers about lately."
+   pbc_morn1 = "Up early, are we?"
+   pbc_morn2 = "Market opens soon."
+   pbc_morn3 = "Morning already. Where does it go?"
+   pbc_morn4 = "Fresh bread, if you hurry."
+   pbc_eve1 = "Long day."
+   pbc_eve2 = "Time I was home."
+   pbc_eve3 = "The inn will be busy tonight."
+   pbc_eve4 = "Supper's waiting."
+   pbc_night1 = "Shouldn't be out this late."
+   pbc_night2 = "Keep to the lit streets."
+   pbc_night3 = "Did you hear that?"
+   pbc_night4 = "Can't sleep either?"
+   pbc_greet1 = "Good day to you."
+   pbc_greet2 = "Well met."
+   pbc_greet3 = "Safe travels."
+   pbc_greet4 = "Afternoon."
+   pbc_greet5 = "Mind how you go."
+   pbc_greet6 = "Hello there."
+   pbc_greetn1 = "Evening."
+   pbc_greetn2 = "Late to be about."
+   pbc_greetn3 = "Good evening to you."
+   pbc_pat1 = "Another round!"
+   pbc_pat2 = "Who's buying?"
+   pbc_pat3 = "This ale is watered."
+   pbc_pat4 = "Heard a good song last night."
+   pbc_pat5 = "Pull up a stool."
+   pbc_p1_1 = "Tos never sleeps."
+   pbc_p1_2 = "The Princess was seen in town."
+   pbc_p1_3 = "The arena's loud today."
+   pbc_p1_4 = "Busy at the smithy."
+   pbc_p2_1 = "The Duke's men are everywhere."
+   pbc_p2_2 = "Ships in from the south."
+   pbc_p2_3 = "Long live the Duke!"
+   pbc_p2_4 = "The market's packed."
+   pbc_p3_1 = "The university's taking students."
+   pbc_p3_2 = "Have you seen the museum?"
+   pbc_p3_3 = "Cor Noth was a fine place once."
+   pbc_p4_1 = "Lovely day by the river."
+   pbc_p4_2 = "The healer's been busy."
+   pbc_p4_3 = "Quiet, Marion. I like it."
+   pbc_p5_1 = "Spooky, the crypt."
+   pbc_p5_2 = "Raza's quiet. Too quiet."
+   pbc_p5_3 = "The forest creeps closer every year."
+   pbc_p6_1 = "Watch the bank, they say."
+   pbc_p6_2 = "Jasper's grown so."
+   pbc_p6_3 = "Mind the sewers' smell."
+   pbc_p7_1 = "Hot again."
+   pbc_p7_2 = "The jungle never stops growing."
+   pbc_p7_3 = "Ko'catan's not for the soft."
+   pbc_p8_1 = "Cold up here, always."
+   pbc_p8_2 = "The mountains are restless."
+   pbc_p8_3 = "Bergensdorf builds 'em tough."
+   pbc_p9_1 = "Strange folk come through Jixa."
+   pbc_p9_2 = "Mind the desert."
    pbot_ouch_m1 = ouchm1.ogg
    pbot_ouch_m2 = ouchm2.ogg
    pbot_ouch_m3 = ouchm3.ogg
@@ -261,6 +330,13 @@ properties:
    pbLeaving = FALSE
    // Has it chosen its own spot to stand at in this town street or inn (so bots do not stack at the door)
    pbParked = FALSE
+   // when the next crowd check runs (CrowdStep: every 10 seconds, another body on this bot's square)
+   piCrowdCheck = 0
+   // ambient townsfolk lines and greetings (AmbientTick): when the next check runs, and when this bot may speak again
+   piSayCheck = 0
+   piSayNext = 0
+   // the bot it is walking over to for a talk (ChatWith)
+   poChatTarget = $
    // Its mood while parked and GetTime() when it picks a new one
    // the room number for which pbSafe was worked out, and whether that room is a town street or inn (IsSafeHere)
    // PATH PROTOTYPE (TestPathTo): the goal (square and fine position), the next point on the way, how it went (0 not walking, 1 walking, 2 arrived, 3 no way, 4 stuck),
@@ -1929,10 +2005,11 @@ messages:
          return;
       }
 
-      oLook = $;
-      if Random(1,100) <= 50
+      // it looks at the nearest player or bot (a player first: a bot standing about looks at who is there); only when nobody is near does it turn about
+      oLook = Send(self,@NearestSocial,#iSquares=10,#bUserOnly=TRUE);
+      if oLook = $
       {
-         oLook = Send(oPrime,@PBotChatPartner,#oBot=self);
+         oLook = Send(self,@NearestSocial,#iSquares=10);
       }
 
       if oLook <> $
@@ -2165,6 +2242,8 @@ messages:
          return;
       }
 
+      Send(self,@AmbientTick);
+
       if piPhase = PBH_WALK
       {
          Send(self,@WalkStep);
@@ -2265,6 +2344,11 @@ messages:
          {
             Send(self,@NewMood);
 
+            return;
+         }
+
+         if Send(self,@CrowdStep)
+         {
             return;
          }
 
@@ -2459,6 +2543,320 @@ messages:
       return;
    }
 
+   SayPool(iKind = 1,iPlace = 0)
+   "The townsfolk lines of one kind: 1 any, 2 morning, 3 evening, 4 night, 5 greeting, 6 night greeting, 7 inn patrons, 8 the town iPlace (1 Tos, 2 Barloque, 3 Cor Noth, 4 Marion, 5 Raza, 6 Jasper, 7 Ko'catan, 8 Bergensdorf, 9 Jixa)."
+   {
+      if iKind = 1
+      {
+         return [ pbc_any1, pbc_any2, pbc_any3, pbc_any4, pbc_any5, pbc_any6, pbc_any7, pbc_any8, pbc_any9, pbc_any10, pbc_any11, pbc_any12, pbc_any13, pbc_any14 ];
+      }
+
+      if iKind = 2
+      {
+         return [ pbc_morn1, pbc_morn2, pbc_morn3, pbc_morn4 ];
+      }
+
+      if iKind = 3
+      {
+         return [ pbc_eve1, pbc_eve2, pbc_eve3, pbc_eve4 ];
+      }
+
+      if iKind = 4
+      {
+         return [ pbc_night1, pbc_night2, pbc_night3, pbc_night4 ];
+      }
+
+      if iKind = 5
+      {
+         return [ pbc_greet1, pbc_greet2, pbc_greet3, pbc_greet4, pbc_greet5, pbc_greet6 ];
+      }
+
+      if iKind = 6
+      {
+         return [ pbc_greetn1, pbc_greetn2, pbc_greetn3 ];
+      }
+
+      if iKind = 7
+      {
+         return [ pbc_pat1, pbc_pat2, pbc_pat3, pbc_pat4, pbc_pat5 ];
+      }
+
+      if iKind = 8 AND iPlace = 1
+      {
+         return [ pbc_p1_1, pbc_p1_2, pbc_p1_3, pbc_p1_4 ];
+      }
+
+      if iKind = 8 AND iPlace = 2
+      {
+         return [ pbc_p2_1, pbc_p2_2, pbc_p2_3, pbc_p2_4 ];
+      }
+
+      if iKind = 8 AND iPlace = 3
+      {
+         return [ pbc_p3_1, pbc_p3_2, pbc_p3_3 ];
+      }
+
+      if iKind = 8 AND iPlace = 4
+      {
+         return [ pbc_p4_1, pbc_p4_2, pbc_p4_3 ];
+      }
+
+      if iKind = 8 AND iPlace = 5
+      {
+         return [ pbc_p5_1, pbc_p5_2, pbc_p5_3 ];
+      }
+
+      if iKind = 8 AND iPlace = 6
+      {
+         return [ pbc_p6_1, pbc_p6_2, pbc_p6_3 ];
+      }
+
+      if iKind = 8 AND iPlace = 7
+      {
+         return [ pbc_p7_1, pbc_p7_2, pbc_p7_3 ];
+      }
+
+      if iKind = 8 AND iPlace = 8
+      {
+         return [ pbc_p8_1, pbc_p8_2, pbc_p8_3 ];
+      }
+
+      if iKind = 8 AND iPlace = 9
+      {
+         return [ pbc_p9_1, pbc_p9_2 ];
+      }
+
+      return $;
+   }
+
+   DoWave()
+   "The wave animation (the player's /wave), seen by everyone in the room."
+   {
+      if poOwner <> $
+      {
+         piAnimation = PANM_WAVE;
+         Send(poOwner,@SomethingChanged,#what=self);
+         piAnimation = PANM_NONE;
+      }
+
+      return;
+   }
+
+   NearestSocial(iSquares = 10,bUserOnly = FALSE)
+   "The nearest player (or, unless bUserOnly, playerbot) in this room within iSquares squares of it, else $."
+   {
+      local i, o, iBest, iDist, oBest;
+
+      oBest = $;
+      iBest = iSquares * FINENESS * iSquares * FINENESS;
+      foreach i in Send(poOwner,@GetHolderActive)
+      {
+         o = First(i);
+         if o <> self AND (IsClass(o,&User) OR (NOT bUserOnly AND IsClass(o,&PlayerBot)))
+         {
+            iDist = Send(self,@SquaredFineDistanceTo3D,#what=o);
+            if iDist < iBest
+            {
+               iBest = iDist;
+               oBest = o;
+            }
+         }
+      }
+
+      return oBest;
+   }
+
+   AmbientLine(bGreet = FALSE)
+   "A townsfolk line for here and now: a greeting, or a mix of what the folk of this town say, the time of day, and (in an inn) what patrons say."
+   {
+      local oPrime, iHour, iPlace, iRoll, lPool, bNight;
+
+      oPrime = Send(SYS,@GetPrime);
+      iHour = Send(SYS,@GetHour);
+      bNight = (iHour >= 21 OR iHour < 5);
+      if bGreet
+      {
+         lPool = Send(self,@SayPool,#iKind=5);
+         if bNight
+         {
+            lPool = Send(self,@SayPool,#iKind=6);
+         }
+
+         return Nth(lPool,Random(1,Length(lPool)));
+      }
+
+      iPlace = Send(oPrime,@PBotPlaceOf,#rid=piNavRid);
+      // weights: any 6, the town 4, the time of day 3, patrons 6 (in an inn)
+      iRoll = Random(1,19);
+      if iRoll <= 6
+      {
+         lPool = Send(self,@SayPool,#iKind=1);
+      }
+      else if iRoll <= 10 AND iPlace > 0
+      {
+         lPool = Send(self,@SayPool,#iKind=8,#iPlace=iPlace);
+      }
+      else if iRoll <= 13
+      {
+         if iHour >= 5 AND iHour < 9
+         {
+            lPool = Send(self,@SayPool,#iKind=2);
+         }
+         else if iHour >= 17 AND iHour < 21
+         {
+            lPool = Send(self,@SayPool,#iKind=3);
+         }
+         else if bNight
+         {
+            lPool = Send(self,@SayPool,#iKind=4);
+         }
+         else
+         {
+            lPool = Send(self,@SayPool,#iKind=1);
+         }
+      }
+      else if Send(Send(SYS,@GetPrime),@NavIsInn,#rid=piNavRid)
+      {
+         lPool = Send(self,@SayPool,#iKind=7);
+      }
+      else
+      {
+         lPool = Send(self,@SayPool,#iKind=1);
+      }
+
+      return Nth(lPool,Random(1,Length(lPool)));
+   }
+
+   AmbientTick()
+   "Every 6 to 10 seconds, in a town street or inn with a real player in the room (nobody else would hear it): a greeting for the nearest player, or now and then a townsfolk line. Never while hunting or fighting; it does not stop a walk."
+   {
+      local oPrime, oUser;
+
+      if GetTime() < piSayCheck
+      {
+         return;
+      }
+
+      oPrime = Send(SYS,@GetPrime);
+      piSayCheck = GetTime() + Send(oPrime,@PBotScale,#seconds=Random(6,10));
+      if poOwner = $ OR piDoing = PBD_HUNT OR piDoing = PBD_DEAD OR poTarget <> $ OR NOT Send(self,@IsSafeHere)
+      {
+         return;
+      }
+
+      oUser = Send(self,@NearestSocial,#iSquares=12,#bUserOnly=TRUE);
+      if oUser = $
+      {
+         return;
+      }
+
+      if Send(oPrime,@PBotGreetOn) AND Random(1,100) <= 35 AND Send(oPrime,@PBotGreetAllowed,#oUser=oUser)
+      {
+         Send(self,@FaceBot,#oWho=oUser);
+         Send(self,@DoWave);
+         Send(poOwner,@SomeoneSaid,#what=self,#type=SAY_RESOURCE,#string=Send(self,@AmbientLine,#bGreet=TRUE));
+
+         return;
+      }
+
+      if Send(oPrime,@PBotSayOn) AND GetTime() >= piSayNext AND Random(1,100) <= 25 AND Send(oPrime,@PBotSayAllowed,#rid=piNavRid)
+      {
+         piSayNext = GetTime() + Send(oPrime,@PBotScale,#seconds=Random(120,300));
+         Send(poOwner,@SomeoneSaid,#what=self,#type=SAY_RESOURCE,#string=Send(self,@AmbientLine));
+      }
+
+      return;
+   }
+
+   FreeSquareNear(iRow = 0,iCol = 0)
+   "A square of this room within two squares of (iRow,iCol) that no player or playerbot stands on and that can be walked to in a straight line from the middle of (iRow,iCol): [row, col]. (iRow,iCol) itself when it is free; when nothing near it is, it too."
+   {
+      local iTry, iR, iC, i, o, bTaken, lAll;
+
+      lAll = $;
+      foreach i in Send(poOwner,@GetHolderActive)
+      {
+         o = First(i);
+         if o <> self AND (IsClass(o,&User) OR IsClass(o,&PlayerBot))
+         {
+            lAll = Cons([Send(o,@GetRow),Send(o,@GetCol)],lAll);
+         }
+      }
+
+      // the square itself first, then up to 14 random ones around it
+      iTry = 0;
+      while iTry <= 14
+      {
+         iR = iRow;
+         iC = iCol;
+         if iTry > 0
+         {
+            iR = iRow + Random(-2,2);
+            iC = iCol + Random(-2,2);
+         }
+
+         ++iTry;
+         bTaken = FALSE;
+         foreach i in lAll
+         {
+            if First(i) = iR AND Nth(i,2) = iC
+            {
+               bTaken = TRUE;
+            }
+         }
+
+         if NOT bTaken
+            AND (iTry = 1 OR CanMoveInRoomBSP(Send(poOwner,@GetRoomData),iRow,iCol,FINENESS_HALF,FINENESS_HALF,
+                                              iR,iC,FINENESS_HALF,FINENESS_HALF,self,FALSE))
+         {
+            return [iR,iC];
+         }
+      }
+
+      return [iRow,iCol];
+   }
+
+   CrowdStep()
+   "Parked, every 10 seconds: when another player or playerbot stands on this bot's square it walks to a free square near it (the other bot does the same on its own check, so one of the two moves first). TRUE when it set off."
+   {
+      local i, o, bShare, lSq;
+
+      if GetTime() < piCrowdCheck
+      {
+         return FALSE;
+      }
+
+      piCrowdCheck = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=10);
+      bShare = FALSE;
+      foreach i in Send(poOwner,@GetHolderActive)
+      {
+         o = First(i);
+         if o <> self AND (IsClass(o,&User) OR IsClass(o,&PlayerBot))
+            AND Send(o,@GetRow) = Send(self,@GetRow) AND Send(o,@GetCol) = Send(self,@GetCol)
+         {
+            bShare = TRUE;
+         }
+      }
+
+      if NOT bShare
+      {
+         return FALSE;
+      }
+
+      lSq = Send(self,@FreeSquareNear,#iRow=Send(self,@GetRow),#iCol=Send(self,@GetCol));
+      if First(lSq) = Send(self,@GetRow) AND Nth(lSq,2) = Send(self,@GetCol)
+      {
+         return FALSE;
+      }
+
+      piDoingArg = piDoing;
+      piDoing = PBD_WALK;
+      plNavDoor = $;
+      Send(self,@WalkTo,#iRow=First(lSq),#iCol=Nth(lSq,2));
+
+      return TRUE;
+   }
+
    GoToNode(node = 0,doing = 1)
    "Walk to a node of this room (a square of its baked graph: where it hunts, hangs about, goes to talk): the way there is the planner's."
    {
@@ -2483,6 +2881,12 @@ messages:
          Send(self,@PathNoWay);
 
          return;
+      }
+
+      if doing = PBD_HANG OR doing = PBD_INN
+      {
+         // one body to a square: a free one near the node's
+         lPos = Send(self,@FreeSquareNear,#iRow=First(lPos),#iCol=Nth(lPos,2));
       }
 
       Send(self,@WalkTo,#iRow=First(lPos),#iCol=Nth(lPos,2));
@@ -2824,8 +3228,11 @@ messages:
 
       if piDoing = PBD_TALK
       {
-         oWith = Send(oPrime,@PBotChatPartner,#oBot=self);
-         if oWith <> $
+         // it talks to the one it walked over to, if that one is still here, standing about and close (within four squares)
+         oWith = poChatTarget;
+         poChatTarget = $;
+         if oWith <> $ AND Send(oWith,@GetOwner) = poOwner AND Send(oWith,@IsStandingAbout)
+            AND Send(self,@SquaredFineDistanceTo3D,#what=oWith) <= 4 * FINENESS * 4 * FINENESS
          {
             Send(self,@BeginTalk,#oWith=oWith);
 
@@ -2933,9 +3340,9 @@ messages:
    // ---- talk between two bots ----
 
    ChatWith()
-   "Go to another bot of this room that is standing about, to talk."
+   "Go to another bot of this room that is standing about, to talk: right up to it (a free square near it), so the two stand close and face each other."
    {
-      local oPrime, oWith, lPos, iNode;
+      local oPrime, oWith, lSq;
 
       oPrime = Send(SYS,@GetPrime);
       oWith = Send(oPrime,@PBotChatPartner,#oBot=self);
@@ -2944,15 +3351,19 @@ messages:
          return;
       }
 
-      iNode = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(oWith,@GetRow),#col=Send(oWith,@GetCol));
-      if iNode = piNavNode
+      if Send(self,@SquaredFineDistanceTo3D,#what=oWith) <= 3 * FINENESS * 3 * FINENESS
       {
          Send(self,@BeginTalk,#oWith=oWith);
 
          return;
       }
 
-      Send(self,@GoToNode,#node=iNode,#doing=PBD_TALK);
+      lSq = Send(self,@FreeSquareNear,#iRow=Send(oWith,@GetRow),#iCol=Send(oWith,@GetCol));
+      poChatTarget = oWith;
+      piDoingArg = PBD_TALK;
+      piDoing = PBD_WALK;
+      plNavDoor = $;
+      Send(self,@WalkTo,#iRow=First(lSq),#iCol=Nth(lSq,2));
 
       return;
    }
@@ -3008,6 +3419,15 @@ messages:
 
       if poTalkWith = $ OR Send(poTalkWith,@GetOwner) <> poOwner OR poOwner = $
       {
+         Send(self,@EndTalk);
+
+         return;
+      }
+
+      // the other one has walked off: the talk is over
+      if Send(self,@SquaredFineDistanceTo3D,#what=poTalkWith) > 6 * FINENESS * 6 * FINENESS
+      {
+         Send(poTalkWith,@EndTalk);
          Send(self,@EndTalk);
 
          return;

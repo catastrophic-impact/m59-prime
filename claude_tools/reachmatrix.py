@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """REACH MATRIX BY THE PLANNER'S OWN RULES: for every room, from EVERY arrival square (every square the GAME's door and edge exit tables put a player on: docs/kod_exits.json from kodexits.py) the server's planner is asked for a way to EVERY door / edge landing
 of that room. (The grid lattice of roomreach.py says 'reachable' where the planner says 'no way' in about a third of the cases; bots live by the planner.) TEST SERVER ONLY (it sets test bots down):
-  PRIME_ADMIN_PORT=9998 PRIME_SERVER_DIR=server2 python claude_tools/reachmatrix.py [ROOM ..] [--all-open] [--out docs/reach_matrix] [--write-trap] [--workers 4]
+  PRIME_ADMIN_PORT=9998 PRIME_SERVER_DIR=server2 python claude_tools/reachmatrix.py [ROOM ..] [--all-open | --all-baked] [--out docs/reach_matrix] [--write-trap] [--workers 4]
 Method: a test bot is put down EXACTLY on the arrival square (PBotTestPlace; PBotTestPath would move a bot out of a pocket) and told to walk to the door (PlayerBot.TestPathTo): the first plan is made at once and PathState says 3 = no way.
 To stay short each arrival tries doors until one has a way, then only the doors no earlier arrival reached. An arrival the bot cannot be put on exactly is listed as 'unplaceable' (not judged).
 Output: docs/reach_matrix/matrix.json and report.md: per room the arrivals with NO way to any door (SEALED ARRIVAL: a bot put down there can never leave), the doors NO arrival can reach (DEAD DOOR),
@@ -95,6 +95,7 @@ async def main():
         wm = json.load(open(os.path.join(ROOT, "docs", "world_map.json"))); wm = wm["rooms"] if isinstance(wm, dict) and "rooms" in wm else wm
         items = wm.items() if isinstance(wm, dict) else enumerate(wm)
         rooms = sorted(int(k) if isinstance(wm, dict) else r["rid"] for k, r in items if r.get("status") == "OPEN" and (int(k) if isinstance(wm, dict) else r["rid"]) in bake)
+    if "--all-baked" in a: rooms = sorted(bake)          # every room of the baked graph, the owner-excluded ones too: journeys pass THROUGH them (room 77 on Tos > 77 > 78)
     nw = int(arg("--workers", "4")); t0 = time.time(); results = {}
     scs = [await Scenario.open(recorder=False) for _ in range(nw)]; pool = await scs[0].bots()
     print(f"{len(rooms)} rooms, {len(pool)} test bots, {nw} workers; output {outd}", flush=True)

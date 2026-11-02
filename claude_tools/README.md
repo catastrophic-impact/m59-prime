@@ -19,4 +19,5 @@ Server-side helpers these use stay in `prime_server/scripts/` (admin_prime.py, b
 | `botscenario.py` | the SCENARIO LIBRARY (import): place / walk / events / inspect; failed trips return a bundle (picture, report, recorder, trail) -> `docs/scenarios/`; `walkcheck.py` is built on it |
 | `botdash.py` | ALL bots in one table with flags (STUCK, NOMOVE, PILE, PLANNER, NOROOM) |
 | `kodbuild.sh [--c]` | build the Kod (and compiler/server) in the box; deploy notes in its header |
+| `bottravel.py [--home 300 --dests 10 --bots 4 --timeout 70 --scale 10]` | **TRAVEL TEST**: test bots of one home town (default Raza 300; set a bot's home with PBotSet pos 7) are sent to hunt rooms elsewhere (the rooms the registry would offer for the bot's own health; `--all` = every hunt room) at 10x speed; per trip ARRIVED / TURNED / DROPPED / STUCK / TIMEOUT, the room trail and the flight recorder's WHY lines |
 Rows grow to the SOUTH, columns to the EAST; angles east 0, south 1024, west 2048, north 3072.
