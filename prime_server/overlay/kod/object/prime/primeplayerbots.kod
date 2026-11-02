@@ -583,6 +583,8 @@ properties:
    piPBotUp = 0
    // the piBotNameType the bots' names were last made for (-1 = none yet): when the rule differs, PBotsTick renames them all
    piBotNamesApplied = -1
+   // when the bots' disciple robes are worked out again (PBotsTick)
+   piPBotRobeCheck = 0
    // townsfolk lines: [ room, when it may speak again ] per room, and [ player, when a bot may greet them again ] per player (the lists keep only what is still waiting)
    plPBotRoomSay = $
    plPBotGreeted = $
@@ -2989,7 +2991,7 @@ messages:
    PBotsTick()
    "Every second (BotsTick): every few seconds the number of bots in the game is brought to the rule piPlayerBotCount, or to none when the rule is off."
    {
-      local iWant, iHave, i, lId, lFree, lRenew;
+      local iWant, iHave, i, lId, lFree, lRenew, oRobe;
 
       ++piPBotTicks;
       if piPBotTicks < 5
@@ -3033,6 +3035,21 @@ messages:
       if piPBotUp = 3
       {
          Send(self,@PBotRebalance);
+      }
+
+      // the disciple robes of the bots in the world: their colour follows the class level (RobeLevel); worked out again at the first tick after a start and then every five minutes
+      // (a robe made before this rule, or by an older tier, is not left behind)
+      if GetTime() >= piPBotRobeCheck
+      {
+         piPBotRobeCheck = GetTime() + 300;
+         foreach i in plPBotBodies
+         {
+            oRobe = Send(Nth(i,2),@FindUsing,#class=&DiscipleRobe);
+            if oRobe <> $
+            {
+               Send(oRobe,@ResetColors);
+            }
+         }
       }
 
       if (piPBotUp = 12 AND plPBotRooms = $) OR (plPBotRooms <> $ AND Length(First(plPBotRooms)) < 7)

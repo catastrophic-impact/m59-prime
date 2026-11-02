@@ -2,7 +2,7 @@
 
 <p align="center"><img src="custom_assets/fixedlogo_cropped.png" alt="Meridian 59 Prime" width="520"></p>
 
-**Meridian 59 Prime** is a custom edition of the classic online RPG *Meridian 59*: the Server 104 game (64-bit, built for Linux) played in a web browser, with our own class system, groups, companions, living towns full of **playerbots**, and smarter monsters.
+**Meridian 59 Prime** is a custom edition of the classic online RPG *Meridian 59*: the Server 104 game (64-bit, built for Linux) played in a web browser, with our own class system, groups, companions, living towns full of **playerbots** that walk, hunt, talk and greet you, and smarter monsters.
 
 It is a non-commercial fan project. It is built as **a pinned upstream + small numbered patches + our own files**, so upstream updates can be pulled in without losing our work.
 
@@ -10,11 +10,11 @@ It is a non-commercial fan project. It is built as **a pinned upstream + small n
 
 - **Classes:** Warrior, Monk, Paladin and Elementalist, each with a six-level ability table, class trainers, class-specific rules and rebalanced gear. A rule switches back to the original classless characters.
 - **Groups and companions:** groups of up to five (players, bots and companions), shared health and mana window, no friendly fire, shared XP and heals. Companion bots are built from the player's own numbers and fight what the player fights.
-- **Playerbots:** a pool of 300 persistent characters (you choose how many are online) that appear in *who*, log in and out, chat, hang about the towns and inns, shop, travel by the town portals and **really walk** the world (they plan a path over each room's real floor, go round creatures, fight what they can beat and flee from what they can't), hunt real monsters, die and come back through the underworld. A restart sends every bot home to begin fresh.
+- **Playerbots:** a living population of characters (50 online by default, you choose how many) that appear in *who* with gamer handles or human names (a rule), log in and out, hang about the towns and inns, shop, travel by the town portals and **really walk** the world: they plan a path over each room's real floor, go round creatures, fight what they can beat, flee from what they can't, hunt real monsters, die and come back through the underworld. In the towns they stand on their own square, look at who is near, talk to each other face to face, say townsfolk lines now and then, and wave and say hello to players (each of these has a rule to switch it off). Their disciple robes show their class level.
 - **Smarter monsters:** line-of-sight aggro, a leash for chases that get nowhere, and aggro only where a walking route exists.
-- **Admin tools:** an in-game admin console (travel, items, creatures, weather), a terminal admin tool, and a set of debugging tools that show what any bot is doing and why (`claude_tools/`).
-- **Web client:** class picker, group and companion windows, monster health bars, floating damage and heal numbers, and a new title screen. An Electron launcher is included.
-- **Server fixes:** a 64-bit Linux build, MD5 fixed on 64-bit, no silent death when a client disconnects, real account deletion on Linux.
+- **Admin tools:** an in-game admin console (travel, items, creatures, weather), a terminal admin tool with every game and bot rule, and a set of debugging tools that show what any bot is doing and why, test its journeys and measure its cost (`claude_tools/`).
+- **Web client:** class picker, group and companion windows, monster health bars, floating damage and heal numbers, a new title screen, settings that apply as you change them, and a sound button on the login screen. An Electron launcher is included.
+- **Server fixes:** a 64-bit Linux build, MD5 fixed on 64-bit, no silent death when a client disconnects, real account deletion on Linux, rooms and monsters that never loaded on Linux because of capital letters in file names, and `show status` that no longer hangs.
 
 The full list is in [wiki/FEATURES.md](wiki/FEATURES.md); every change is numbered in [wiki/changes.txt](wiki/changes.txt).
 

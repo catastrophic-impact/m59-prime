@@ -680,7 +680,7 @@ messages:
    CompApplyWith(comp = $, health = 20, lProf = $)
    "Health, fighting numbers, spells, mana and gear of a class companion from its health and its abilities."
    {
-      local iKind, iHealth, iLevel, lFight, iChance, iPower, n, i;
+      local iKind, iHealth, iLevel, lFight, iChance, iPower, n, i, oRobe;
 
       iKind = Send(comp,@GetKind);
       iHealth = health;
@@ -694,6 +694,13 @@ messages:
       if Send(comp,@GetGearTier) <> Bound(iLevel,1,5)
       {
          Send(comp,@SetTier,#tier=Bound(iLevel,1,5));
+
+         // the disciple robe's colour is its class level (RobeLevel): worked out again for the new tier
+         oRobe = Send(comp,@FindUsing,#class=&DiscipleRobe);
+         if oRobe <> $
+         {
+            Send(oRobe,@ResetColors);
+         }
       }
 
       iChance = 0;

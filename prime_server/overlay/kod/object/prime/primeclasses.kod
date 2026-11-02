@@ -982,7 +982,42 @@ messages:
    "Hook in the disciple robes' ResetColors: -1 for players without a class (the upstream rule applies), else the robe's colour level "
    "(the class level up to 5 if this is the robe of the class's god, 0 for any other god's robe)."
    {
-      local iClass;
+      local iClass, iKind;
+
+      // a class companion or playerbot: its class level is its gear tier (1-5), in the robe of its class's god
+      if who <> $ AND IsClass(who,&Companion)
+      {
+         iKind = Send(who,@GetKind);
+         iClass = CLASS_NONE;
+         if iKind = COMPANION_WARRIOR
+         {
+            iClass = CLASS_WARRIOR;
+         }
+         else if iKind = COMPANION_MONK
+         {
+            iClass = CLASS_MONK;
+         }
+         else if iKind = COMPANION_PALADIN
+         {
+            iClass = CLASS_PALADIN;
+         }
+         else if iKind = COMPANION_ELEMENTALIST
+         {
+            iClass = CLASS_ELEMENTALIST;
+         }
+
+         if iClass = CLASS_NONE
+         {
+            return -1;
+         }
+
+         if Send(self,@ClassGodSchool,#iClass=iClass) = iSchool
+         {
+            return Bound(Send(who,@GetGearTier),0,5);
+         }
+
+         return 0;
+      }
 
       if who = $ OR NOT IsClass(who,&Player)
       {
