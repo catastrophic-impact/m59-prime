@@ -1,0 +1,56 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -591,6 +591,26 @@
+       propagate;
+    }
+ 
++   OrderAttack(target = $)
++   "Prime: its owner's Attack button. It goes for the target unless it is passive or staying (or not in the game). TRUE if it did."
++   {
++      if poOwner = $ OR target = $ OR piCompState <> COMP_ACTIVE
++         OR piStance = COMP_PASSIVE OR piStance = COMP_STAY
++      {
++         return FALSE;
++      }
++
++      if poTarget <> target
++      {
++         Send(self,@MarkFight);
++         Send(self,@SetBehaviorFlag,#flag=AI_MOVE_FOLLOW_MASTER,#value=FALSE);
++         Send(self,@TargetSwitch,#what=target,#iHatred=100);
++         Send(self,@EnterStateChase,#target=target,#actnow=TRUE);
++      }
++
++      return TRUE;
++   }
++
+    TakesMinionCommand(defend = FALSE)
+    "Whether its owner's attack (Player.CommandMinionAttack) sends it in; defending is when "
+    "something hurts its owner."
+@@ -1317,6 +1337,11 @@
+       if what <> $ AND what <> self
+       {
+          Send(self,@MarkFight);
++         // Prime: when one of its owner's companions is struck, the others (in Defend) answer too
++         if poSworn <> $ AND IsClass(what,&Battler)
++         {
++            Send(poSworn,@CommandMinionAttack,#oTarget=what,#defend=TRUE);
++         }
+       }
+ 
+       Post(Send(SYS,@GetCompanionBook),@HealthChanged,#comp=self);
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -327,6 +327,12 @@
+       local oComp, rMsg;
+ 
+       oComp = Send(who,@GetCompanion);
++      // Prime: the stance goes to the bots too; with only bots there is no complaint
++      if Send(Send(SYS,@GetPrime),@BotStances,#who=who,#stance=stance) AND oComp = $
++      {
++         return;
++      }
++
+       if oComp = $
+       {
+          Send(who,@MsgSendUser,#message_rsc=cbook_none);

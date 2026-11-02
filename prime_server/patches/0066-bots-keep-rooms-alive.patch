@@ -1,0 +1,54 @@
+--- a/kod/object/active/holder/room.kod
++++ b/kod/object/active/holder/room.kod
+@@ -2213,6 +2213,13 @@
+          }
+       }
+ 
++      // Ours: a PlayerBot's real body keeps a room alive like a player
++      if IsClass(what,&PlayerBot) AND NOT pbUser_in_room
++      {
++         Send(self,@FirstUserEntered,#what=what,#new_row=Nth(new_pos,2),
++              #new_col=Nth(new_pos,3));
++      }
++
+       if IsClass(what,&User)
+       {
+          // NPCs might need to do or say something.
+@@ -2398,6 +2405,27 @@
+       // make sure to unregister it as a blocker
+       BlockerRemoveBSP(prmRoom, what);
+ 
++      // Ours: a PlayerBot's real body counts as an occupant
++      if IsClass(what,&PlayerBot)
++      {
++         foreach i in plActive
++         {
++            each_obj = First(i);
++            if (IsClass(each_obj,&User) OR IsClass(each_obj,&PlayerBot))
++               AND each_obj <> what
++            {
++               propagate;
++            }
++         }
++
++         if pbUser_in_room
++         {
++            Send(self,@LastUserLeft,#what=what);
++         }
++
++         propagate;
++      }
++
+       if NOT IsClass(what,&User)
+       {
+          propagate;
+@@ -2414,7 +2442,8 @@
+       foreach i in plActive
+       {
+          each_obj = First(i);   // optimized for room
+-         if IsClass(each_obj,&User) AND each_obj <> what
++         if (IsClass(each_obj,&User) OR IsClass(each_obj,&PlayerBot))
++            AND each_obj <> what
+          {
+             propagate;
+          }

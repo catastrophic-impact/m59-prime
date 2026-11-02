@@ -1,0 +1,12 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -3604,6 +3604,9 @@
+          }
+       }
+ 
++      // Prime: the playerbots that are in the game are in the list too (who, tells)
++      lUsers = Send(Send(SYS,@GetPrime),@PBotsInWho,#lUsers=lUsers);
++
+       AddPacket(1,BP_PLAYERS,2,Length(lUsers));
+       foreach i in lUsers
+       {

@@ -1,0 +1,1785 @@
+// Meridian 59 Prime: the class system's rules.
+//
+// PrimeClasses is a singleton (System.GetPrime creates it on first use): upstream files call it with one-line hooks
+// (Send(Send(SYS,@GetPrime),@Message,#who=self,...)), so all the logic lives here and the patches stay tiny.
+//
+// A classed player has piPlayerClass <> 0 (Player.GetPlayerClass).  Class, fixed stats, 6 levels of 3 abilities, the vanilla
+// "percentage" rule for opening the next level, equipment limits.  See docs/class_overhaul_design.txt.
+
+PrimeClasses is PrimeAdmin
+
+constants:
+
+   include blakston.khd
+   include prime.khd
+
+resources:
+
+   prime_dagger_double = "You hit %s%s twice with your dagger!"
+   prime_class_cant_use = "Your training does not allow you to use %s%s."
+   prime_teach_elsewhere = "You need to seek training elsewhere."
+   prime_priest_no_fists = "Priests do not fight with their fists: cast a touch spell such as Holy Touch."
+   prime_skill_unknown = "You do not know that skill."
+   prime_admin_help = "dm prime level <1-6> [percent] / health <n> / gold <n> / item <name> / robe <god> / abilities: each ends with `to <player>` (default: you)"
+   prime_admin_no_target = "There is nobody called that."
+   prime_admin_no_class = "%s%s has no class."
+   prime_admin_level = "%s%s now knows the abilities of class level %i at %i percent."
+   prime_admin_health = "%s%s now has %i health (the cap is 100 plus stamina)."
+   prime_admin_gold = "%s%s was given %i shillings."
+   prime_admin_item = "%s%s was given %s%s."
+   prime_admin_no_item = "No item with that name."
+   prime_snared = "Ice slows you!"
+   prime_snare_other = "%s%s is slowed by the ice."
+   prime_frozen = "The nova freezes %s%s!"
+   prime_cc_immune = "%s%s cannot be affected by that effect again yet."
+
+classvars:
+
+properties:
+
+   // Crowd control immunity: list of [battler, cc type, GetTime() until which that type cannot affect it again]
+   plCCImmune = $
+
+   // Power of the last attack spell cast, for the side effects (Ice Shard snare, Ice Nova freeze)
+   piLastAttackPower = 0
+
+   // One second heartbeat (second wind ...), and per logged-on player: [player, GetTime() of the last fight, heals since the last skill roll]
+   ptTick = $
+   plState = $
+
+messages:
+
+   Constructor()
+   {
+      ptTick = CreateTimer(self,@Tick,1000);
+
+      return;
+   }
+
+   Delete()
+   {
+      if ptTick <> $
+      {
+         DeleteTimer(ptTick);
+         ptTick = $;
+      }
+
+      propagate;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Per-player bookkeeping and the one second heartbeat
+
+   StateOf(who = $)
+   {
+      local i;
+
+      foreach i in plState
+      {
+         if First(i) = who
+         {
+            return i;
+         }
+      }
+
+      i = [who,0,0];
+      plState = Cons(i,plState);
+
+      return i;
+   }
+
+   NoteCombat(who = $)
+   "Hook: the player took damage or attacked. Second wind waits ten seconds after the last fight."
+   {
+      SetNth(Send(self,@StateOf,#who=who),2,GetTime());
+
+      return;
+   }
+
+   Tick()
+   {
+      local oUser, lKeep, i;
+
+      ptTick = CreateTimer(self,@Tick,1000);
+
+      Send(self,@GroupsTick);
+
+      // players that logged off drop out of the state list
+      lKeep = $;
+      foreach oUser in Send(SYS,@GetUsersLoggedOn)
+      {
+         if IsClass(oUser,&Player)
+         {
+            lKeep = Cons(Send(self,@StateOf,#who=oUser),lKeep);
+         }
+      }
+
+      plState = lKeep;
+
+      foreach i in plState
+      {
+         Send(self,@SecondWindFor,#state=i);
+      }
+
+      return;
+   }
+
+   SecondWindFor(state = $)
+   "Second Wind (Warrior level 1): after 10 seconds without a fight, health and mana come back every second: "
+   "1 / 2 / 3 / 4 points at skill 1-33 / 34-66 / 67-98 / 99 percent. The skill improves with use (every 10 heals)."
+   {
+      local who, iAbility, iAmount, bHealed;
+
+      who = First(state);
+      iAbility = Send(who,@GetSkillAbility,#Skill_num=SKID_SECOND_WIND);
+      if iAbility < 1 OR Send(who,@GetHealth) <= 0 OR (GetTime() - Nth(state,2)) < 10
+      {
+         SetNth(state,3,0);
+
+         return;
+      }
+
+      if iAbility >= 99
+      {
+         iAmount = 4;
+      }
+      else if iAbility >= 67
+      {
+         iAmount = 3;
+      }
+      else if iAbility >= 34
+      {
+         iAmount = 2;
+      }
+      else
+      {
+         iAmount = 1;
+      }
+
+      bHealed = FALSE;
+      if Send(who,@GetHealth) < Send(who,@GetMaxHealth)
+      {
+         Send(who,@GainHealth,#amount=iAmount * 100,#precision=TRUE);     // no floating number for the quiet regeneration
+         bHealed = TRUE;
+      }
+
+      if Send(who,@GetMana) < Send(who,@GetMaxMana)
+      {
+         Send(who,@GainMana,#amount=iAmount,#bCapped=TRUE);
+         bHealed = TRUE;
+      }
+
+      if bHealed
+      {
+         SetNth(state,3,Nth(state,3) + 1);
+         if Nth(state,3) >= 10
+         {
+            SetNth(state,3,0);
+            Send(Send(SYS,@FindSkillByNum,#num=SKID_SECOND_WIND),@ImproveAbility,#who=who);
+         }
+      }
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Spell and weapon rules of the classes
+
+   ManaFocusBonus(who = $)
+   "Hook in TouchAttackSpell.FindDamage: Mana Focus boosts touch attacks (Holy Touch, Zap ...) like the elemental attack spells."
+   {
+      local oFocus;
+
+      if who = $ OR NOT IsClass(who,&Player) OR NOT Send(who,@CheckPlayerFlag,#flag=PFLAG_MANA_FOCUS)
+      {
+         return 0;
+      }
+
+      oFocus = Send(SYS,@FindSpellByNum,#num=SID_MANA_FOCUS);
+
+      return ((First(Send(who,@GetEnchantedState,#what=oFocus)) * 5) / SPELLPOWER_MAXIMUM) + 1;
+   }
+
+   TouchAim(who = $, oWeapon = $, iAim = 0)
+   "Hook in Player.GetOffense: a touch spell is aimed with Mysticism, so a caster with Aim 1 can still hit."
+   {
+      if oWeapon <> $ AND IsClass(oWeapon,&TouchAttackSpell) AND Send(who,@GetMysticism) > iAim
+      {
+         return Send(who,@GetMysticism);
+      }
+
+      return iAim;
+   }
+
+   ClassWeaponFor(who = $, oWeapon = $)
+   "Hook in Create Weapon: only weapons the caster's class may use (no daggers for warriors); otherwise a hammer."
+   {
+      if NOT Send(self,@ClassAllowsItem,#who=who,#what=oWeapon,#report=FALSE)
+      {
+         Send(oWeapon,@Delete);
+
+         return Create(&Hammer);
+      }
+
+      return oWeapon;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // The warrior companion follows its owner's effective level (ECL, 1-50): Meridian has no levels, so it is made of
+   // health (35 %), the average of the five best skills and spells (45 %) and the stats above the starting ones (20 %).
+
+   EffectiveLevel(who = $)
+   {
+      local i, iAb, iTmp, a1, a2, a3, a4, a5, iHp, iSkill, iStat, iEcl;
+
+      iHp = Bound(((Send(who,@GetBaseMaxHealth) - 20) * 50) / 110,0,50);
+
+      a1 = 0;
+      a2 = 0;
+      a3 = 0;
+      a4 = 0;
+      a5 = 0;
+      foreach i in Send(who,@GetSpellList)
+      {
+         iAb = Send(who,@DecodeSpellAbility,#compound=i);
+         if iAb > a5
+         {
+            a5 = iAb;
+            if a5 > a4
+            {
+               iTmp = a4;
+               a4 = a5;
+               a5 = iTmp;
+            }
+
+            if a4 > a3
+            {
+               iTmp = a3;
+               a3 = a4;
+               a4 = iTmp;
+            }
+
+            if a3 > a2
+            {
+               iTmp = a2;
+               a2 = a3;
+               a3 = iTmp;
+            }
+
+            if a2 > a1
+            {
+               iTmp = a1;
+               a1 = a2;
+               a2 = iTmp;
+            }
+         }
+      }
+
+      foreach i in Send(who,@GetSkillList)
+      {
+         iAb = Send(who,@DecodeSkillAbility,#compound=i);
+         if iAb > a5
+         {
+            a5 = iAb;
+            if a5 > a4
+            {
+               iTmp = a4;
+               a4 = a5;
+               a5 = iTmp;
+            }
+
+            if a4 > a3
+            {
+               iTmp = a3;
+               a3 = a4;
+               a4 = iTmp;
+            }
+
+            if a3 > a2
+            {
+               iTmp = a2;
+               a2 = a3;
+               a3 = iTmp;
+            }
+
+            if a2 > a1
+            {
+               iTmp = a1;
+               a1 = a2;
+               a2 = iTmp;
+            }
+         }
+      }
+
+      iSkill = Bound((((a1 + a2 + a3 + a4 + a5) / 5) * 50) / 99,0,50);
+
+      iStat = Send(who,@GetMight) + Send(who,@GetIntellect) + Send(who,@GetStamina)
+              + Send(who,@GetAgility) + Send(who,@GetMysticism) + Send(who,@GetAim);
+      iStat = Bound(((iStat - 200) * 50) / 100,0,50);
+
+      iEcl = ((35 * iHp) + (45 * iSkill) + (20 * iStat)) / 100;
+
+      return Bound(iEcl,1,50);
+   }
+
+   WarriorNumbers(who = $, iBonus = 0)
+   "Hook (CompanionBook.Rescale) for the warrior companion: [ health, offense, defense, least damage, most damage ]. "
+   "It fights as a real warrior of its owner's ECL would (Player.GetOffense, GetDefense and the sword's damage): its skills at 20 + 1.5 x ECL percent, "
+   "aim, agility and stamina at 25 + ECL/3, its owner's health."
+   {
+      local iEcl, iSkill, iStat, iHealth, iOffense, iDefense;
+
+      iEcl = Send(self,@EffectiveLevel,#who=who);
+      iSkill = 20 + iEcl * 3 / 2;
+      iStat = 25 + iEcl / 3;
+      iHealth = Send(who,@GetBaseMaxHealth);
+
+      // stroke and proficiency twice each, aim eight times, and the health term, as a player's
+      iOffense = 4 * iSkill + 8 * iStat + 200 * iHealth / (100 + iStat);
+      // parry, block and dodge (about two and a half skills), agility eight times, the health term
+      iDefense = 5 * iSkill / 2 + 8 * iStat + 200 * iHealth / (100 + iStat);
+
+      // a sword's 3-8 (thrust), 5 more for each hundred of proficiency, and the better weapons of the higher levels
+      return [ iHealth * (100 + iBonus) / 100, Bound(iOffense,1,2000), Bound(iDefense,1,2000),
+               3 + iSkill * 5 / 100 + iEcl / 8, 8 + iSkill * 5 / 100 + iEcl / 6 ];
+   }
+
+   CompanionKill(comp = $, master = $, victim = $)
+   "Hook (Monster.KilledSomething): a companion killed something. Its owner is made the killer's target for it, so they get the "
+   "experience (as for a kill of their own: Player.SomethingKilled advances only a player whose kill target died)."
+   {
+      if comp <> $ AND IsClass(comp,&Companion) AND master <> $ AND IsClass(master,&Player) AND victim <> $
+         AND IsClass(victim,&Monster)
+      {
+         Send(master,@SetKillTarget,#target=victim);
+      }
+
+      return;
+   }
+
+   DaggerDouble(who = $, what = $, damage = 0)
+   "Hook in Player.GetDamage (damage in hundredths): a dagger hit lands twice, for double damage, piDaggerDoublePercent percent of the time."
+   {
+      local oWeapon;
+
+      if who = $ OR what = $
+      {
+         return damage;
+      }
+
+      oWeapon = Send(who,@GetWeapon);
+      if oWeapon <> $ AND IsClass(oWeapon,&ShortSword) AND Random(1,100) <= piDaggerDoublePercent
+      {
+         Send(who,@MsgSendUser,#message_rsc=prime_dagger_double,#parm1=Send(what,@GetDef),#parm2=Send(what,@GetName));
+
+         return damage * 2;
+      }
+
+      return damage;
+   }
+
+   IsSpiritWeapon(oWeapon = $)
+   {
+      return oWeapon <> $ AND (IsClass(oWeapon,&SpiritualSword) OR IsClass(oWeapon,&SpiritualHammer));
+   }
+
+   SpiritHit(who = $)
+   "Hook in Player.GetDamage (a hit landed): a paladin's spirit weapon returns piSpiritManaPerHit mana."
+   {
+      if who = $ OR piSpiritManaPerHit <= 0 OR NOT IsClass(who,&Player)
+         OR Send(who,@GetPlayerClass) <> CLASS_PALADIN
+      {
+         return;
+      }
+
+      if Send(self,@IsSpiritWeapon,#oWeapon=Send(who,@GetWeapon))
+      {
+         Send(who,@GainMana,#amount=piSpiritManaPerHit,#bCapped=TRUE);
+      }
+
+      return;
+   }
+
+   SpiritResist(attacker = $, target = $, aspell = 0, resist = 0)
+   "Hook in Monster.AssessDamage: a spirit weapon's damage is not reduced by the monster's resistance to holy (weaknesses to holy still add)."
+   {
+      local iHoly;
+
+      if NOT pbSpiritNeutral OR attacker = $ OR target = $ OR (aspell & ATCK_SPELL_HOLY) = 0
+         OR NOT IsClass(attacker,&Battler)
+      {
+         return resist;
+      }
+
+      if NOT Send(self,@IsSpiritWeapon,#oWeapon=Send(attacker,@GetWeapon))
+      {
+         return resist;
+      }
+
+      iHoly = Send(target,@ResistanceCheck,#atype=0,#aspell=ATCK_SPELL_HOLY);
+      if iHoly > 0
+      {
+         return resist - iHoly;
+      }
+
+      return resist;
+   }
+
+   DodgeWeight(who = $)
+   "Hook in Player.GetDefense: how many TENTHS of a defense point each point of Dodge is worth (20 = 2 points, the base game). A monk has no "
+   "Parry and usually no Block to lean on, so each point of Dodge is worth 3 in cloth or leather, but the heavier the body armour the less: "
+   "2.5 in chain, 2 in scale, 1.5 in nerudite and 1 in plate. (The armour's own defense bonus is added separately.)"
+   {
+      local oArmor, iLevel;
+
+      if who <> $ AND IsClass(who,&Player) AND Send(who,@GetPlayerClass) = CLASS_MONK
+      {
+         oArmor = Send(who,@FindUsing,#class=&Armor);
+         iLevel = 1;
+         if oArmor <> $
+         {
+            iLevel = Send(self,@ItemLevel,#what=oArmor);
+         }
+
+         if iLevel <= 2
+         {
+            return MONK_DODGE_WEIGHT * 10;
+         }
+
+         return Bound(MONK_DODGE_WEIGHT * 10 - 5 * (iLevel - 2),10,MONK_DODGE_WEIGHT * 10);
+      }
+
+      return 20;
+   }
+
+   JoinRange(words = $, from = 1, to = 1)
+   "Words from..to of a list of words joined with spaces, as a new string."
+   {
+      local i, n;
+
+      ClearTempString();
+      n = 0;
+      foreach i in words
+      {
+         n = n + 1;
+         if n >= from AND n <= to
+         {
+            if n > from
+            {
+               AppendTempString(" ");
+            }
+
+            AppendTempString(i);
+         }
+      }
+
+      return SetString($,GetTempString());
+   }
+
+   AdminGiveClassLevel(oTarget = $, iLevel = 1, iPercent = 70)
+   "Test helper: every spell and skill of the class table of the target up to a class level, at a percent."
+   {
+      local i, iClass;
+
+      iClass = Send(oTarget,@GetPlayerClass);
+      if iClass = CLASS_NONE
+      {
+         return FALSE;
+      }
+
+      foreach i in Send(self,@ClassAbilityTable,#iClass=iClass)
+      {
+         if Nth(i,3) <= iLevel
+         {
+            if First(i)
+            {
+               Send(oTarget,@AddSkill,#num=Nth(i,2),#iability=iPercent);
+            }
+            else
+            {
+               Send(oTarget,@AddSpell,#num=Nth(i,2),#iability=iPercent);
+            }
+         }
+      }
+
+      return TRUE;
+   }
+
+   AdminSetHealth(oTarget = $, iHealth = 20)
+   "Test helper: base maximum health (the game caps it at 100 plus the character's stamina), and full health."
+   {
+      local iCap, iNew;
+
+      iCap = 100 + Send(oTarget,@GetStamina);
+      iNew = Bound(iHealth,20,iCap);
+      Send(oTarget,@GainBaseMaxHealth,#amount=iNew - Send(oTarget,@GetBaseMaxHealth));
+      Send(oTarget,@SetHealth,#amount=Send(oTarget,@GetMaxHealth));
+
+      return iNew;
+   }
+
+   AdminGiveGold(oTarget = $, iAmount = 0)
+   "Test helper: shillings into the target's hands."
+   {
+      Send(oTarget,@NewHold,#what=Create(&Shillings,#number=Bound(iAmount,1,10000000)));
+
+      return;
+   }
+
+   AdminFindItem(sName = $)
+   "The item template whose name is, or is contained in, the typed name; $ if none."
+   {
+      local i;
+
+      foreach i in Send(SYS,@GetItemTemplates)
+      {
+         if NOT Send(i,@IsItemType,#type=ITEMTYPE_SPECIAL) AND StringEqual(sName,Send(i,@GetTrueName))
+         {
+            return i;
+         }
+      }
+
+      foreach i in Send(SYS,@GetItemTemplates)
+      {
+         if NOT Send(i,@IsItemType,#type=ITEMTYPE_SPECIAL) AND StringContain(sName,Send(i,@GetTrueName))
+         {
+            return i;
+         }
+      }
+
+      return $;
+   }
+
+   DmPrime(who = $, words = $)
+   "Hook in DM.UserSay ('dm prime ...'): helpers for testing, for admin and DM characters. Words: prime <verb> <args> [to <player>]."
+   {
+      local i, n, nTo, nArgs, sName, oTarget, sVerb, iNum, iPercent, oTemplate, oItem, iSchool;
+
+      if Length(words) < 2
+      {
+         Send(who,@MsgSendUser,#message_rsc=prime_admin_help);
+
+         return;
+      }
+
+      sVerb = Nth(words,2);
+      nTo = 0;
+      n = 0;
+      foreach i in words
+      {
+         n = n + 1;
+         if n > 2 AND nTo = 0 AND StringEqual(i,"to")
+         {
+            nTo = n;
+         }
+      }
+
+      oTarget = who;
+      nArgs = Length(words);
+      if nTo > 0
+      {
+         nArgs = nTo - 1;
+         sName = Send(self,@JoinRange,#words=words,#from=nTo + 1,#to=Length(words));
+         oTarget = Send(SYS,@FindUserByString,#string=sName);
+         if oTarget = $ OR NOT IsClass(oTarget,&User)
+         {
+            Send(who,@MsgSendUser,#message_rsc=prime_admin_no_target);
+
+            return;
+         }
+      }
+
+      if StringEqual(sVerb,"level")
+      {
+         iNum = 1;
+         iPercent = 70;
+         if nArgs >= 3
+         {
+            iNum = StringToNumber(Nth(words,3));
+         }
+
+         if nArgs >= 4
+         {
+            iPercent = StringToNumber(Nth(words,4));
+         }
+
+         iNum = Bound(iNum,1,6);
+         iPercent = Bound(iPercent,1,99);
+         if Send(self,@AdminGiveClassLevel,#oTarget=oTarget,#iLevel=iNum,#iPercent=iPercent)
+         {
+            Send(who,@MsgSendUser,#message_rsc=prime_admin_level,#parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName),
+                 #parm3=iNum,#parm4=iPercent);
+         }
+         else
+         {
+            Send(who,@MsgSendUser,#message_rsc=prime_admin_no_class,#parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName));
+         }
+
+         return;
+      }
+
+      if StringEqual(sVerb,"health") AND nArgs >= 3
+      {
+         iNum = Send(self,@AdminSetHealth,#oTarget=oTarget,#iHealth=StringToNumber(Nth(words,3)));
+         Send(who,@MsgSendUser,#message_rsc=prime_admin_health,#parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName),#parm3=iNum);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"gold") AND nArgs >= 3
+      {
+         iNum = Bound(StringToNumber(Nth(words,3)),1,10000000);
+         Send(oTarget,@NewHold,#what=Create(&Shillings,#number=iNum));
+         Send(who,@MsgSendUser,#message_rsc=prime_admin_gold,#parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName),#parm3=iNum);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"robe") AND nArgs >= 3
+      {
+         iSchool = 0;
+         if StringContain(Nth(words,3),"shal")
+         {
+            iSchool = SS_SHALILLE;
+         }
+         else if StringContain(Nth(words,3),"qor")
+         {
+            iSchool = SS_QOR;
+         }
+         else if StringContain(Nth(words,3),"kraa")
+         {
+            iSchool = SS_KRAANAN;
+         }
+         else if StringContain(Nth(words,3),"fare")
+         {
+            iSchool = SS_FAREN;
+         }
+         else if StringContain(Nth(words,3),"rii")
+         {
+            iSchool = SS_RIIJA;
+         }
+         else if StringContain(Nth(words,3),"jal")
+         {
+            iSchool = SS_JALA;
+         }
+
+         if iSchool = 0
+         {
+            Send(who,@MsgSendUser,#message_rsc=prime_admin_no_item);
+
+            return;
+         }
+
+         oItem = Create(&DiscipleRobe,#school=iSchool);
+         Send(oTarget,@NewHold,#what=oItem);
+         Send(who,@MsgSendUser,#message_rsc=prime_admin_item,#parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName),
+              #parm3=Send(oItem,@GetIndef),#parm4=Send(oItem,@GetName));
+
+         return;
+      }
+
+      if StringEqual(sVerb,"item") AND nArgs >= 3
+      {
+         sName = Send(self,@JoinRange,#words=words,#from=3,#to=nArgs);
+         oTemplate = Send(self,@AdminFindItem,#sName=sName);
+         if oTemplate = $
+         {
+            Send(who,@MsgSendUser,#message_rsc=prime_admin_no_item);
+
+            return;
+         }
+
+         oItem = Create(GetClass(oTemplate));
+         Send(oTarget,@NewHold,#what=oItem);
+         Send(who,@MsgSendUser,#message_rsc=prime_admin_item,#parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName),
+              #parm3=Send(oItem,@GetIndef),#parm4=Send(oItem,@GetName));
+
+         return;
+      }
+
+      Send(who,@MsgSendUser,#message_rsc=prime_admin_help);
+
+      return;
+   }
+
+   NoteSpellPower(iSpellPower = 0)
+   "Hook in AttackSpell.CastSpell, just before the side effects: remembers the power of the spell being cast."
+   {
+      piLastAttackPower = iSpellPower;
+
+      return;
+   }
+
+   StartSnare(victim = $, iSeconds = 1)
+   "Slows a battler (monster or player) to SNARE_SPEED_PERCENT of its speed for a number of seconds. No immunity afterwards."
+   {
+      local iUntil;
+
+      if victim = $ OR NOT IsClass(victim,&Battler)
+      {
+         return;
+      }
+
+      iUntil = GetTime() + iSeconds;
+      if iUntil > Send(victim,@GetSnareUntil)
+      {
+         Send(victim,@SetSnareUntil,#time=iUntil);
+      }
+
+      if IsClass(victim,&User)
+      {
+         Send(victim,@MsgSendUser,#message_rsc=prime_snared);
+      }
+
+      return;
+   }
+
+   SnarePercent(what = $)
+   "Hook in Monster.GetMoveSpeed and User.UserMove: the percent of its normal speed a battler moves at (100, or less while snared)."
+   {
+      if what <> $ AND IsClass(what,&Battler) AND Send(what,@GetSnareUntil) > GetTime()
+      {
+         return SNARE_SPEED_PERCENT;
+      }
+
+      return 100;
+   }
+
+   IceShardHit(who = $, victim = $)
+   "Hook in Ice Shard's side effect: a hit snares for 1 second at 1 percent spell power up to 5 at 99 percent, with ICESHARD_SNARE_CHANCE."
+   {
+      local iSeconds;
+
+      if victim = $ OR NOT IsClass(victim,&Battler) OR Random(1,100) > ICESHARD_SNARE_CHANCE
+      {
+         return;
+      }
+
+      iSeconds = (1000 + (piLastAttackPower * 4000) / 100 + 500) / 1000;
+      Send(self,@StartSnare,#victim=victim,#iSeconds=iSeconds);
+
+      return;
+   }
+
+   IceNovaHit(who = $, victim = $)
+   "Hook in Ice Nova's side effect: everything the nova hits is frozen, exactly like the Hold spell (same duration for the same spell power, "
+   "Free Action and the crowd-control immunity apply)."
+   {
+      local oHold;
+
+      oHold = Send(SYS,@FindSpellByNum,#num=SID_HOLD);
+      if victim = $ OR oHold = $ OR NOT IsClass(victim,&Battler) OR Send(self,@CCImmuneTo,#who=victim,#cc=CC_HOLD)
+      {
+         return;
+      }
+
+      Send(oHold,@DoSpell,#what=who,#oTarget=victim,
+           #iDuration=Send(oHold,@GetDuration,#iSpellPower=piLastAttackPower),#report=TRUE);
+
+      return;
+   }
+
+   RobeSpellBonus(who = $, iSchool = 0, iLevel = 0)
+   "Hook in the disciple robe's GetBaseSpellModifier: $ for a player without a class (the upstream rule), else the robe's bonus for every "
+   "spell of the class if it is the robe of the god of his class (4 per robe level, 5 to 20), and 0 for any other robe."
+   {
+      local iClass;
+
+      if who = $ OR NOT IsClass(who,&Player)
+      {
+         return $;
+      }
+
+      iClass = Send(who,@GetPlayerClass);
+      if iClass = CLASS_NONE
+      {
+         return $;
+      }
+
+      if Send(self,@ClassGodSchool,#iClass=iClass) = iSchool
+      {
+         return Bound(4 * iLevel,5,20);
+      }
+
+      return 0;
+   }
+
+   RiijaWielded(who = $)
+   {
+      local oWeapon;
+
+      if who = $ OR NOT IsClass(who,&Player)
+      {
+         return FALSE;
+      }
+
+      oWeapon = Send(who,@GetWeapon);
+
+      return oWeapon <> $ AND IsClass(oWeapon,&RiijaSword);
+   }
+
+   RiijaPower(who = $, iSpellPower = 0)
+   "Hook in Spell.GetSpellPower: the sword of Riija adds RIIJA_SPELLPOWER_PERCENT percent to every spell."
+   {
+      if Send(self,@RiijaWielded,#who=who)
+      {
+         return (iSpellPower * (100 + RIIJA_SPELLPOWER_PERCENT)) / 100;
+      }
+
+      return iSpellPower;
+   }
+
+   ManaCostFor(who = $, iCost = 0)
+   "Hook in Spell.GetManaCost: the sword of Riija makes every spell RIIJA_MANA_SAVING_PERCENT percent cheaper."
+   {
+      if Send(self,@RiijaWielded,#who=who)
+      {
+         return (iCost * (100 - RIIJA_MANA_SAVING_PERCENT)) / 100;
+      }
+
+      return iCost;
+   }
+
+   ThreatBonus(what = $)
+   "Hook in monsters' hatred (brain GetHatred x6, monster AssessDamage x1): warriors are natural tanks."
+   {
+      if what <> $ AND IsClass(what,&Player) AND Send(what,@GetPlayerClass) = CLASS_WARRIOR
+      {
+         return WARRIOR_THREAT;
+      }
+
+      if what <> $ AND IsClass(what,&Player) AND Send(what,@GetPlayerClass) = CLASS_PALADIN
+      {
+         return PALADIN_THREAT;
+      }
+
+      // the warrior companion tanks too
+      if what <> $ AND IsClass(what,&Companion) AND Send(what,@GetKind) = COMPANION_WARRIOR
+      {
+         return WARRIOR_THREAT;
+      }
+
+      return 0;
+   }
+
+   ClassGodSchool(iClass = 0)
+   "The god (school) of a class: its robes show the class level."
+   {
+      if iClass = CLASS_WARRIOR
+      {
+         return SS_KRAANAN;
+      }
+
+      if iClass = CLASS_MONK OR iClass = CLASS_PALADIN
+      {
+         return SS_SHALILLE;
+      }
+
+      if iClass = CLASS_ELEMENTALIST
+      {
+         return SS_FAREN;
+      }
+
+      return 0;
+   }
+
+   TrainerAllowed(who = $, trainer = $)
+   "Hook in the trainers' ReportLevel / CanDoTeach: a classed player learns only from the priestess of the god of his class "
+   "(Kraanan for the warrior, Shal'ille for the monk and the paladin); everybody else is not restricted."
+   {
+      local iGod;
+
+      if who = $ OR trainer = $ OR NOT IsClass(who,&Player) OR Send(who,@GetPlayerClass) = CLASS_NONE
+      {
+         return TRUE;
+      }
+
+      iGod = Send(self,@ClassGodSchool,#iClass=Send(who,@GetPlayerClass));
+      if iGod = SS_KRAANAN
+      {
+         return IsClass(trainer,&KraananPriestess);
+      }
+
+      if iGod = SS_SHALILLE
+      {
+         return IsClass(trainer,&ShalillePriestess);
+      }
+
+      if iGod = SS_FAREN
+      {
+         return IsClass(trainer,&FarenPriestess);
+      }
+
+      return FALSE;
+   }
+
+   TrainerStock(iSchool = 0, lStock = $)
+   "Hook in the priestesses' SetForSale: the god of a class teaches that class everything of its ability table (skills and spells of any school), "
+   "added to what she sold already. Returns the new stock list [items, skills, spells, ...]."
+   {
+      local iClass, i, lSkills, lSpells;
+
+      lSkills = Nth(lStock,2);
+      lSpells = Nth(lStock,3);
+
+      foreach iClass in [CLASS_WARRIOR,CLASS_MONK,CLASS_PALADIN,CLASS_ELEMENTALIST]
+      {
+         if Send(self,@ClassGodSchool,#iClass=iClass) = iSchool
+         {
+            foreach i in Send(self,@ClassAbilityTable,#iClass=iClass)
+            {
+               if First(i)
+               {
+                  if lSkills = $ OR FindListElem(lSkills,Nth(i,2)) = 0
+                  {
+                     lSkills = Cons(Nth(i,2),lSkills);
+                  }
+               }
+               else
+               {
+                  if lSpells = $ OR FindListElem(lSpells,Nth(i,2)) = 0
+                  {
+                     lSpells = Cons(Nth(i,2),lSpells);
+                  }
+               }
+            }
+         }
+      }
+
+      return [First(lStock),lSkills,lSpells,Nth(lStock,4)];
+   }
+
+   ClassTier(who = $)
+   "Highest class level (1-6) among the abilities this player knows."
+   {
+      local i, iMax, iLevel, iClass;
+
+      iClass = Send(who,@GetPlayerClass);
+      iMax = 0;
+
+      foreach i in Send(who,@GetSkillList)
+      {
+         iLevel = Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=TRUE,#num=Send(who,@DecodeSkillNum,#compound=i));
+         if iLevel > iMax
+         {
+            iMax = iLevel;
+         }
+      }
+
+      foreach i in Send(who,@GetSpellList)
+      {
+         iLevel = Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=FALSE,#num=Send(who,@DecodeSpellNum,#compound=i));
+         if iLevel > iMax
+         {
+            iMax = iLevel;
+         }
+      }
+
+      return iMax;
+   }
+
+   RobeLevel(who = $, iSchool = 0)
+   "Hook in the disciple robes' ResetColors: -1 for players without a class (the upstream rule applies), else the robe's colour level "
+   "(the class level up to 5 if this is the robe of the class's god, 0 for any other god's robe)."
+   {
+      local iClass;
+
+      if who = $ OR NOT IsClass(who,&Player)
+      {
+         return -1;
+      }
+
+      iClass = Send(who,@GetPlayerClass);
+      if iClass = CLASS_NONE
+      {
+         return -1;
+      }
+
+      if Send(self,@ClassGodSchool,#iClass=iClass) = iSchool
+      {
+         return Bound(Send(self,@ClassTier,#who=who),0,5);
+      }
+
+      return 0;
+   }
+
+   RobeRefresh(who = $)
+   "Hook in Player.AddSkill / AddSpell: the robe colour follows the class level."
+   {
+      local oRobe;
+
+      if Send(who,@GetPlayerClass) <> CLASS_NONE
+      {
+         oRobe = Send(who,@FindUsing,#class=&DiscipleRobe);
+         if oRobe <> $
+         {
+            Send(oRobe,@ResetColors);
+         }
+      }
+
+      return;
+   }
+
+   NoFists(who = $)
+   "Hook in User.UserAttack: TRUE (and a message) if a priest tries to punch (monks punch; there is no Priest class yet)."
+   {
+      if Send(who,@GetPlayerClass) = CLASS_PRIEST
+      {
+         Send(who,@MsgSendUser,#message_rsc=prime_priest_no_fists);
+
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   ObjectVerb(who = $, what = $, words = $)
+   "Hook in User.ShardsObjectCommand (a UC_SHARDS_OBJECT line about one object): 'skill <number>' uses an active skill on it "
+   "(Shield Slam ...). Returns TRUE if the line was ours."
+   {
+      local sVerb, iNum, oSkill;
+
+      sVerb = First(words);
+      // the Attack button: our companions and bots go for it
+      if StringEqual(sVerb,"attack")
+      {
+         Send(self,@CompanionsAttack,#who=who,#what=what);
+
+         return TRUE;
+      }
+
+      if NOT StringEqual(sVerb,"skill")
+      {
+         return FALSE;
+      }
+
+      iNum = StringToNumber(Nth(words,2));
+      oSkill = Send(SYS,@FindSkillByNum,#num=iNum);
+      if oSkill = $ OR NOT Send(who,@HasSkill,#num=iNum)
+      {
+         Send(who,@MsgSendUser,#message_rsc=prime_skill_unknown);
+
+         return TRUE;
+      }
+
+      Send(oSkill,@DoSkill,#who=who,#oTarget=what);
+
+      return TRUE;
+   }
+
+
+   MobLeashSecs()
+   "Hook in monster.kod (Monster.LeashTick): the rule piMobLeashSecs."
+   {
+      return piMobLeashSecs;
+   }
+
+   MobAggroLOS()
+   "Hook in brain.kod (Brain.GetHatred): the rule pbMobAggroLOS."
+   {
+      return pbMobAggroLOS;
+   }
+
+   MobAggroScan()
+   "Hook in monster.kod (Monster.AggroScan): the rule pbMobAggroScan."
+   {
+      return pbMobAggroScan;
+   }
+
+   MobAggroPath()
+   "Hook in brain.kod (Brain.GetHatred): the rule pbMobAggroPath."
+   {
+      return pbMobAggroPath;
+   }
+
+   MobLeashHeal()
+   "Hook in monster.kod (Monster.LeashTick): the rule pbMobLeashHeal."
+   {
+      return pbMobLeashHeal;
+   }
+
+
+   MurdererDied(who = $)
+   "Hook in Player.Killed (a real death completed): with the rule pbMurderNotPermanent a murderer who has died is an outlaw, not a murderer."
+   {
+      if pbMurderNotPermanent AND who <> $ AND Send(who,@CheckPlayerFlag,#flag=PFLAG_MURDERER)
+      {
+         Send(who,@SetPlayerFlag,#flag=PFLAG_MURDERER,#value=FALSE);
+         Send(who,@SetPlayerFlag,#flag=PFLAG_OUTLAW,#value=TRUE);
+      }
+
+      return;
+   }
+
+   Hello()
+   "Test message: proves that Send(Send(SYS,@GetPrime),...) reaches this file."
+   {
+      return 42;
+   }
+
+   ClassAbilityTable(iClass = 0)
+   "List of [is_skill, number, class level] for a class; $ for no class. These are templates: levels and members change as the classes are tuned."
+   {
+      if iClass = CLASS_WARRIOR
+      {
+         return [ [TRUE,SKID_SLASH,1], [FALSE,SID_GLOW,1], [TRUE,SKID_BLOCK,1],
+                  [TRUE,SKID_PROFICIENCY_SWORD,2], [TRUE,SKID_SECOND_WIND,2], [TRUE,SKID_DODGE,2],
+                  [TRUE,SKID_PROFICIENCY_HAMMER,3], [FALSE,SID_SUPER_STRENGTH,3], [TRUE,SKID_PARRY,3],
+                  [TRUE,SKID_PROFICIENCY_AXE,4], [FALSE,SID_BLESS,4], [FALSE,SID_MAGIC_SHIELD,4],
+                  [TRUE,SKID_PROFICIENCY_SCIMITAR,5], [FALSE,SID_FREE_ACTION,5], [TRUE,SKID_DISARM,5],
+                  [FALSE,SID_ARMOR_OF_GORT,6], [FALSE,SID_RESIST_MAGIC,6], [FALSE,SID_DEFLECT,6], [FALSE,SID_ANTIMAGIC_AURA,6] ];
+      }
+
+      if iClass = CLASS_MONK
+      {
+         return [ [TRUE,SKID_PUNCH,1], [FALSE,SID_MINOR_HEAL,1], [FALSE,SID_MANA_FOCUS,1],
+                  [FALSE,SID_HOLY_TOUCH,2], [TRUE,SKID_BRAWLING,2], [TRUE,SKID_DODGE,2],
+                  [FALSE,SID_BLESS,3], [FALSE,SID_HOSPICE,3], [TRUE,SKID_BLOCK,3],
+                  [FALSE,SID_HOLY_BLAZE,4], [FALSE,SID_DAZZLE,4], [FALSE,SID_MAGIC_SHIELD,4],
+                  [FALSE,SID_NIGHT_VISION,5], [FALSE,SID_MAJOR_HEAL,5], [FALSE,SID_RESCUE,5],
+                  [FALSE,SID_PURIFY,6], [FALSE,SID_TRUCE,6], [FALSE,SID_PURGE,6] ];
+      }
+
+      if iClass = CLASS_ELEMENTALIST
+      {
+         return [ [FALSE,SID_TOUCH_OF_FLAME,1], [FALSE,SID_MINOR_HEAL,1], [FALSE,SID_MANA_FOCUS,1],
+                  [FALSE,SID_LIGHT,2], [FALSE,SID_ICY_FINGERS,2], [TRUE,SKID_DODGE,2],
+                  [FALSE,SID_FIREBALL,3], [FALSE,SID_ICESHARD,3], [FALSE,SID_MANA_SHIELD,3],
+                  [FALSE,SID_WINDS,4], [FALSE,SID_MYSTIC_TOUCH,4], [FALSE,SID_MAGIC_SHIELD,4],
+                  [FALSE,SID_ICE_NOVA,5], [FALSE,SID_FIREWALL,5], [FALSE,SID_EXPLOSIVE_FROST,5] ];
+      }
+
+      if iClass = CLASS_PALADIN
+      {
+         return [ [TRUE,SKID_SLASH,1], [FALSE,SID_MINOR_HEAL,1], [TRUE,SKID_BLOCK,1],
+                  [TRUE,SKID_PROFICIENCY_SWORD,2], [FALSE,SID_SPIRITUAL_SWORD,2], [TRUE,SKID_DODGE,2],
+                  [FALSE,SID_BLESS,3], [FALSE,SID_HOSPICE,3], [FALSE,SID_FORCES_OF_LIGHT,3],
+                  [TRUE,SKID_PROFICIENCY_HAMMER,4], [FALSE,SID_SPIRITUAL_HAMMER,4], [FALSE,SID_MAGIC_SHIELD,4],
+                  [FALSE,SID_SUPER_STRENGTH,5], [FALSE,SID_GLOW,5], [TRUE,SKID_PARRY,5],
+                  [FALSE,SID_PURIFY,6], [FALSE,SID_MAJOR_HEAL,6], [FALSE,SID_ARMOR_OF_GORT,6] ];
+      }
+
+      return $;
+   }
+
+   ClassLevelOf(iClass = 0, bSkill = TRUE, num = 0)
+   "Class level (1-6) of an ability for a class, 0 if the class cannot learn it."
+   {
+      local i;
+
+      foreach i in Send(self,@ClassAbilityTable,#iClass=iClass)
+      {
+         if First(i) = bSkill AND Nth(i,2) = num
+         {
+            return Nth(i,3);
+         }
+      }
+
+      return 0;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Crowd control: after a CC of a type starts, the target cannot be affected by that type again until twice the CC's length
+   // has passed after it ends (3x the length from its start).
+
+   CCTypeOfSpell(oSpell = $)
+   {
+      if oSpell = $
+      {
+         return CC_NONE;
+      }
+
+      if IsClass(oSpell,&Stun)
+      {
+         return CC_STUN;
+      }
+
+      if IsClass(oSpell,&Hold)
+      {
+         return CC_HOLD;
+      }
+
+      if IsClass(oSpell,&Blind)
+      {
+         return CC_BLIND;
+      }
+
+      if IsClass(oSpell,&Dazzle)
+      {
+         return CC_DAZZLE;
+      }
+
+      return CC_NONE;
+   }
+
+   CCImmuneTo(who = $, cc = 0)
+   {
+      local i;
+
+      if cc = CC_NONE OR who = $
+      {
+         return FALSE;
+      }
+
+      foreach i in plCCImmune
+      {
+         if First(i) = who AND Nth(i,2) = cc AND Nth(i,3) > GetTime()
+         {
+            return TRUE;
+         }
+      }
+
+      return FALSE;
+   }
+
+   SpellEnchantStarted(who = $, what = $, time = $)
+   "Hook in the StartEnchantment of players and monsters. FALSE = the enchantment is a crowd control the target is still immune to, "
+   "so it must not be applied. Otherwise the CC is recorded (and expired records are dropped)."
+   {
+      local cc, i, lNew;
+
+      cc = Send(self,@CCTypeOfSpell,#oSpell=what);
+      if cc = CC_NONE OR time = $ OR time = SPELL_INDEFINITE_DURATION
+      {
+         return TRUE;
+      }
+
+      if Send(self,@CCImmuneTo,#who=who,#cc=cc)
+      {
+         return FALSE;
+      }
+
+      lNew = $;
+      foreach i in plCCImmune
+      {
+         if Nth(i,3) > GetTime()
+         {
+            lNew = Cons(i,lNew);
+         }
+      }
+
+      plCCImmune = Cons([who,cc,GetTime() + (3 * time) / 1000 + 1],lNew);
+
+      return TRUE;
+   }
+
+   CCBlocked(who = $, oSpell = $, lTargets = $, bItemCast = FALSE)
+   "Hook in Spell.CanPayCosts: TRUE (and a message to the caster) if the single target is still immune to this crowd control type."
+   {
+      local cc, oTarget;
+
+      cc = Send(self,@CCTypeOfSpell,#oSpell=oSpell);
+      if cc = CC_NONE OR lTargets = $ OR Length(lTargets) <> 1
+      {
+         return FALSE;
+      }
+
+      oTarget = First(lTargets);
+      if NOT IsClass(oTarget,&Battler) OR NOT Send(self,@CCImmuneTo,#who=oTarget,#cc=cc)
+      {
+         return FALSE;
+      }
+
+      if bItemCast = FALSE AND who <> $ AND IsClass(who,&Player)
+      {
+         Send(who,@MsgSendUser,#message_rsc=prime_cc_immune,
+              #parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName));
+      }
+
+      return TRUE;
+   }
+
+   RegisterSpells()
+   "Hook in System.CreateAllSpellsIfNew: our spells exist once."
+   {
+      Send(SYS,@CreateOneSpellIfNew,#num=SID_STUN,#class=&Stun);
+
+      return;
+   }
+
+   RegisterSkills()
+   "Hook in System.CreateAllSkillsIfNew."
+   {
+      Send(SYS,@CreateOneSkillIfNew,#num=SKID_SHIELD_SLAM,#class=&ShieldSlam);
+
+      return;
+   }
+
+   AbilityLevelFor(who = $, oAbility = $, bSkill = TRUE)
+   "Hook in the trainers' level lists. The level of an ability as this player sees it: the class level for a classed player "
+   "(0 = not part of the class), else the ability's own level."
+   {
+      local iClass;
+
+      if who <> $ AND IsClass(who,&Player)
+      {
+         iClass = Send(who,@GetPlayerClass);
+         if iClass <> CLASS_NONE
+         {
+            if bSkill
+            {
+               return Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=TRUE,#num=Send(oAbility,@GetSkillNum));
+            }
+
+            return Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=FALSE,#num=Send(oAbility,@GetSpellNum));
+         }
+      }
+
+      return Send(oAbility,@GetLevel);
+   }
+
+   IsClassed(who = $)
+   {
+      return who <> $ AND IsClass(who,&Player) AND Send(who,@GetPlayerClass) <> CLASS_NONE;
+   }
+
+   SayElsewhere(trainer = $)
+   "A trainer tells a classed player that this is not his to learn here."
+   {
+      Send(Send(trainer,@GetOwner),@SomeoneSaid,#type=SAY_RESOURCE,#what=trainer,#string=prime_teach_elsewhere);
+
+      return;
+   }
+
+   ModeBlocks(who = $)
+   "TRUE if this plain player character was made in the other class-system mode (classed while the system is off, or classless while it is on): "
+   "it is greyed out in the character list. Admin, DM and the like are never blocked."
+   {
+      if who = $ OR GetClass(who) <> &User
+      {
+         return FALSE;
+      }
+
+      if pbClassSystem
+      {
+         return Send(who,@GetPlayerClass) = CLASS_NONE;
+      }
+
+      return Send(who,@GetPlayerClass) <> CLASS_NONE;
+   }
+
+   NewCharClass(who = $, charinfo = $)
+   "Hook in Player.PlayerNewCharInfo. Our client sends the class as a pseudo skill CLASS_CREATE_BASE + class. "
+   "Returns TRUE if the new character has a class: fixed stats and level 1 abilities are then granted, "
+   "and the caller ignores the picked spells and skills."
+   {
+      local i, iClass;
+
+      if NOT pbClassSystem
+      {
+         return FALSE;
+      }
+
+      iClass = CLASS_NONE;
+      foreach i in Nth(charinfo,6)
+      {
+         if i > CLASS_CREATE_BASE AND i <= CLASS_CREATE_BASE + CLASS_ELEMENTALIST
+         {
+            iClass = i - CLASS_CREATE_BASE;
+         }
+      }
+
+      if iClass = CLASS_NONE
+      {
+         return FALSE;
+      }
+
+      Send(who,@SetPlayerClass,#value=iClass);
+      Send(self,@GrantClassStart,#who=who);
+
+      return TRUE;
+   }
+
+   GrantClassStart(who = $)
+   "Fixed stats of the class (might, intellect, stamina, agility, mysticism, aim) and the level 1 abilities."
+   {
+      local i, iClass;
+
+      iClass = Send(who,@GetPlayerClass);
+
+      if iClass = CLASS_WARRIOR
+      {
+         Send(who,@PrimeSetStats,#might=50,#intellect=1,#stamina=50,#agility=50,#mysticism=1,#aim=50);
+      }
+
+      if iClass = CLASS_MONK
+      {
+         Send(who,@PrimeSetStats,#might=50,#intellect=50,#stamina=30,#agility=50,#mysticism=50,#aim=30);
+      }
+
+      if iClass = CLASS_PALADIN
+      {
+         Send(who,@PrimeSetStats,#might=50,#intellect=30,#stamina=40,#agility=30,#mysticism=30,#aim=30);
+      }
+
+      if iClass = CLASS_ELEMENTALIST
+      {
+         Send(who,@PrimeSetStats,#might=30,#intellect=50,#stamina=30,#agility=20,#mysticism=50,#aim=1);
+      }
+
+      // every class starts with Sweep (Conveyance and Transference are retired upstream: item buttons in the client)
+      Send(who,@AddSpell,#num=SID_SWEEP,#initial=TRUE);
+
+      foreach i in Send(self,@ClassAbilityTable,#iClass=iClass)
+      {
+         if Nth(i,3) = 1
+         {
+            if First(i)
+            {
+               Send(who,@AddSkill,#num=Nth(i,2),#initial=TRUE);
+            }
+            else
+            {
+               Send(who,@AddSpell,#num=Nth(i,2),#initial=TRUE);
+            }
+         }
+      }
+
+      return;
+   }
+
+   GiveStartObjects(who = $)
+   "Hook in Player.AddDefaultObjects: classed characters start with the mace in hand (monks and elementalists: a light robe), 500 shillings and reagents. Returns TRUE if handled."
+   {
+      local iClass, oItem;
+
+      iClass = Send(who,@GetPlayerClass);
+      if iClass = CLASS_NONE
+      {
+         return FALSE;
+      }
+
+      if iClass = CLASS_MONK OR iClass = CLASS_ELEMENTALIST
+      {
+         oItem = Create(&LightRobe);
+      }
+      else
+      {
+         oItem = Create(&Mace);
+      }
+
+      Send(who,@NewHold,#what=oItem);
+      Send(who,@TryUseItem,#what=oItem);
+
+      Send(who,@NewHold,#what=Create(&Shillings,#number=500));
+      Send(Send(SYS,@GetStatistics),@MoneyCreated,#amount=500);
+      Send(who,@AddReagentsForSpells,#iNumCasts=10);
+
+      return TRUE;
+   }
+
+   ItemLevel(what = $)
+   "The gear level (1-6) of armour, helmets, shields, pants and shirts: cloth and robes 1, leather 2, chain 3, scale 4, nerudite 5, plate 6. "
+   "0 for anything else (no limit)."
+   {
+      if IsClass(what,&Armor)
+      {
+         if IsClass(what,&PlateArmor)
+         {
+            return 6;
+         }
+
+         if IsClass(what,&NeruditeArmor)
+         {
+            return 5;
+         }
+
+         if IsClass(what,&ScaleArmor)
+         {
+            return 4;
+         }
+
+         if IsClass(what,&ChainArmor)
+         {
+            return 3;
+         }
+
+         if IsClass(what,&LeatherArmor)
+         {
+            return 2;
+         }
+
+         return 1;
+      }
+
+      if IsClass(what,&Helmet)
+      {
+         if IsClass(what,&KnightsHelm)
+         {
+            return 4;
+         }
+
+         if IsClass(what,&SteelHelm) OR IsClass(what,&WarHelm) OR IsClass(what,&LegionHelm)
+         {
+            return 3;
+         }
+
+         if IsClass(what,&Helm) OR IsClass(what,&SimpleHelm) OR IsClass(what,&DaemonHelm)
+         {
+            return 2;
+         }
+
+         return 1;
+      }
+
+      if IsClass(what,&Shield)
+      {
+         if IsClass(what,&NeruditeShield)
+         {
+            return 5;
+         }
+
+         if IsClass(what,&Knightshield) OR IsClass(what,&SoldierShield) OR IsClass(what,&GuildShield) OR IsClass(what,&OrcShield)
+         {
+            return 2;
+         }
+
+         return 1;
+      }
+
+      if IsClass(what,&Pants) OR IsClass(what,&ShirtBase)
+      {
+         return 1;
+      }
+
+      return 0;
+   }
+
+   ClassArmorLevel(iClass = 0)
+   "The highest gear level a class wears; 6 for no class (the upstream rules)."
+   {
+      if iClass = CLASS_WARRIOR
+      {
+         return ARMOR_LEVEL_WARRIOR;
+      }
+
+      if iClass = CLASS_PALADIN
+      {
+         return ARMOR_LEVEL_PALADIN;
+      }
+
+      if iClass = CLASS_MONK
+      {
+         return ARMOR_LEVEL_MONK;
+      }
+
+      if iClass = CLASS_ELEMENTALIST
+      {
+         return ARMOR_LEVEL_ELEMENTALIST;
+      }
+
+      return 6;
+   }
+
+   ShieldBonus(who = $, what = $, bonus = 0)
+   "Hook in Shield.GetBlockAbility / ModifyDefenseDamage: the faction (soldier and rebel) shields give the classes that are not fighters "
+   "only half."
+   {
+      local iClass;
+
+      if who = $ OR what = $ OR NOT IsClass(who,&Player) OR NOT IsClass(what,&SoldierShield)
+      {
+         return bonus;
+      }
+
+      iClass = Send(who,@GetPlayerClass);
+      if iClass = CLASS_NONE OR iClass = CLASS_WARRIOR OR iClass = CLASS_PALADIN
+      {
+         return bonus;
+      }
+
+      return Bound(bonus,0,FACTION_SHIELD_OTHERS);
+   }
+
+   ClassAllowsItem(who = $, what = $, report = TRUE)
+   "Hook in Player.TryUseItem: every class may wield any weapon and wear any armour (untrained weapons do only their base damage; "
+   "heavier armour will cost dodge and spell power instead of being forbidden). Currently nothing is refused."
+   {
+      local iClass, bRefuse, iLevel;
+
+      iClass = Send(who,@GetPlayerClass);
+      bRefuse = FALSE;
+
+      if bRefuse
+      {
+         if report
+         {
+            Send(who,@MsgSendUser,#message_rsc=prime_class_cant_use,
+                 #parm1=Send(what,@GetDef),#parm2=Send(what,@GetName));
+         }
+
+         return FALSE;
+      }
+
+      return TRUE;
+   }
+
+   PlayerCanLearn(who = $, spell_num = 0, skill_num = 0)
+   "Hook in Player.PlayerCanLearn. Returns $ for a player without a class (the upstream rules apply), else a PLAYER_LEARN_* result. "
+   "Level 1 is free; the next level opens when the best three abilities of the previous level reach the vanilla threshold "
+   "(Intellect still helps); an ability of another class is PLAYER_LEARN_NOTCLASS."
+   {
+      local iClass, bSkill, obj, num, level, i, nSID, nLevel, index, temp, aHigh, bHigh, cHigh,
+            iHave, iAtLevel, iMaxKnown, iAbove, iPrev, iPoints, iNeed, bKnowOne;
+
+      iClass = Send(who,@GetPlayerClass);
+      if iClass = CLASS_NONE
+      {
+         return $;
+      }
+
+      if spell_num = 0
+      {
+         bSkill = TRUE;
+         num = skill_num;
+         obj = Send(SYS,@FindSkillByNum,#num=num);
+      }
+      else
+      {
+         bSkill = FALSE;
+         num = spell_num;
+         obj = Send(SYS,@FindSpellByNum,#num=num);
+      }
+
+      if obj = $
+      {
+         return PLAYER_LEARN_ERROR;
+      }
+
+      if (bSkill AND Send(who,@HasSkill,#num=num))
+         OR ((NOT bSkill) AND Send(who,@HasSpell,#num=num))
+      {
+         return PLAYER_LEARN_ALREADY;
+      }
+
+      level = Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=bSkill,#num=num);
+      if level = 0
+      {
+         return PLAYER_LEARN_NOTCLASS;
+      }
+
+      if level = 1
+      {
+         return PLAYER_LEARN_SUCCESS;
+      }
+
+      aHigh = 0;
+      bHigh = 0;
+      cHigh = 0;
+      iAtLevel = 0;
+      iMaxKnown = 0;
+      iAbove = 0;
+
+      foreach i in Send(who,@GetSkillList)
+      {
+         nSID = Send(who,@DecodeSkillNum,#compound=i);
+         nLevel = Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=TRUE,#num=nSID);
+         index = Send(who,@DecodeSkillAbility,#compound=i);
+         if nLevel = 0
+         {
+            continue;
+         }
+
+         if nLevel > iMaxKnown { iMaxKnown = nLevel; }
+         if nLevel = level { iAtLevel += 1; }
+         if nLevel > level { iAbove += 1; }
+         if nLevel = (level-1)
+         {
+            if index > aHigh { temp = aHigh; aHigh = index; index = temp; }
+            if index > bHigh { temp = bHigh; bHigh = index; index = temp; }
+            if index > cHigh { cHigh = index; }
+         }
+      }
+
+      foreach i in Send(who,@GetSpellList)
+      {
+         nSID = Send(who,@DecodeSpellNum,#compound=i);
+         nLevel = Send(self,@ClassLevelOf,#iClass=iClass,#bSkill=FALSE,#num=nSID);
+         index = Send(who,@DecodeSpellAbility,#compound=i);
+         if nLevel = 0
+         {
+            continue;
+         }
+
+         if nLevel > iMaxKnown { iMaxKnown = nLevel; }
+         if nLevel = level { iAtLevel += 1; }
+         if nLevel > level { iAbove += 1; }
+         if nLevel = (level-1)
+         {
+            if index > aHigh { temp = aHigh; aHigh = index; index = temp; }
+            if index > bHigh { temp = bHigh; bHigh = index; index = temp; }
+            if index > cHigh { cHigh = index; }
+         }
+      }
+
+      // Anything from a higher level known: the rest of this level can be bought freely.
+      if iAbove > 0
+      {
+         return PLAYER_LEARN_SUCCESS;
+      }
+
+      bKnowOne = FALSE;
+      if iAtLevel > 0
+      {
+         if level > 2 OR iAtLevel >= 2
+         {
+            return PLAYER_LEARN_SUCCESS;
+         }
+
+         bKnowOne = TRUE;
+      }
+
+      iHave = aHigh + bHigh + cHigh;
+      if iHave = 0
+      {
+         return PLAYER_LEARN_NOBASE;
+      }
+
+      // How many abilities the previous level has in this class.
+      iPrev = 0;
+      foreach i in Send(self,@ClassAbilityTable,#iClass=iClass)
+      {
+         if Nth(i,3) = (level-1)
+         {
+            iPrev += 1;
+         }
+      }
+
+      iPoints = Send(SYS,@GetLevelLearnPoints,#level=iMaxKnown);
+      if NOT bKnowOne
+      {
+         iPoints = iPoints + Send(SYS,@GetLevelLearnPoints,#level=level)
+                           - Send(SYS,@GetLevelLearnPoints,#level=(level-1));
+      }
+
+      iNeed =   (iPoints * PRIME_POINTS_SLOPE)
+              + (297 - (Send(SETTINGS_OBJECT,@GetMaxLearnPoints) * PRIME_POINTS_SLOPE))
+              - ((Send(who,@GetRawIntellect) * 2 * PRIME_POINTS_SLOPE) / 5);
+      iNeed = Bound(iNeed,PRIME_MIN_NEEDED_TO_ADVANCE,$);
+
+      if iPrev = 1
+      {
+         iNeed = iNeed / 3;
+      }
+
+      if iPrev = 2
+      {
+         iNeed = (iNeed * 2) / 3;
+      }
+
+      if iHave >= iNeed
+      {
+         return PLAYER_LEARN_SUCCESS;
+      }
+
+      if iNeed > (99 * Bound(iPrev,1,3))
+      {
+         return PLAYER_LEARN_IMPOSSIBLE;
+      }
+
+      return ((10 * (iNeed - iHave)) + PLAYER_LEARN_BASE);
+   }
+
+end
+
+////////////////////////////////////////////////////////////////////////////////

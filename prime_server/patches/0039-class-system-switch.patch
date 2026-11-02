@@ -1,0 +1,70 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -825,8 +825,25 @@
+    }
+ 
+    IsFirstTime()
++   "Prime: besides TRUE/FALSE this is the code the character list sends the client: 1 = free slot (class mode), 3 = free slot (classless mode), "
++   "2 = a character of the other mode (greyed out, cannot be played), 0 = playable."
+    {
+-      return piLastLoginTime = 0;
++      if piLastLoginTime = 0
++      {
++         if Send(Send(SYS,@GetPrime),@ClassSystemOn)
++         {
++            return 1;
++         }
++
++         return 3;
++      }
++
++      if Send(Send(SYS,@GetPrime),@ModeBlocks,#who=self)
++      {
++         return 2;
++      }
++
++      return FALSE;
+    }
+ 
+    GetLastLoginTime()
+--- a/kod/util/system.kod
++++ b/kod/util/system.kod
+@@ -4688,7 +4688,8 @@
+          bLegal = TRUE;
+ 
+          // Is this char actually available for creation?
+-         if NOT Send(oUser, @IsFirstTime)          
++         // Prime: IsFirstTime is a code (1 or 3 = a free slot)
++         if Send(oUser, @IsFirstTime) <> 1 AND Send(oUser, @IsFirstTime) <> 3
+          {
+             bLegal = FALSE;
+          }
+--- a/blakserv/game.c
++++ b/blakserv/game.c
+@@ -466,7 +466,12 @@
+          {
+             // Determine if we're trying to logon a valid, created character.
+             invalidCharacter.int_val = SendTopLevelBlakodMessage(object_id, IS_FIRST_TIME_MSG, 0, NULL);
+-            if (!invalidCharacter.v.data)
++            if (invalidCharacter.v.data == 2)
++            {
++               // Prime: a character of the other class-system mode: show the list again
++               GameTryGetUser(s);
++            }
++            else if (!invalidCharacter.v.data)
+             {
+                GameStartUser(s,u);
+                InterfaceUpdateSession(s);
+@@ -664,10 +669,8 @@
+    }
+ 
+    num_val.int_val = SendTopLevelBlakodMessage(u->object_id,IS_FIRST_TIME_MSG,0,NULL);
+-   if (num_val.v.data != 0)
+-      AddByteToPacket(1);   /* char has been in game before */
+-   else
+-      AddByteToPacket(0);   /* char has NOT been in game before */
++   /* Prime: 0 playable, 1 free slot (class mode), 3 free slot (classless mode), 2 other mode's character (see User.IsFirstTime) */
++   AddByteToPacket((char)num_val.v.data);
+       
+ }
+ 

@@ -1,0 +1,73 @@
+--- a/kod/object/passive/skill/secwind.kod
++++ b/kod/object/passive/skill/secwind.kod
+@@ -22,10 +22,9 @@
+    SecondWind_name_rsc = "second wind"
+    SecondWind_icon_rsc = isecwind.bgf
+    SecondWind_desc_rsc = \
+-      "Second wind will give a mighty adventurer the vigor to do strenuous "
+-      "activity even when exhausted.  When near exhaustion, this skill will "
+-      "give a boost to vigor.  It is useless to rest or eat food to regain "
+-      "stamina for a while after gaining a second wind."
++      "Second wind lets a hardened fighter recover between battles.  After "
++      "ten seconds without fighting, you regenerate health and mana: 1 point "
++      "per second at first, up to 4 per second as your skill nears perfection."
+ 
+    SecondWind_skill_intro = \
+       "Weaponcraft Lv. 4: The ability to press on even when exhausted."
+@@ -75,32 +74,9 @@
+    }
+ 
+    DoSkill(who=$)
++   "Prime: Second Wind is a passive regeneration (kod/object/prime/primeclasses.kod SecondWindFor); the old vigor boost is gone."
+    {
+-      local iVigor;
+-
+-      if who = $
+-      {
+-         Debug("DoSkill called with bad who.");
+-
+-         return FALSE;
+-      }
+-
+-      if NOT (Send(self,@CanPayCosts,#who=who)
+-            AND Send(self,@PayCosts,#who=who))
+-      {
+-         return FALSE;
+-      }
+-
+-      Send(who,@MsgSendUser,#message_rsc=SecondWind_success);
+-      Send(who,@WaveSendUser,#wave_rsc=SecondWind_sound);
+-      iVigor = 40 + (Send(self,@GetRequisiteStat,#who=who)/2)
+-                  + Send(who,@GetSkillAbility,#Skill_num=viSkill_num);
+-      // Reverse sign so we're taking away exertion.
+-      iVigor = -iVigor;
+-      Send(who,@AddExertion,#amount=10000*iVigor);
+-      Send(who,@ShowAddEnchantment,#what=self,#type=ENCHANTMENT_PLAYER);
+-
+-      propagate;
++      return;
+    }
+ 
+    GetWaitTime(who=$)
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -5797,6 +5797,8 @@
+       local i, j, iResistance, oSoldierShield, gainchance, color_rsc,
+             iDuration, oSpell, oGort,iLimit, origdamage, oWeapon, shrunken, manaShield, manaDamage, playerMP;
+ 
++      Send(Send(SYS,@GetPrime),@NoteCombat,#who=self);     // Prime: second wind waits after a fight
++
+       if NOT precision
+       {
+          damage = damage * 100;
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -7250,6 +7250,8 @@
+    {
+       local i, use_weapon, stroke_id, stroke_obj, is_spell;
+ 
++      Send(Send(SYS,@GetPrime),@NoteCombat,#who=self);     // Prime: second wind waits after a fight
++
+       // User took an action!  Wake any AIs in the room to the user's presence!
+       // bitflag check instead of function for speed.
+       if NOT (piFlags & PFLAG_MOVED_SINCE_ENTRY)

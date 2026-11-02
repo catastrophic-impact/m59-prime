@@ -1,0 +1,13 @@
+--- a/packages/render/src/objectsView.ts	2026-10-27 06:09:32.378582925 -0600
++++ b/packages/render/src/objectsView.ts	2026-10-27 06:09:32.402761814 -0600
+@@ -600,7 +600,9 @@
+       // Name labels (d3drender.c D3DRenderNamesDraw3D)
+       const f = o.info.flags;
+       const hidden = (!this.names.players && f & OF.PLAYER) || (!this.names.npcs && f & OF.NPC) || (!this.names.signs && f & OF.SIGN);
+-      if (f & OF.DISPLAY_NAME && !hidden) {
++      // Prime: every monster carries its name too (attackable, not a player), as the players' and NPCs' names do
++      const mobName = !!(f & OF.ATTACKABLE) && !(f & OF.PLAYER) && !hidden;
++      if ((f & OF.DISPLAY_NAME || mobName) && !hidden) {
+         const dist = Math.hypot(dx, dy);
+         if (o.info.flags & OF.SIGN || dist < MAX_NAME_DISTANCE) {
+           const c = o.info.nameColor;

@@ -1,0 +1,30 @@
+--- a/kod/util/system.kod
++++ b/kod/util/system.kod
+@@ -408,6 +408,9 @@
+ 
+    poLibrary = $
+    poParliament = $
++
++   // Prime: our singleton (kod/object/prime/primeclasses.kod), created on first use
++   poPrime = $
+    poLore = $
+    poAssassin_game = $
+    poQuestEngine = $
+@@ -5523,6 +5526,17 @@
+       return poParliament;
+    }
+ 
++   GetPrime()
++   "Prime: the class system's rules object. Upstream files call it with Send(Send(SYS,@GetPrime),@Message,...)."
++   {
++      if poPrime = $
++      {
++         poPrime = Create(&PrimeClasses);
++      }
++
++      return poPrime;
++   }
++
+    RecreateParliament()
+    {
+       if poParliament <> $

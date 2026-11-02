@@ -1,0 +1,143 @@
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -489,6 +489,8 @@
+    {
+       local oComp, bWasHere;
+ 
++      Send(Send(SYS,@GetPrime),@BotsOwnerMoved,#who=who);     // Prime: the bots too
++
+       oComp = Send(who,@GetCompanion);
+       if oComp = $ OR Send(oComp,@GetCompanionState) <> COMP_ACTIVE
+          OR Send(who,@GetOwner) = $
+@@ -511,6 +513,8 @@
+    {
+       local oComp;
+ 
++      Send(Send(SYS,@GetPrime),@BotsOwnerLoggedOn,#who=who);     // Prime
++
+       oComp = Send(who,@GetCompanion);
+       if oComp <> $ AND Send(oComp,@GetKind) > COMPANION_KINDS
+       {
+@@ -547,6 +551,8 @@
+    {
+       local oComp;
+ 
++      Send(Send(SYS,@GetPrime),@BotsOwnerLoggingOff,#who=who);     // Prime: the bots end
++
+       oComp = Send(who,@GetCompanion);
+       if oComp = $
+       {
+@@ -568,6 +574,8 @@
+    {
+       local oComp;
+ 
++      Send(Send(SYS,@GetPrime),@BotsOwnerLoggingOff,#who=who);     // Prime
++
+       oComp = Send(who,@GetCompanion);
+       if oComp = $
+       {
+@@ -583,12 +591,17 @@
+ 
+    ////////////////////////////////////////////////////////////// strength and the bond
+ 
+-   Rescale(who = $)
+-   "Its strength from its owner's base health and the bond tier (docs/adr/0010 3)."
++   Rescale(who = $, comp = $)
++   "Its strength from its owner's base health and the bond tier (docs/adr/0010 3). Prime: a bot (comp) has no bond; its tier comes from its owner's health."
+    {
+       local oComp, iH, iTier, iBonus, iHealth, iFight, lDamage, iMin, iMax, iDefense, lWarrior;
+ 
+-      oComp = Send(who,@GetCompanion);
++      oComp = comp;
++      if oComp = $
++      {
++         oComp = Send(who,@GetCompanion);
++      }
++
+       if oComp = $
+       {
+          return;
+@@ -596,6 +609,11 @@
+ 
+       iH = Send(who,@GetBaseMaxHealth);
+       iTier = Send(self,@TierOf,#points=Send(who,@GetCompanionBond));
++      if Send(oComp,@IsBot)
++      {
++         iTier = Send(Send(SYS,@GetPrime),@BotTier,#health=iH);
++      }
++
+       iBonus = Send(self,@BondBonus,#tier=iTier);
+ 
+       iHealth = iH * COMPANION_HEALTH_PCT / 100 * (100 + iBonus) / 100;
+@@ -1263,7 +1281,7 @@
+    {
+       local oOwner, oSession;
+ 
+-      if comp = $
++      if comp = $ OR Send(comp,@IsBot)
+       {
+          return;
+       }
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -93,6 +93,8 @@
+    piGearTier = 0
+    // Only its book may delete it (CompanionBook.Forget): anything else parks it
+    pbDeleteOk = FALSE
++   // Prime: a companion bot (PrimeBots): temporary, no bond, vault, hall or corpse
++   pbBot = FALSE
+ 
+    // Its chance to cast in a fight (percent); how it supports its owner ([ [spell, mana, mode],
+    // ... ], CompanionKinds.GetSupport) and the timer that does it
+@@ -450,6 +452,18 @@
+       return piGearTier;
+    }
+ 
++   IsBot()
++   {
++      return pbBot;
++   }
++
++   SetBot()
++   {
++      pbBot = TRUE;
++
++      return;
++   }
++
+    AllowDelete()
+    {
+       pbDeleteOk = TRUE;
+@@ -1347,6 +1361,15 @@
+    {
+       local oBody, oRoom;
+ 
++      // Prime: a bot is simply gone
++      if pbBot
++      {
++         Send(Send(SYS,@GetPrime),@BotFell,#comp=self,#killer=what);
++         Post(self,@Delete);
++
++         return;
++      }
++
+       oRoom = poOwner;
+       if oRoom = $
+       {
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -4612,6 +4612,14 @@
+          return;
+       }
+ 
++      // Prime: the companion bots (primebots.kod)
++      if StringEqual(sVerb,"bot")
++      {
++         Send(Send(SYS,@GetPrime),@BotCommand,#who=self,#words=lWords);
++
++         return;
++      }
++
+       if StringEqual(sVerb,"group")
+       {
+          // Prime (kod/object/prime/primegroups.kod): our groups

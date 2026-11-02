@@ -1,0 +1,11 @@
+--- a/kod/object/makefile
++++ b/kod/object/makefile
+@@ -6,7 +6,7 @@
+ !include $(TOPDIR)\common.mak
+ 
+ DEPEND = ..\object.bof
+-BOFS = active.bof deleted.bof passive.bof item.bof
++BOFS = active.bof deleted.bof passive.bof item.bof prime.bof
+ 
+ !include $(KODDIR)\kod.mak
+ 

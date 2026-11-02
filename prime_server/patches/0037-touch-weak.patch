@@ -1,0 +1,26 @@
+--- a/kod/object/passive/spell/persench/touchatk.kod
++++ b/kod/object/passive/spell/persench/touchatk.kod
+@@ -305,6 +305,9 @@
+ 
+       // Prime: Mana Focus boosts touch attacks too
+       damage = damage + Send(Send(SYS,@GetPrime),@ManaFocusBonus,#who=who);
++
++      // Prime: a touch cast without its reagents (optional reagent rule) does only piNoReagentPercent percent of its damage, after every bonus
++      damage = Send(Send(SYS,@GetPrime),@TouchWeakDamage,#who=who,#oSpell=self,#damage=damage);
+       
+       return bound(damage,0,$);
+    }
+@@ -451,6 +454,13 @@
+       Send(target,@RemoveEnchantmentClass,#class=&TouchAttackSpell);
+       Send(target,@GainLight,#amount=viEnchantmentLight);
+ 
++      // Prime: the state is the spell power, negated when the touch was cast without its reagents (optional reagent rule): see
++      // PrimeRules.TouchWeakDamage
++      if Send(Send(SYS,@GetPrime),@IsWeakCaster,#who=target)
++      {
++         return -iSpellpower;
++      }
++
+       return iSpellpower;
+    }
+ 

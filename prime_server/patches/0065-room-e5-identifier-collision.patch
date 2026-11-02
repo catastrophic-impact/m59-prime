@@ -1,0 +1,60 @@
+--- a/kod/object/active/holder/room/monsroom/e5.kod
++++ b/kod/object/active/holder/room/monsroom/e5.kod
+@@ -14,8 +14,8 @@
+ 
+    include blakston.khd
+ 
+-   A = 6
+-   B = 7
++   E5_A = 6
++   E5_B = 7
+    C = 8
+    D = 9
+    EEE = 10  ///E and F were taken.
+@@ -24,7 +24,7 @@
+ 
+    AA = 7
+    BB = 8
+-   CC = 9
++   E5_CC = 9
+    DD = 10
+    EE = 11
+    FF = 12
+@@ -41,7 +41,7 @@
+    room_name_OutdoorsE5 ="The Forest Shrine"
+    OutdoorsE5_music = walk5.ogg
+ 
+-   e5_second_runner = "A mysterious force prevents you from entering the gas field."
++   e5_second_runner = "E5_A mysterious force prevents you from entering the gas field."
+ 
+    e5_death = "The acid steam melts the flesh from your bones."
+ 
+@@ -95,8 +95,8 @@
+ 
+    Constructed()
+    {
+-      plRowNums = [G,FFF,EEE,D,C,B,A];
+-      plColNums = [GG,FF,EE,DD,CC,BB,AA];
++      plRowNums = [G,FFF,EEE,D,C,E5_B,E5_A];
++      plColNums = [GG,FF,EE,DD,E5_CC,BB,AA];
+       poSnitch = create(&ladypheonix);
+       Send(self,@NewHold,#what=poSnitch,#new_row=9,#new_col=3,#fine_col=16);
+       poShrine = create(&shrine,#shrine_num=SHRINE_FOREST);
+@@ -169,7 +169,7 @@
+          ptCheckAllPositionsTimer = $;
+       }
+ 
+-      iRandRow = Random(A,G);
++      iRandRow = Random(E5_A,G);
+ 
+       piNorthEndRow = iRandRow;
+       piSouthEndRow = iRandRow;
+@@ -387,7 +387,7 @@
+ 
+       //Debug("runneradvanced");
+ 
+-      iNextSafeRow = Random(A,G);  ///The row number of the next safe spot.  Different from piNextSafeRow.
++      iNextSafeRow = Random(E5_A,G);  ///The row number of the next safe spot.  Different from piNextSafeRow.
+       iCurrentRow = piNextSafeRow;
+       piPenatration = piPenatration + piDirection;
+ 

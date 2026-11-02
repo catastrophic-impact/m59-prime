@@ -1,0 +1,123 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -4516,6 +4516,12 @@
+    {
+       local oRoom, oGuild, oSpell, oVictimGuild;
+ 
++      // Prime: grouped players and companions never harm each other
++      if Send(Send(SYS,@GetPrime),@AreGrouped,#who=self,#what=victim)
++      {
++         return FALSE;
++      }
++
+       // Default location to check is where we are.
+       oRoom = poOwner;
+ 
+@@ -7131,6 +7137,12 @@
+          return;
+       }
+ 
++      // Prime: a floating number over us (not for the slow loss above maximum health)
++      if NOT decay
++      {
++         Send(Send(SYS,@GetPrime),@CombatNumber,#victim=self,#amount=amount,#bHeal=FALSE);
++      }
++
+       if piFlags & PFLAG_TRANCE AND NOT decay
+       {
+          Send(self,@BreakTrance,#event=EVENT_DAMAGE);
+@@ -7150,6 +7162,12 @@
+          amount *= 100;
+       }
+ 
++      // Prime: a floating number over us for a heal (not the one point of resting)
++      if NOT precision
++      {
++         Send(Send(SYS,@GetPrime),@CombatNumber,#victim=self,#amount=amount,#bHeal=TRUE);
++      }
++
+       if NOT Send(self,@IsInCannotInteractMode)
+       {
+          if (200*piMax_health) < (piHealth+amount)
+@@ -7209,6 +7227,11 @@
+ 
+       Send(self,@NewHealth);
+ 
++      if NOT precision AND piHealth > iOldhealth
++      {
++         Send(Send(SYS,@GetPrime),@CombatNumber,#victim=self,#amount=piHealth-iOldhealth,#bHeal=TRUE);
++      }
++
+       return (piHealth - iOldhealth);
+    }
+ 
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -2131,6 +2131,12 @@
+    {
+       local oRoom, bWasBad, lMinions;
+ 
++      // Prime: grouped players and companions never harm each other
++      if Send(Send(SYS,@GetPrime),@AreGrouped,#who=self,#what=victim)
++      {
++         return FALSE;
++      }
++
+       if isClass(self,&Reflection)
+       {
+          if NOT send(poMaster,@AllowBattlerAttack,#victim=poTarget)
+@@ -2466,7 +2472,13 @@
+       }
+ 
+       piHit_points = piHit_points - iDamage;
+-      
++
++      // Prime: a floating number over it
++      if iDamage > 0
++      {
++         Send(Send(SYS,@GetPrime),@CombatNumber,#victim=self,#amount=iDamage,#bHeal=FALSE);
++      }
++
+       if poOwner = $
+       {
+          return 0;
+@@ -5153,6 +5165,8 @@
+    GainHealthNormal(amount = $, precision = FALSE)
+    "for when holy touch is cast on a good monster"
+    {
++      local iOld;
++
+       if amount = $
+       {
+          return;
+@@ -5163,8 +5177,15 @@
+          amount = amount * 100;
+       }
+ 
++      iOld = piHit_points;
+       piHit_points = Bound(piHit_points+amount,1,piMax_hit_points*100);
+ 
++      // Prime: a floating number over it
++      if piHit_points > iOld AND NOT precision
++      {
++         Send(Send(SYS,@GetPrime),@CombatNumber,#victim=self,#amount=piHit_points-iOld,#bHeal=TRUE);
++      }
++
+       return;
+    }
+ 
+--- a/kod/object/active/holder/room.kod
++++ b/kod/object/active/holder/room.kod
+@@ -1423,6 +1423,12 @@
+    {
+       local oWatcher, i, each_obj, oSpell, bBout;
+ 
++      // Prime: grouped players and companions never harm each other
++      if Send(Send(SYS,@GetPrime),@AreGrouped,#who=what,#what=victim)
++      {
++         return FALSE;
++      }
++
+       if what <> $
+          AND IsClass(what,&User)
+          AND Send(what,@IsInCannotInteractMode)

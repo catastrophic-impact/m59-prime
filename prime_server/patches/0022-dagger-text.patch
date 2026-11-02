@@ -1,0 +1,25 @@
+--- a/kod/object/passive/ornobj.kod
++++ b/kod/object/passive/ornobj.kod
+@@ -597,7 +597,7 @@
+    oo_modhammer_name = "model hammer"
+    oo_modhammer_icon = hammer.bgf
+    oo_modhammer_desc = "A plaque below the model reads:\nA sturdy weapon, oft found around the hills of Jasper."
+-   oo_modshortsword_name = "model short sword"
++   oo_modshortsword_name = "model dagger"
+    oo_modshortsword_icon = shswd.bgf
+    oo_modshortsword_desc = "A plaque below the model reads:\nA suitable weapon for a starting adventurer.  Cheap, crude, but suitable for smaller beasts."
+    oo_modhelm_name = "model helm"
+--- a/kod/object/active/holder/room/tempkra.kod
++++ b/kod/object/active/holder/room/tempkra.kod
+@@ -43,9 +43,9 @@
+    tempkra_hammer_name = "hammer"
+    tempkra_hammer_icon = hammer.bgf
+    tempkra_hammer_desc = "Kraanan's hammer."
+-   tempkra_shortsword_name = "short sword"
++   tempkra_shortsword_name = "dagger"
+    tempkra_shortsword_icon = shswd.bgf
+-   tempkra_shortsword_desc = "Kraanan's short sword."
++   tempkra_shortsword_desc = "Kraanan's dagger."
+    tempkra_mace_name = "mace"
+    tempkra_mace_icon = mace.bgf
+    tempkra_mace_desc = "Kraanan's mace."

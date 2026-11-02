@@ -1,0 +1,33 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user/dm.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user/dm.kod
+@@ -844,7 +844,7 @@
+    
+    UserSay(string=$,type=$)
+    {
+-      local i;
++      local i, lWords;
+ 
+       if type <> SAY_DM
+       {
+@@ -854,6 +854,21 @@
+       // Log the DM command in god.txt, and print it to the debug log.
+       GodLog("DM ",Send(self,@GetTrueName)," used the DM command dm ",string);
+ 
++      // Prime: "dm prime ..." test helpers (kod/object/prime/primeclasses.kod DmPrime)
++      if StringContain(string,"prime ")
++      {
++         plShardsWords = $;
++         ParseString(string," ",@ShardsCommandWord);
++         lWords = plShardsWords;
++         plShardsWords = $;
++         if lWords <> $ AND StringEqual(First(lWords),"prime")
++         {
++            Send(Send(SYS,@GetPrime),@DmPrime,#who=self,#words=lWords);
++
++            return;
++         }
++      }
++
+       if (piDMFlags & DMFLAG_ALLOW_TURNOFF_ROOMPK)
+          AND StringEqual(string,dm_turn_off_pk)
+       {

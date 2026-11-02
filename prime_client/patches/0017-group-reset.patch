@@ -1,0 +1,11 @@
+--- a/apps/client/src/game/Game.tsx
++++ b/apps/client/src/game/Game.tsx
+@@ -242,6 +242,8 @@
+         },
+         characters: (c, m) => {
+           setCharacters([...c]);
++          // Prime: the character list means we are not in the world (login, or switching): forget the last character's group
++          primeGroup.reset();
+           // Prime: what this browser kept for characters that no longer exist (a server reset, a deleted character) is thrown away, so a
+           // new character that takes an old one's name does not inherit its hotbar, pet or friends
+           try {

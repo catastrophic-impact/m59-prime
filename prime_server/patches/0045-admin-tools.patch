@@ -1,0 +1,17 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -4620,6 +4620,14 @@
+          return;
+       }
+ 
++      // Prime: the admin tools of the in-game console (primeadmin.kod)
++      if StringEqual(sVerb,"padmin")
++      {
++         Send(Send(SYS,@GetPrime),@AdminCommand,#who=self,#words=lWords);
++
++         return;
++      }
++
+       if StringEqual(sVerb,"group")
+       {
+          // Prime (kod/object/prime/primegroups.kod): our groups

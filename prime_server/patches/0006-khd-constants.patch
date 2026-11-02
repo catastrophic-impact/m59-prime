@@ -1,0 +1,11 @@
+--- a/kod/include/blakston.khd
++++ b/kod/include/blakston.khd
+@@ -2681,6 +2681,8 @@
+    PLAYER_LEARN_OTHERDIV = 7
+    PLAYER_LEARN_IMPOSSIBLE = 8
+    PLAYER_LEARN_NOBASE = 9
++   // Prime: the ability is not part of the player's class
++   PLAYER_LEARN_NOTCLASS = 10
+ 
+    // Spell environment restrictions/bonuses
+    SC_REQUISITE = 1

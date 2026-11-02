@@ -1,0 +1,93 @@
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -1997,6 +1997,8 @@
+ 
+   /** Our face or an inventory item while choosing a spell target (GAME_SELECT). */
+   const selectObject = (id: number) => sceneRef.current?.select(id);
++  // Prime: a click on a portrait, a group row or an object finishes a pending selection, else it targets that object (ourselves too)
++  const pick = (id: number) => (selecting ? sceneRef.current?.select(id) : sceneRef.current?.setTarget(id));
+ 
+   useEffect(() => {
+     lookRef.current = lookRoomObject;
+@@ -2365,7 +2367,7 @@
+             onSetSlot={setSlot}
+             onSwapSlots={swapSlots}
+             selecting={selecting}
+-            onSelectSelf={() => selfInfo && selectObject(selfInfo.id)}
++            onSelectSelf={() => selfInfo && pick(selfInfo.id)}
+             onCancelSelect={() => sceneRef.current?.select(null)}
+             onEmotes={toggleEmotes}
+             onArena={inArena ? openArena : undefined}
+@@ -2383,8 +2385,8 @@
+               const t = target !== null ? session.world.objects.get(target) : undefined;
+               return t && t.info.flags & OF_PLAYER ? (session.resource(t.info.nameRes) ?? null) : null;
+             })()}
+-            onSelect={selectObject}
+-            inRoom={(id) => session.world.objects.has(id)}
++            onSelect={pick}
++            inRoom={(id) => id === session.world.self?.id || session.world.objects.has(id)}
+           />
+         )}
+         {!touch && !modern && (
+@@ -2406,7 +2408,7 @@
+               icons={icons}
+               settings={settings}
+               selecting={selecting}
+-              onSelectSelf={() => selfInfo && selectObject(selfInfo.id)}
++              onSelectSelf={() => selfInfo && pick(selfInfo.id)}
+               onLook={(id) => lookAt(id, DESC.NONE)}
+               onEmotes={toggleEmotes}
+             />
+@@ -2457,7 +2459,7 @@
+                 onPut={putAway}
+                 onTabOut={(forward) => (forward ? inputRef.current?.focus() : focusView())}
+                 selecting={selecting}
+-                onSelectObject={selectObject}
++                onSelectObject={pick}
+                 onCast={castSpell}
+                 friendsPanel={friendsPanel}
+                 petsPanel={petsPanel}
+@@ -2954,7 +2956,7 @@
+           onTabOut={(forward) => (forward ? inputRef.current?.focus() : focusView())}
+           target={target}
+           selecting={selecting}
+-          onSelectObject={selectObject}
++          onSelectObject={pick}
+           onCast={castSpell}
+           annotations={annotations?.list ?? []}
+           onAnnotate={annotateAt}
+--- a/apps/client/src/game/ui/ModernHud.tsx
++++ b/apps/client/src/game/ui/ModernHud.tsx
+@@ -82,8 +82,8 @@
+         <div
+           className={selecting ? "unit-portrait selecting" : "unit-portrait"}
+           // userarea.c UserAreaProc: a click picks us as a spell target; a right click looks at us.
+-          // Ours: otherwise a click shows the emotes
+-          onClick={() => (selecting ? onSelectSelf() : onEmotes?.())}
++          // Prime: a click always selects us (the emotes have their own button and key)
++          onClick={() => onSelectSelf()}
+           onContextMenu={(e) => {
+             e.preventDefault();
+             if (self) onLook(self.id);
+@@ -110,7 +110,7 @@
+   const world = session.world;
+   useWorld(world, ["objectChanged", "objectRemoved", "roomContents"]);
+   usePrimeGroup(); // Prime: the health of what we target comes with the group's second
+-  const o = target !== null ? world.objects.get(target) : undefined;
++  const o = target !== null ? (world.objects.get(target) ?? (world.self?.id === target ? world.self : undefined)) : undefined; // Prime: and ourselves
+   if (!o) return null;
+   const member = primeGroup.state?.members.find((m) => m.id === o.id && m.maxHp > 0);
+   const primeHp = primeGroup.mobHealth.get(o.id) ?? (member ? Math.round((100 * member.hp) / member.maxHp) : undefined);
+--- a/apps/client/src/game/ui/Sidebar.tsx
++++ b/apps/client/src/game/ui/Sidebar.tsx
+@@ -348,8 +348,8 @@
+           className={selecting ? "portrait selecting" : "portrait"}
+           title={self ? tip(rs(self.info.nameRes)) : undefined}
+           // userarea.c UserAreaProc: a click picks us as a spell target; a right click looks at us.
+-          // Ours: otherwise a click shows the emotes
+-          onClick={() => (self && selecting ? onSelectObject(self.id) : onEmotes?.())}
++          // Prime: a click always selects us (the emotes have their own button and key)
++          onClick={() => self && onSelectObject(self.id)}
+           onContextMenu={(e) => {
+             e.preventDefault();
+             if (self) onLook(self.id);

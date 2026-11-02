@@ -1,0 +1,164 @@
+/* Ours (Meridian 59 Prime): the group window (PrimeGroupWindow.tsx), in the dialog kit's stone and gold */
+.pg-window {
+  position: absolute;
+  left: 10px;
+  top: 150px;
+  width: 216px;
+  z-index: 30;
+  padding: 6px 8px 8px;
+  background: #3a3a3a var(--ui-bkgnd) repeat;
+  color: var(--ui-text, #e7e7e7);
+  border: 2px solid rgba(214, 170, 60, 0.55);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), inset 0 0 0 1px #000;
+  font: 12px/1.25 var(--font-ui, serif);
+  user-select: none;
+}
+
+.pg-title {
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  padding-bottom: 3px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(214, 170, 60, 0.5);
+  color: rgb(231, 200, 70);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.pg-row {
+  padding: 3px 4px 4px;
+  margin-bottom: 3px;
+  background: rgba(10, 10, 10, 0.45);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.pg-row.away {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pg-row.dead .pg-name {
+  color: rgb(214, 80, 70);
+}
+
+.pg-row.target {
+  border-color: rgb(231, 200, 70);
+}
+
+.pg-name {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 2px;
+  text-shadow: 1px 1px 0 #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pg-star {
+  color: rgb(231, 200, 70);
+}
+
+.pg-tag {
+  color: rgb(120, 200, 190);
+}
+
+.pg-bar {
+  display: block;
+  height: 7px;
+  margin-top: 2px;
+  border: 1px solid #000;
+  background: linear-gradient(to right, var(--fill) var(--pct, 0%), rgba(10, 10, 10, 0.75) var(--pct, 0%));
+}
+
+.pg-hp {
+  --fill: rgb(40, 190, 70);
+}
+
+.pg-mana {
+  --fill: rgb(70, 110, 220);
+  height: 5px;
+}
+
+.pg-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.pg-buttons button {
+  flex: 1 1 auto;
+  padding: 2px 6px;
+  font: inherit;
+  color: var(--ui-text, #e7e7e7);
+  background: #4a4a4a;
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.25), inset -1px -1px 0 rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.pg-buttons button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pg-invite {
+  margin-bottom: 4px;
+  padding: 4px;
+  background: rgba(60, 50, 10, 0.55);
+  border: 1px solid rgba(214, 170, 60, 0.6);
+}
+
+/* The health under a target's name in the target frame (ModernHud.tsx TargetFrame) */
+.target-frame .target-hp {
+  flex: none;
+  display: block;
+  width: 84px;
+  height: 8px;
+  border: 1px solid #000;
+  background: linear-gradient(to right, rgb(40, 190, 70) var(--pct, 0%), rgba(10, 10, 10, 0.75) var(--pct, 0%));
+}
+
+/* Healing numbers (gameScene.ts primeNumber): green; damage is the kit's gold, ours red when it falls on a player or a companion */
+.damage-number.heal {
+  color: rgb(90, 230, 110);
+}
+
+.damage-number.hurt {
+  color: rgb(255, 110, 90);
+}
+
+/* A friend selected (a groupmate, a companion, ourselves, an innocent with the safety on): green (primeGroup.ts primeFriendly) */
+.name-label.target.friendly {
+  outline-color: rgba(90, 230, 110, 0.9);
+  color: rgb(110, 240, 130) !important;
+}
+
+.target-frame.friendly {
+  border-color: rgba(90, 230, 110, 0.85);
+}
+
+.target-frame.friendly .target-name {
+  color: rgb(120, 240, 140);
+}
+
+/* the menu from the title bar must stay above our windows (it dropped behind the group window) */
+.title-bar.title-bar { z-index: 60; }
+
+/* A health bar under a name (companion-hp, gameScene.ts drawLabels): centred under the name, not left-aligned */
+.name-label:has(> .companion-hp) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Bigger health bars under names (gameScene.ts drawLabels; styles.css had 4px) */
+.name-label > .companion-hp,
+.name-label > .friend-hp {
+  height: 8px;
+}

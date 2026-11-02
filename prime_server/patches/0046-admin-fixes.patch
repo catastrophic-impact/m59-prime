@@ -1,0 +1,37 @@
+--- a/blakserv/adminfn.c
++++ b/blakserv/adminfn.c
+@@ -4311,10 +4311,15 @@
+ 		return;
+ 	}
+ 	
+-	if (a->account_id == admin_session_id)
++	/* Prime: the check compared the account number with the session number, so a maintenance session (which has no account) could not delete
++	   the account whose number happened to equal its own.  Only a session logged in to the account is refused. */
+ 	{
+-		aprintf("You can't delete your own account.\n");
+-		return;
++		session_node *admin_s = GetSessionByID(admin_session_id);
++		if (admin_s != NULL && admin_s->account != NULL && admin_s->account->account_id == a->account_id)
++		{
++			aprintf("You can't delete your own account.\n");
++			return;
++		}
+ 	}
+ 	
+ 	aprintf("Account %i will be deleted.\n",a->account_id);
+--- a/kod/object/active/holder/room/tosrm/tosdeatharena.kod
++++ b/kod/object/active/holder/room/tosrm/tosdeatharena.kod
+@@ -56,10 +56,9 @@
+       " * battle royale (more than two guilds)\n\n"
+       "Say 'champion', 'challenge' or 'renege' to enter or exit the cage.\n\n"
+       "This arena has one significant difference - dying here has the same "
+-      "outcome as being killed in the rest of the game world.  You will be "
+-      "sent to The Underworld where you can use the main portal (in the lava) "
+-      "to travel back here.  You will keep your items, but lose ability points "
+-      "and XP."
++      "outcome as being killed anywhere else in the world, whatever this "
++      "server's death rules make that.  You will be sent to The Underworld "
++      "where you can use the main portal (in the lava) to travel back here."
+ 
+    // Name displayed in trophy descriptions.
+    deatharena_trophy_name = "Dealers of Death"

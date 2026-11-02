@@ -1,0 +1,107 @@
+--- a/apps/client/src/game/ui/AdminConsole.tsx
++++ b/apps/client/src/game/ui/AdminConsole.tsx
+@@ -20,6 +20,7 @@
+ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+ import type { GameSession } from "@shards/world";
+ import { Button, GroupBox, ListBox, Tabs, Text, TextField, Window, type Rect } from "./kit.tsx";
++import { PrimeAdminPage } from "./PrimeAdminTabs.tsx";
+ 
+ /** clientd3d/statterm.h MAX_HISTORY: characters the text window keeps */
+ const MAX_HISTORY = 30000;
+@@ -61,7 +62,7 @@
+   return rooms.filter((r) => r.name.toLowerCase().includes(t) || r.roo.includes(t) || String(r.rid).startsWith(t));
+ }
+ 
+-const TABS = ["Travel", "Players", "Self", "World", "Prime"] as const;
++const TABS = ["Travel", "Players", "Self", "World", "Items", "Creatures", "Character"] as const;     // Prime: the last three are ours (PrimeAdminTabs.tsx)
+ type Tab = (typeof TABS)[number];
+ 
+ /** Where the tabs' pages start, and how the button rows are laid out, in dialog units */
+@@ -152,17 +153,10 @@
+   const [find, setFind] = useState("");
+   const [room, setRoom] = useState<number | null>(null);
+   const [status, setStatus] = useState("");
+-  const [item, setItem] = useState("");
+-  const [disguise, setDisguise] = useState("");
+   const [monster, setMonster] = useState("");
+   const [place, setPlace] = useState("");
+   const [message, setMessage] = useState("");
+   const [confirmClear, setConfirmClear] = useState(false);
+-  // Prime: the Prime tab's fields
+-  const [pLevel, setPLevel] = useState("3");
+-  const [pHealth, setPHealth] = useState("500");
+-  const [pGold, setPGold] = useState("5000");
+-  const [pItem, setPItem] = useState("");
+   const outRef = useRef<HTMLTextAreaElement | null>(null);
+   const players = [...session.world.players.values()].sort((a, b) => a.name.localeCompare(b.name));
+   const me = session.world.player?.id ?? 0;
+@@ -315,27 +309,19 @@
+         ))}
+       </>
+     );
+-  } else if (tab === "Prime") {
+-    // Prime (ours): class levels, health, shillings, items and robes for yourself or the player picked on the Players tab
+-    // (dm.kod "dm prime ..." -> PrimeClasses.DmPrime). A class level gives every spell and skill of the target's class table up to
+-    // that level at 70 percent; health is capped by the game at 100 plus the target's stamina.
+-    const target = user !== null && user !== me ? session.world.players.get(user)?.name : undefined;
+-    const to = target ? ` to ${target}` : "";
+-    const prime = (what: string, value: string) => () => (value.trim() ? dm(`prime ${what} ${value.trim()}${to}`) : setStatus("Type a value first."));
++  } else if (tab === "Items" || tab === "Creatures" || tab === "Character") {
++    // Prime (ours): every item, every creature, and a character's health and abilities; for yourself or the player picked on the Players tab
+     page = (
+-      <>
+-        <Text at={[3, PAGE_Y + 1, 290, 8]}>{target ? `For: ${target} (picked on the Players tab)` : "For: yourself (pick a player on the Players tab to give to them)"}</Text>
+-        <ButtonRows
+-          rows={[
+-            { label: "", items: [] },
+-            { label: "Class level", items: [{ field: "Level 1-6", value: pLevel, onChange: setPLevel, onSubmit: prime("level", pLevel) }, { label: "Give abilities", onClick: prime("level", pLevel) }] },
+-            { label: "Health", items: [{ field: "Max health", value: pHealth, onChange: setPHealth, onSubmit: prime("health", pHealth) }, { label: "Set health", onClick: prime("health", pHealth) }] },
+-            { label: "Shillings", items: [{ field: "Amount", value: pGold, onChange: setPGold, onSubmit: prime("gold", pGold) }, { label: "Give shillings", onClick: prime("gold", pGold) }] },
+-            { label: "Item", items: [{ field: 'An item ("plate armor")', value: pItem, onChange: setPItem, onSubmit: prime("item", pItem) }, { label: "Give item", onClick: prime("item", pItem) }] },
+-            { label: "Disciple robe", items: ["Qor", "Shalille", "Kraanan", "Faren", "Riija", "Jala"].map((g) => ({ label: g, onClick: () => dm(`prime robe ${g.toLowerCase()}${to}`) })) },
+-          ]}
+-        />
+-      </>
++      <PrimeAdminPage
++        tab={tab}
++        session={session}
++        me={me}
++        targetId={user}
++        targetName={user !== null ? session.world.players.get(user)?.name : undefined}
++        y={PAGE_Y}
++        setStatus={setStatus}
++        onDm={dm}
++      />
+     );
+   } else if (tab === "Self") {
+     page = (
+@@ -348,9 +334,6 @@
+           {
+             label: "Items",
+             items: [
+-              { field: 'An item ("long sword")', value: item, onChange: setItem, onSubmit: withText("item", item) },
+-              { label: "Get item", onClick: withText("item", item) },
+-              { label: "Money", ...say("get money") },
+               { label: "Weapons", ...say("get weapons") },
+               { label: "Armor", ...say("get armor") },
+               { label: "Reagents", ...say("get reagents") },
+@@ -366,7 +349,8 @@
+               },
+             ],
+           },
+-          { label: "Look", items: [{ field: 'A monster ("orc")', value: disguise, onChange: setDisguise, onSubmit: withText("disguise", disguise) }, { label: "Disguise", onClick: withText("disguise", disguise) }] },
++          // the creature to look like is chosen from the Creatures tab
++          { label: "Look", items: [{ label: "Disguise...", title: "Pick a creature on the Creatures tab, then Disguise as", onClick: () => setTab("Creatures") }, { label: "Plain", ...say("plain") }] },
+         ]}
+       />
+     );
+@@ -376,6 +360,9 @@
+         rows={[
+           // dm.kod: the time of day for everyone, until restored
+           { label: "Time", items: [{ label: "Morning", ...say("morning") }, { label: "Afternoon", ...say("afternoon") }, { label: "Evening", ...say("evening") }, { label: "Night", ...say("night") }, { label: "Real time", ...say("restore time") }] },
++          // Prime: the weather of this room, or of every room (primeadmin.kod AdminWeather; rooms that allow no weather stay as they are)
++          { label: "Weather here", items: (["rain", "snow", "sand", "fireworks", "clear"] as const).map((w) => ({ label: w === "sand" ? "Sandstorm" : w[0].toUpperCase() + w.slice(1), onClick: () => session.shardsCommand(`padmin weather ${w} here`) })) },
++          { label: "Weather all", items: (["rain", "snow", "sand", "fireworks", "clear"] as const).map((w) => ({ label: w === "sand" ? "Sandstorm" : w[0].toUpperCase() + w.slice(1), onClick: () => session.shardsCommand(`padmin weather ${w} all`) })) },
+           { label: "Monsters", items: [{ field: 'A monster ("giant rat")', value: monster, onChange: setMonster, onSubmit: withText("monster", monster) }, { label: "Make", onClick: withText("monster", monster) }, { label: "Call one", ...say("call monster") }, { label: "Rumble", ...say("rumble") }] },
+           { label: "Place", items: [{ field: 'Scenery or a light ("brazier")', value: place, onChange: setPlace, onSubmit: withText("place", place) }, { label: "Place", onClick: withText("place", place) }, { label: "Lights?", ...say("help lights") }, { label: "Scenery?", ...say("help scenery") }, { label: "Event sign", ...say("event sign") }] },
+           // dm.kod: "systemmessage" to everyone with the [###] prefix, "lemote" to this room

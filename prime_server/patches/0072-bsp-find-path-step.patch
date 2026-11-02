@@ -1,0 +1,382 @@
+--- a/blakserv/roofile.c
++++ b/blakserv/roofile.c
+@@ -15,7 +15,11 @@
+ 
+  */
+ 
+-#include "blakserv.h"
++#include "blakserv.h"
++#include <queue>
++#include <vector>
++#include <cmath>
++#include <ctime>
+ 
+ #pragma region Macros
+ /*****************************************************************************************
+@@ -1186,6 +1190,198 @@
+    return false;
+ }
+ 
++
++/*********************************************************************************************/
++/* BSPFindPathStep:  PRIME. Finds a walkable way from S to E with A* over a grid of half-square */
++/*                   cells, every link judged by BSPCanMoveInRoom (the client's own walk rules, */
++/*                   walls, heights and solid objects), and returns in P the farthest point of  */
++/*                   that way that can be walked to in a straight line from S. False when there */
++/*                   is no way, the room is too big or the search ran out of its budget.       */
++/*                   Guardrails: cell and expansion caps, a time limit, bounds checks, capped   */
++/*                   log (a few lines, then one summary per 1000 calls).                        */
++/*********************************************************************************************/
++#define FP_CELL            512.0f      // cell size in ROO units (half a square)
++#define FP_MAX_CELLS       250000      // largest grid this will search
++#define FP_MAX_EXPAND      80000       // most cells expanded in one search
++#define FP_MAX_MS          60          // time limit of one search, ms
++#define FP_MAX_LOG         25          // detailed log lines for the lifetime of the server
++
++static unsigned int fp_calls = 0, fp_found = 0, fp_direct = 0, fp_nopath = 0, fp_aborted = 0, fp_toobig = 0, fp_logged = 0;
++static unsigned int fp_ms_total = 0, fp_ms_max = 0;
++
++static void FPLog(const char* what, room_type* Room, V2* S, V2* E, unsigned int expanded, unsigned int ms)
++{
++   if (fp_logged >= FP_MAX_LOG)
++      return;
++   ++fp_logged;
++   eprintf("BSPFindPathStep %s: room %i from (%.0f,%.0f) to (%.0f,%.0f) expanded %u in %u ms%s\n",
++      what, Room ? Room->roomdata_id : -1, S ? S->X : 0.0f, S ? S->Y : 0.0f, E ? E->X : 0.0f, E ? E->Y : 0.0f, expanded, ms,
++      fp_logged == FP_MAX_LOG ? " (detail log full: only summaries from now on)" : "");
++}
++
++bool BSPFindPathStep(room_type* Room, V2* S, V2* E, V2* P, int ObjectID)
++{
++   if (!Room | !S | !E | !P)
++      return false;
++
++   ++fp_calls;
++   if ((fp_calls % 1000) == 0)
++      eprintf("BSPFindPathStep summary: %u calls, %u found (%u straight), %u no way, %u aborted, %u too big, avg %u ms, max %u ms\n",
++         fp_calls, fp_found, fp_direct, fp_nopath, fp_aborted, fp_toobig, fp_ms_total / fp_calls, fp_ms_max);
++
++   Wall* blockWall = NULL;
++
++   // 1) a straight walk
++   if (BSPCanMoveInRoom(Room, S, E, ObjectID, false, &blockWall))
++   {
++      *P = *E;
++      ++fp_found;
++      ++fp_direct;
++      return true;
++   }
++
++   const int ncols = Room->cols * 2 + 2;
++   const int nrows = Room->rows * 2 + 2;
++   if (ncols <= 2 || nrows <= 2 || (long long)ncols * nrows > FP_MAX_CELLS)
++   {
++      ++fp_toobig;
++      FPLog("room too big or empty", Room, S, E, 0, 0);
++      return false;
++   }
++
++   auto cellOf = [&](const V2* v) -> int {
++      int c = (int)(v->X / FP_CELL), r = (int)(v->Y / FP_CELL);
++      if (c < 0) c = 0; if (c >= ncols) c = ncols - 1;
++      if (r < 0) r = 0; if (r >= nrows) r = nrows - 1;
++      return r * ncols + c;
++   };
++   auto centre = [&](int cell) -> V2 {
++      V2 v;
++      v.X = (float)(cell % ncols) * FP_CELL + FP_CELL * 0.5f;
++      v.Y = (float)(cell / ncols) * FP_CELL + FP_CELL * 0.5f;
++      return v;
++   };
++
++   const int total = ncols * nrows;
++   std::vector<float> g(total, 1e30f);
++   std::vector<int> parent(total, -1);
++   std::vector<unsigned char> state(total, 0);   // 0 new, 1 open, 2 closed
++   const int startCell = cellOf(S), endCell = cellOf(E);
++
++   struct Item { float f; int cell; };
++   struct Cmp { bool operator()(const Item& a, const Item& b) const { return a.f > b.f; } };
++   std::priority_queue<Item, std::vector<Item>, Cmp> open;
++
++   V2 endc = *E;
++   auto h = [&](int cell) -> float {
++      V2 c = centre(cell);
++      float dx = c.X - endc.X, dy = c.Y - endc.Y;
++      return sqrtf(dx * dx + dy * dy);
++   };
++
++   g[startCell] = 0.0f;
++   state[startCell] = 1;
++   open.push({ h(startCell), startCell });
++
++   static const int DC[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
++   static const int DR[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
++
++   clock_t t0 = clock();
++   unsigned int expanded = 0;
++   int found = -1;
++   bool aborted = false;
++
++   while (!open.empty())
++   {
++      Item it = open.top();
++      open.pop();
++      int cur = it.cell;
++      if (state[cur] == 2)
++         continue;
++      state[cur] = 2;
++      ++expanded;
++
++      // from the exact start point for the first cell, else from the cell's centre
++      V2 from = (cur == startCell) ? *S : centre(cur);
++
++      if (cur == endCell)
++      {
++         // the last link goes to the exact goal
++         if (BSPCanMoveInRoom(Room, &from, E, ObjectID, false, &blockWall))
++         {
++            found = cur;
++            break;
++         }
++      }
++
++      if (expanded >= FP_MAX_EXPAND || ((expanded & 255) == 0 && (clock() - t0) * 1000 / CLOCKS_PER_SEC > FP_MAX_MS))
++      {
++         aborted = true;
++         break;
++      }
++
++      const int cc = cur % ncols, cr = cur / ncols;
++      for (int d = 0; d < 8; d++)
++      {
++         int nc = cc + DC[d], nr = cr + DR[d];
++         if (nc < 0 || nr < 0 || nc >= ncols || nr >= nrows)
++            continue;
++         int nb = nr * ncols + nc;
++         if (state[nb] == 2)
++            continue;
++         V2 to = centre(nb);
++         float dx = to.X - from.X, dy = to.Y - from.Y;
++         float ng = g[cur] + sqrtf(dx * dx + dy * dy);
++         if (ng >= g[nb])
++            continue;
++         if (!BSPCanMoveInRoom(Room, &from, &to, ObjectID, false, &blockWall))
++            continue;
++         g[nb] = ng;
++         parent[nb] = cur;
++         state[nb] = 1;
++         open.push({ ng + h(nb), nb });
++      }
++   }
++
++   unsigned int ms = (unsigned int)((clock() - t0) * 1000 / CLOCKS_PER_SEC);
++   fp_ms_total += ms;
++   if (ms > fp_ms_max)
++      fp_ms_max = ms;
++
++   if (found < 0)
++   {
++      if (aborted)
++      {
++         ++fp_aborted;
++         FPLog("aborted (budget)", Room, S, E, expanded, ms);
++      }
++      else
++      {
++         ++fp_nopath;
++         FPLog("no way", Room, S, E, expanded, ms);
++      }
++      return false;
++   }
++
++   // the way, from the goal back to the start; then the farthest point of it that can be walked to in a straight line from S
++   std::vector<V2> way;
++   for (int c = found; c != -1 && way.size() < (size_t)total; c = parent[c])
++      way.push_back(centre(c));
++   // way[0] is the goal cell, way.back() the start cell
++   *P = way.size() > 1 ? way[way.size() - 2] : *E;
++   for (size_t i = 0; i + 1 < way.size(); i++)
++   {
++      if (BSPCanMoveInRoom(Room, S, &way[i], ObjectID, false, &blockWall))
++      {
++         *P = way[i];
++         break;
++      }
++   }
++
++   ++fp_found;
++   return true;
++}
++
+ /*********************************************************************************************/
+ /* BSPBlockerClear:   Clears all registered blocked locations.                               */
+ /*********************************************************************************************/
+--- a/blakserv/roofile.h
++++ b/blakserv/roofile.h
+@@ -254,6 +254,7 @@
+ bool  BSPGetLocationInfo(room_type* Room, V2* P, unsigned int QueryFlags, unsigned int* ReturnFlags, float* HeightF, float* HeightFWD, float* HeightC, BspLeaf** Leaf);
+ bool  BSPGetRandomPoint(room_type* Room, int MaxAttempts, V2* P);
+ bool  BSPGetStepTowards(room_type* Room, V2* S, V2* E, V2* P, unsigned int* Flags, int ObjectID);
++bool  BSPFindPathStep(room_type* Room, V2* S, V2* E, V2* P, int ObjectID);
+ bool  BSPBlockerAdd(room_type* Room, int ObjectID, V2* P);
+ bool  BSPBlockerMove(room_type* Room, int ObjectID, V2* P);
+ bool  BSPBlockerRemove(room_type* Room, int ObjectID);
+--- a/blakserv/ccode.c
++++ b/blakserv/ccode.c
+@@ -3539,6 +3539,91 @@
+ }
+ 
+ /*
++ * C_FindPathStepBSP: PRIME. FindPathStepBSP(room, srow, scol, sfinerow, sfinecol, drow, dcol, dfinerow, dfinecol, objectid):
++ *    finds a walkable way (A*, every link judged by the client's walk rules in BSPCanMoveInRoom) from the source to the goal in
++ *    the dest variables and writes the next point to walk to (the farthest point of that way in a straight line) into them.
++ *    Returns 1 when there is a way, else 0 (the dest variables are left alone).  Same calling style as GetStepTowardsBSP.
++ */
++int C_FindPathStepBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[])
++{
++	val_type ret_val, room_val;
++	val_type row_source, col_source, finerow_source, finecol_source;
++	val_type row_dest, col_dest, finerow_dest, finecol_dest;
++	val_type objectid;
++	room_node *r;
++
++	ret_val.v.tag = TAG_INT;
++	ret_val.v.data = 0;
++
++	if (num_normal_parms != 10)
++		return ret_val.int_val;
++
++	room_val = RetrieveValue(object_id, local_vars, normal_parm_array[0].type, normal_parm_array[0].value);
++	row_source = RetrieveValue(object_id, local_vars, normal_parm_array[1].type, normal_parm_array[1].value);
++	col_source = RetrieveValue(object_id, local_vars, normal_parm_array[2].type, normal_parm_array[2].value);
++	finerow_source = RetrieveValue(object_id, local_vars, normal_parm_array[3].type, normal_parm_array[3].value);
++	finecol_source = RetrieveValue(object_id, local_vars, normal_parm_array[4].type, normal_parm_array[4].value);
++	// the goal is passed as *variables (their local numbers), read and written in place, as GetStepTowardsBSP does
++	row_dest = RetrieveValue(object_id, local_vars, normal_parm_array[5].type, normal_parm_array[5].value);
++	col_dest = RetrieveValue(object_id, local_vars, normal_parm_array[6].type, normal_parm_array[6].value);
++	finerow_dest = RetrieveValue(object_id, local_vars, normal_parm_array[7].type, normal_parm_array[7].value);
++	finecol_dest = RetrieveValue(object_id, local_vars, normal_parm_array[8].type, normal_parm_array[8].value);
++	objectid = RetrieveValue(object_id, local_vars, normal_parm_array[9].type, normal_parm_array[9].value);
++
++	if (room_val.v.tag != TAG_ROOM_DATA || row_source.v.tag != TAG_INT || col_source.v.tag != TAG_INT
++		|| finerow_source.v.tag != TAG_INT || finecol_source.v.tag != TAG_INT)
++	{
++		bprintf("C_FindPathStepBSP got bad source arguments\n");
++		return ret_val.int_val;
++	}
++
++	if (objectid.v.tag != TAG_OBJECT)
++	{
++		bprintf("C_FindPathStepBSP objectid is not an object\n");
++		return ret_val.int_val;
++	}
++
++	// the four goal variable numbers must be valid locals holding integers
++	val_type* dv[4] = { &row_dest, &col_dest, &finerow_dest, &finecol_dest };
++	for (int k = 0; k < 4; k++)
++	{
++		int idx = (int)dv[k]->v.data;
++		if (idx < 0 || idx >= MAX_LOCALS || local_vars->locals[idx].v.tag != TAG_INT)
++		{
++			bprintf("C_FindPathStepBSP goal argument %i is not an integer variable\n", k);
++			return ret_val.int_val;
++		}
++	}
++
++	r = GetRoomDataByID(room_val.v.data);
++	if (r == NULL)
++		return ret_val.int_val;
++
++	V2 s;
++	s.X = GRIDCOORDTOROO(col_source.v.data, finecol_source.v.data);
++	s.Y = GRIDCOORDTOROO(row_source.v.data, finerow_source.v.data);
++
++	V2 e;
++	e.X = GRIDCOORDTOROO(local_vars->locals[col_dest.v.data].v.data, local_vars->locals[finecol_dest.v.data].v.data);
++	e.Y = GRIDCOORDTOROO(local_vars->locals[row_dest.v.data].v.data, local_vars->locals[finerow_dest.v.data].v.data);
++
++	V2 p;
++	if (BSPFindPathStep(&r->data, &s, &e, &p, objectid.v.data))
++	{
++		ret_val.v.data = 1;
++
++		local_vars->locals[finecol_dest.v.data].v.data = ROOCOORDTOGRIDFINE(p.X);
++		local_vars->locals[finerow_dest.v.data].v.data = ROOCOORDTOGRIDFINE(p.Y);
++		local_vars->locals[col_dest.v.data].v.data = ROOCOORDTOGRIDBIG(p.X);
++		local_vars->locals[row_dest.v.data].v.data = ROOCOORDTOGRIDBIG(p.Y);
++	}
++
++	return ret_val.int_val;
++}
++
++/*
+  * C_AppendListElem: takes a list and an item to be appended to the list,
+  *    appends the item to the end of the list. Returns the original list
+  *    with the item appended to the end.
+--- a/blakserv/ccode.h
++++ b/blakserv/ccode.h
+@@ -217,6 +217,10 @@
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+ 
++int C_FindPathStepBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[]);
++
+ int C_AppendListElem(int object_id,local_var_type *local_vars,
+          int num_normal_parms,parm_node normal_parm_array[],
+          int num_name_parms,parm_node name_parm_array[]);
+--- a/blakserv/sendmsg.c
++++ b/blakserv/sendmsg.c
+@@ -201,6 +201,7 @@
+    ccall_table[BLOCKERCLEARBSP] = C_BlockerClearBSP;
+    ccall_table[GETRANDOMPOINTBSP] = C_GetRandomPointBSP;
+    ccall_table[GETSTEPTOWARDSBSP] = C_GetStepTowardsBSP;
++   ccall_table[FINDPATHSTEPBSP] = C_FindPathStepBSP;
+ 
+    ccall_table[APPENDLISTELEM] = C_AppendListElem;
+    ccall_table[CONS] = C_Cons;
+--- a/blakserv/adminfn.c
++++ b/blakserv/adminfn.c
+@@ -2389,6 +2389,7 @@
+ 		case GETLOCATIONINFOBSP: strcpy(c_name, "GetLocationInfoBSP"); break;
+ 		case GETRANDOMPOINTBSP: strcpy(c_name, "GetRandomPointBSP"); break;
+ 		case GETSTEPTOWARDSBSP: strcpy(c_name, "GetStepTowardsBSP"); break;
++		case FINDPATHSTEPBSP: strcpy(c_name, "FindPathStepBSP"); break;
+ 		case BLOCKERADDBSP: strcpy(c_name, "BlockerAddBSP"); break;
+ 		case BLOCKERMOVEBSP: strcpy(c_name, "BlockerMoveBSP"); break;
+ 		case BLOCKERREMOVEBSP: strcpy(c_name, "BlockerRemoveBSP"); break;
+--- a/blakdeco/blakdeco.c
++++ b/blakdeco/blakdeco.c
+@@ -545,6 +545,7 @@
+    case BLOCKERCLEARBSP: return "BlockerClearBSP";
+    case GETRANDOMPOINTBSP: return "GetRandomPointBSP";
+    case GETSTEPTOWARDSBSP: return "GetStepTowardsBSP";
++   case FINDPATHSTEPBSP: return "FindPathStepBSP";
+ 
+    case STRINGTONUMBER : return "StringToNumber";
+ 
+--- a/include/bkod.h
++++ b/include/bkod.h
+@@ -179,6 +179,7 @@
+    BLOCKERCLEARBSP = 78,
+    GETRANDOMPOINTBSP = 79,
+    GETSTEPTOWARDSBSP = 80,
++   FINDPATHSTEPBSP = 81,
+ 
+    DELLASTLISTELEM = 98,
+    GETALLLISTNODESBYCLASS = 99,
+--- a/blakcomp/function.c
++++ b/blakcomp/function.c
+@@ -105,6 +105,8 @@
+ {"GetRandomPointBSP",   GETRANDOMPOINTBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+ {"GetStepTowardsBSP",   GETSTEPTOWARDSBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
++{"FindPathStepBSP",     FINDPATHSTEPBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
++                                           AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, ANONE },
+ {"SetResource",         SETRESOURCE,     STORE_OPTIONAL, AEXPRESSION,   AEXPRESSION,  ANONE},
+ {"Post",                POSTMESSAGE,     STORE_OPTIONAL, AEXPRESSION,   AEXPRESSION,  ASETTINGS, ANONE},
+ {"Abs",                 ABS,             STORE_REQUIRED, AEXPRESSION,   ANONE},

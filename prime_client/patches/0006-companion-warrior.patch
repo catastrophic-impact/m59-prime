@@ -1,0 +1,44 @@
+--- a/apps/client/src/game/ui/CompanionPanel.tsx
++++ b/apps/client/src/game/ui/CompanionPanel.tsx
+@@ -34,8 +34,10 @@
+             You have no companion. From 50 health, your faction's leader will swear one to you: the Duke a battle-mage, the Princess a spellsword, Jonas a war-priest.
+             Stand close to them and ask.
+           </p>
+-          <div className="panel-row">
+-            <Button onClick={() => onCommand("companion ask")}>Ask for a companion</Button>
++          <p className="panel-note">Or call a warrior companion, any time: it fights at your side in plate and shield and keeps the monsters on itself.</p>
++          <div className="panel-row wrap">
++            <Button onClick={() => onCommand("companion call")}>Call a warrior companion</Button>
++            <Button onClick={() => onCommand("companion ask")}>Ask a faction leader</Button>
+           </div>
+         </PanelSection>
+       </div>
+@@ -45,7 +47,8 @@
+   const s = status;
+   const active = s.state === COMPANION_STATE.ACTIVE;
+   const here = active && !(s.flags & COMPANION_FLAG.LEFT_BEHIND);
+-  const atHall = s.state === COMPANION_STATE.WAITING || s.state === COMPANION_STATE.RECOVERING;
++  const warrior = s.kindName === "warrior companion"; // Prime: no hall, no leader: it is called
++  const atHall = !warrior && (s.state === COMPANION_STATE.WAITING || s.state === COMPANION_STATE.RECOVERING);
+   const hpPct = s.maxHp > 0 ? Math.round((100 * s.hp) / s.maxHp) : 0;
+   const bondPct = s.nextTier > s.tierFloor ? Math.round((100 * (s.bond - s.tierFloor)) / (s.nextTier - s.tierFloor)) : 100;
+   const armed = !!(s.flags & COMPANION_FLAG.FOREVER_ARMED);
+@@ -78,7 +81,7 @@
+         </div>
+         {s.flags & COMPANION_FLAG.LEFT_BEHIND ? <p className="panel-note">It couldn't follow you here, and will rejoin you when it can.</p> : null}
+         {s.state === COMPANION_STATE.FALLEN && (
+-          <p className="panel-note">It has fallen. Restore Companion (Shal'ille) on its body brings it back; otherwise it recovers at its leader's hall.</p>
++          <p className="panel-note">{warrior ? "It has fallen. Call it to bring it back." : "It has fallen. Restore Companion (Shal'ille) on its body brings it back; otherwise it recovers at its leader's hall."}</p>
+         )}
+         {s.state === COMPANION_STATE.RECOVERING && s.secondsLeft > 0 && (
+           <p className="panel-note">
+@@ -117,7 +120,8 @@
+       <PanelSection title="Service">
+         <div className="panel-row wrap">
+           {active && <Button onClick={() => onCommand("companion dismiss")}>Dismiss for now</Button>}
+-          {(atHall || (active && !here)) && <Button onClick={() => onCommand("companion come")}>{atHall ? "Fetch" : "Call back"}</Button>}
++          {warrior && (!active || !here) && <Button onClick={() => onCommand("companion call")}>Call</Button>}
++          {!warrior && (atHall || (active && !here)) && <Button onClick={() => onCommand("companion come")}>{atHall ? "Fetch" : "Call back"}</Button>}
+           {s.state === COMPANION_STATE.RECOVERING && s.secondsLeft > 0 && <Button onClick={() => onCommand("companion pay")}>Pay {s.fee}</Button>}
+           {!confirm && !armed && s.state !== COMPANION_STATE.FALLEN && (
+             <Button

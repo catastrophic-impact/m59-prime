@@ -1,0 +1,108 @@
+// Stun: the crowd-control effect of Shield Slam.  Works like Hold (cannot move, fight or cast) with its own messages and its own
+// immunity type; it is never learned or cast as a spell, the Shield Slam skill applies it with DoStun.
+
+Stun is Hold
+
+constants:
+
+   include blakston.khd
+   include prime.khd
+
+resources:
+
+   stun_name_rsc = "stun"
+   stun_icon_rsc = ihold.bgf
+   stun_desc_rsc = "A crushing blow leaves the target dazed and unable to act for a few seconds."
+
+   stun_caster = "%s%s is stunned by your blow!"
+   stun_on = "A crushing blow leaves you stunned.  You cannot act."
+   stun_off = "You shake off the stun."
+
+classvars:
+
+   vrName = stun_name_rsc
+   vrIcon = stun_icon_rsc
+   vrDesc = stun_desc_rsc
+
+   viSpell_num = SID_STUN
+   viSchool = SS_DM_COMMAND
+   viSpell_level = 1
+
+   viMana = 0
+   viSpellExertion = 0
+
+properties:
+
+messages:
+
+   DoStun(what = $, oTarget = $, iDuration = 5000)
+   "Stuns the target for iDuration milliseconds.  FALSE if it is immune to stun at the moment."
+   {
+      local bImmune;
+
+      if oTarget = $ OR Send(Send(SYS,@GetPrime),@CCImmuneTo,#who=oTarget,#cc=CC_STUN)
+      {
+         return FALSE;
+      }
+
+      Send(oTarget,@StartEnchantment,#what=self,#time=iDuration,#state=TRUE);
+
+      if what <> $
+      {
+         Send(what,@MsgSendUser,#message_rsc=stun_caster,
+              #parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName));
+      }
+
+      if IsClass(oTarget,&Player)
+      {
+         Send(oTarget,@MsgSendUser,#message_rsc=stun_on);
+
+         // (Blakod does not short-circuit AND: ask only a DM)
+         bImmune = FALSE;
+         if IsClass(oTarget,&DM)
+         {
+            bImmune = Send(oTarget,@PlayerIsImmortal);
+         }
+
+         if NOT bImmune
+         {
+            Send(oTarget,@EffectSendUser,#what=self,#effect=EFFECT_PARALYZE_ON);
+         }
+      }
+      else
+      {
+         Send(oTarget,@ResetBehaviorFlags);
+      }
+
+      return TRUE;
+   }
+
+   EndEnchantment(who = $,report = TRUE,state=$)
+   {
+      if IsClass(who,&Player)
+      {
+         Send(who,@EffectSendUser,#what=self,#effect=EFFECT_PARALYZE_OFF);
+         if state
+         {
+            Send(who,@MsgSendUser,#message_rsc=stun_off);
+         }
+      }
+      else
+      {
+         Post(who,@ResetBehaviorFlags);
+      }
+
+      return;
+   }
+
+   RestartEnchantmentEffect(who = $, state = $)
+   {
+      Send(who,@MsgSendUser,#message_rsc=stun_on);
+      Send(who,@EffectSendUser,#what=self,#effect=EFFECT_PARALYZE_ON);
+
+      return;
+   }
+
+end
+
+////////////////////////////////////////////////////////////////////////////////

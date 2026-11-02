@@ -1,0 +1,160 @@
+--- a/blakserv/roofile.c
++++ b/blakserv/roofile.c
+@@ -721,6 +721,12 @@
+ /*********************************************************************************************/
+ /* BSPCanMoveInRoom:  Checks if you can walk a straight line from (S)tart to (E)nd           */
+ /*********************************************************************************************/
++/* PRIME (patch 0074): the radius round a body (creature, bot) that blocks a move. Default OBJMINDISTANCE (768 = 0.75 square, the server's monster rule). A playerbot that travels
++ * like a player sets 256 (0.25 square, what the client blocks a player with) for the length of its own walking code and puts the old value back (SetBodyRadiusBSP). The server's
++ * Blakod runs on one thread, so a set/restore inside one message cannot be seen by anyone else. */
++float g_BodyRadius  = OBJMINDISTANCE;
++float g_BodyRadius2 = OBJMINDISTANCE2;
++
+ bool BSPCanMoveInRoom(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, Wall** BlockWall)
+ {
+    // sanity check: these are binary or operations because it's very unlikely
+@@ -763,7 +769,7 @@
+       // Note: IntersectLineCircle below will reject moves starting or ending exactly
+       //   on the circle as well as moves going from inside to outside of the circle.
+       //   So this case here must handle moves until the object is out of radius again.
+-      if (ds2 <= OBJMINDISTANCE2)
++      if (ds2 <= g_BodyRadius2)
+       {
+          V2 me;
+          V2SUB(&me, E, &blocker->Position); // from m to e
+@@ -777,7 +783,7 @@
+       // CASE 2) Start is outside blockradius, verify by intersection algorithm.
+       else
+       {
+-         if (IntersectLineCircle(&blocker->Position, OBJMINDISTANCE, S, E))
++         if (IntersectLineCircle(&blocker->Position, g_BodyRadius, S, E))
+          {
+ #if DEBUGMOVE
+             dprintf("MOVEBLOCK BY OBJ %i",blocker->ObjectID);
+@@ -834,14 +840,14 @@
+       float ds2 = V2LEN2(&ms);
+       bool hit = false;
+ 
+-      if (ds2 <= OBJMINDISTANCE2)
++      if (ds2 <= g_BodyRadius2)
+       {
+          V2 me;
+          V2SUB(&me, E, &blocker->Position);
+          if (V2LEN2(&me) <= ds2)
+             hit = true;
+       }
+-      else if (IntersectLineCircle(&blocker->Position, OBJMINDISTANCE, S, E))
++      else if (IntersectLineCircle(&blocker->Position, g_BodyRadius, S, E))
+          hit = true;
+ 
+       if (hit)
+--- a/blakserv/roofile.h
++++ b/blakserv/roofile.h
+@@ -248,6 +248,8 @@
+ bool  BSPGetHeight(room_type* Room, V2* P, float* HeightF, float* HeightFWD, float* HeightC, BspLeaf** Leaf);
+ bool  BSPCanMoveInRoom(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, Wall** BlockWall);
+ int   BSPExplainMove(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, int out[4]);
++extern float g_BodyRadius;
++extern float g_BodyRadius2;
+ bool  BSPLineOfSightView(V2 *S, V2 *E, int kod_angle);
+ bool  BSPLineOfSight(room_type* Room, V3* S, V3* E);
+ void  BSPChangeTexture(room_type* Room, unsigned int ServerID, unsigned short NewTexture, unsigned int Flags);
+--- a/blakserv/ccode.c
++++ b/blakserv/ccode.c
+@@ -3539,6 +3539,33 @@
+ }
+ 
+ /*
++ * C_SetBodyRadiusBSP: PRIME (patch 0074). SetBodyRadiusBSP(radius): sets the radius (roo units, 1024 = one square) round a body that blocks a move in BSPCanMoveInRoom /
++ *    BSPExplainMove / the path planner, and returns the OLD radius so the caller can put it back. 768 is the server default (monster rule), 256 what the client blocks a player with.
++ *    Bounded 64..1024; anything else is ignored (the current radius is returned).
++ */
++int C_SetBodyRadiusBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[])
++{
++	val_type ret_val, r_val;
++
++	ret_val.v.tag = TAG_INT;
++	ret_val.v.data = (int)g_BodyRadius;
++
++	if (num_normal_parms != 1)
++		return ret_val.int_val;
++
++	r_val = RetrieveValue(object_id, local_vars, normal_parm_array[0].type, normal_parm_array[0].value);
++	if (r_val.v.tag != TAG_INT || r_val.v.data < 64 || r_val.v.data > 1024)
++		return ret_val.int_val;
++
++	g_BodyRadius = (float)r_val.v.data;
++	g_BodyRadius2 = g_BodyRadius * g_BodyRadius;
++
++	return ret_val.int_val;
++}
++
++/*
+  * C_ExplainMoveBSP: PRIME (patch 0073). ExplainMoveBSP(room, srow, scol, sfinerow, sfinecol, drow, dcol, dfinerow, dfinecol, objectid, *o1, *o2, *o3, *o4):
+  *    the verdict of CanMoveInRoomBSP with the reason. Returns 0 allowed, 1 a wall stops it (o1..o4 = wall P1.X, P1.Y, P2.X, P2.Y in roo units),
+  *    2 a body stops it (o1 = object id, o2/o3 = its position), 3 no room data / bad arguments. The four o variables are passed with the * operator.
+--- a/blakserv/ccode.h
++++ b/blakserv/ccode.h
+@@ -217,6 +217,10 @@
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+ 
++int C_SetBodyRadiusBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[]);
++
+ int C_ExplainMoveBSP(int object_id, local_var_type *local_vars,
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+--- a/blakserv/sendmsg.c
++++ b/blakserv/sendmsg.c
+@@ -203,6 +203,7 @@
+    ccall_table[GETSTEPTOWARDSBSP] = C_GetStepTowardsBSP;
+    ccall_table[FINDPATHSTEPBSP] = C_FindPathStepBSP;
+    ccall_table[EXPLAINMOVEBSP] = C_ExplainMoveBSP;
++   ccall_table[SETBODYRADIUSBSP] = C_SetBodyRadiusBSP;
+ 
+    ccall_table[APPENDLISTELEM] = C_AppendListElem;
+    ccall_table[CONS] = C_Cons;
+--- a/blakserv/adminfn.c
++++ b/blakserv/adminfn.c
+@@ -2391,6 +2391,7 @@
+ 		case GETSTEPTOWARDSBSP: strcpy(c_name, "GetStepTowardsBSP"); break;
+ 		case FINDPATHSTEPBSP: strcpy(c_name, "FindPathStepBSP"); break;
+ 		case EXPLAINMOVEBSP: strcpy(c_name, "ExplainMoveBSP"); break;
++		case SETBODYRADIUSBSP: strcpy(c_name, "SetBodyRadiusBSP"); break;
+ 		case BLOCKERADDBSP: strcpy(c_name, "BlockerAddBSP"); break;
+ 		case BLOCKERMOVEBSP: strcpy(c_name, "BlockerMoveBSP"); break;
+ 		case BLOCKERREMOVEBSP: strcpy(c_name, "BlockerRemoveBSP"); break;
+--- a/blakdeco/blakdeco.c
++++ b/blakdeco/blakdeco.c
+@@ -547,6 +547,7 @@
+    case GETSTEPTOWARDSBSP: return "GetStepTowardsBSP";
+    case FINDPATHSTEPBSP: return "FindPathStepBSP";
+    case EXPLAINMOVEBSP: return "ExplainMoveBSP";
++   case SETBODYRADIUSBSP: return "SetBodyRadiusBSP";
+ 
+    case STRINGTONUMBER : return "StringToNumber";
+ 
+--- a/include/bkod.h
++++ b/include/bkod.h
+@@ -181,6 +181,7 @@
+    GETSTEPTOWARDSBSP = 80,
+    FINDPATHSTEPBSP = 81,
+    EXPLAINMOVEBSP = 82,
++   SETBODYRADIUSBSP = 83,
+ 
+    DELLASTLISTELEM = 98,
+    GETALLLISTNODESBYCLASS = 99,
+--- a/blakcomp/function.c
++++ b/blakcomp/function.c
+@@ -105,6 +105,7 @@
+ {"GetRandomPointBSP",   GETRANDOMPOINTBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+ {"GetStepTowardsBSP",   GETSTEPTOWARDSBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
++{"SetBodyRadiusBSP",    SETBODYRADIUSBSP, STORE_OPTIONAL, AEXPRESSION, ANONE },
+ {"ExplainMoveBSP",      EXPLAINMOVEBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+ {"FindPathStepBSP",     FINDPATHSTEPBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,

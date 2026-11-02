@@ -1,0 +1,129 @@
+--- a/kod/object/passive/spell.kod
++++ b/kod/object/passive/spell.kod
+@@ -727,6 +727,12 @@
+          return TRUE;
+       }
+ 
++      // Prime: reagent mode (not needed at all, or optional with a weaker spell)
++      if Send(Send(SYS,@GetPrime),@ReagentsNotNeeded,#who=who)
++      {
++         return TRUE;
++      }
++
+       // Check reagents
+       foreach lReagent in plReagents
+       {
+@@ -787,6 +793,12 @@
+                return TRUE;
+             }
+ 
++            // Prime: optional reagents: cast anyway, weaker
++            if Send(Send(SYS,@GetPrime),@WeakCast,#who=who,#oSpell=self)
++            {
++               return TRUE;
++            }
++
+             Send(who,@WaveSendUser,#wave_rsc=spell_fail_wav);
+             Send(who,@MsgSendUser,#message_rsc=spell_insufficient_reagent,
+                  #parm1=vrName);
+@@ -1392,6 +1404,12 @@
+          return TRUE;
+       }
+ 
++      // Prime: no reagents used up when the mode does not need them or the spell was cast without
++      if Send(Send(SYS,@GetPrime),@ReagentsSkipped,#who=who)
++      {
++         return TRUE;
++      }
++
+       // Use up reagents, provided reagent use is turned on
+       foreach lReagent in plReagents
+       {
+@@ -2479,6 +2497,8 @@
+       // Bound the result.
+       iSpellPower = Bound(iSpellPower,SPELLPOWER_MINIMUM,SPELLPOWER_MAXIMUM);
+ 
++      // Prime: a spell cast without its reagents (optional reagent mode) is weaker
++      iSpellPower = Send(Send(SYS,@GetPrime),@WeakPower,#who=who,#iSpellPower=iSpellPower);
+ 
+       return iSpellPower;
+    }
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -7092,6 +7092,7 @@
+       Send(self,@UpdateStomach);
+ 
+       if (piStomach + filling) > 100
++         AND NOT Send(Send(SYS,@GetPrime),@UnlimitedEating)
+       {
+          if what = $ OR NOT Send(what,@IsBeverage)
+          {
+@@ -9893,6 +9894,17 @@
+          Send(i,@NewUnused,#what=self,#where=oRoom);
+       }
+ 
++      // Prime: death rules (settings): whether this death costs items and / or max health and skills
++      if NOT Send(Send(SYS,@GetPrime),@DeathDrops,#who=self,#killer=what)
++      {
++         bNo_drop_death = TRUE;
++      }
++
++      if NOT Send(Send(SYS,@GetPrime),@DeathStatLoss,#who=self,#killer=what)
++      {
++         piDeathCost = FALSE;
++      }
++
+       // Create the corpse.
+       oBody = Send(self,@CreateCorpse);
+ 
+--- a/kod/object/passive/skill/stroke/fire.kod
++++ b/kod/object/passive/skill/stroke/fire.kod
+@@ -136,6 +136,7 @@
+       }
+ 
+       if report AND (oLikelyAmmo = $)
++         AND NOT Send(Send(SYS,@GetPrime),@BowNoAmmoOk)
+       {
+          Send(who,@MsgSendUser,#message_rsc=fire_no_ammo);
+       }
+@@ -153,6 +154,13 @@
+          return TRUE;
+       }
+ 
++      // Prime: a bow may shoot without arrows (weaker, see Ranged.GetBaseDamage)
++      if Send(Send(SYS,@GetPrime),@BowNoAmmoOk)
++         AND IsClass(Send(who,@LookupPlayerWeapon),&RangedWeapon)
++      {
++         return TRUE;
++      }
++
+       return FALSE;
+    }
+ 
+@@ -169,6 +177,11 @@
+       oAmmo = Send(self,@FindLikelyAmmo,#who=who);
+       if oAmmo = $
+       {
++         if Send(Send(SYS,@GetPrime),@BowNoAmmoOk)
++         {
++            propagate;
++         }
++
+          Send(who,@MsgSendUser,#message_rsc=fire_no_ammo);
+          return;
+       }
+--- a/kod/object/item/passitem/weapon/ranged.kod
++++ b/kod/object/item/passitem/weapon/ranged.kod
+@@ -265,6 +265,12 @@
+          }
+       }
+ 
++      // Prime: no arrows at all: a weaker shot
++      if iDamage = 0 AND IsClass(poOwner,&User)
++      {
++         iDamage = Send(Send(SYS,@GetPrime),@BowNoAmmoDamage);
++      }
++
+       iDamage = iDamage + viWeaponDamage;
+ 
+       return iDamage;

@@ -1,0 +1,56 @@
+MERIDIAN 59 PRIME - CLASSES AND GEAR (working template, edit freely)
+====================================================================
+Status 2026-10-22. Skills and levels are templates and will be tuned. Stats are not shown at character creation.
+
+CLASSES AND STARTING STATS (might / stamina / agility / intellect / mysticism / aim)
+  Warrior   50 / 50 / 50 /  1 /  1 / 50
+  Monk      50 / 30 / 50 / 50 / 50 / 30   (the old Priest became the Monk; a Priest comes back later)
+  Paladin   50 / 40 / 30 / 30 / 30 / 30   (tank that heals: less armor and damage than a warrior, less healing than a monk)
+
+ABILITIES PER CLASS LEVEL (level 1 is known at creation)
+  Warrior   1 Slash, Glow, Block
+            2 Fencing, Second Wind, Dodge
+            3 Hammer Wielding, Super Strength, Parry
+            4 Axe Wielding, Bless, Magic Shield
+            5 Scimitar Wielding, Free Action, Disarm
+            6 Armor of Gort, Resist Magic, Deflect, Anti-Magic Aura
+  Monk      1 Punch, Minor Heal, Mana Focus
+            2 Holy Touch, Brawling, Dodge
+            3 Bless, Hospice, Block
+            4 Holy Blaze, Dazzle, Magic Shield
+            5 Night Vision, Major Heal, Rescue
+            6 Purify, Truce, Purge
+  Paladin   1 Slash, Minor Heal, Block
+            2 Fencing, Spiritual Sword, Dodge
+            3 Bless, Hospice, Forces of Light
+            4 Hammer Wielding, Spiritual Hammer, Magic Shield
+            5 Super Strength, Glow, Parry
+            6 Purify, Major Heal, Armor of Gort
+  (Shield Slam is no longer in the warrior table; the skill still exists in the code. Create Weapon was removed from the warrior: it moves to the later weaponcrafting system. Mace Fighting is not a warrior skill any more; every class except the monk starts with a mace in hand.)
+
+GEAR LEVELS (a class wears gear up to its armor level)
+  Armor level:  Warrior 6 (plate)   Paladin 5 (nerudite)   Monk 2 (leather)   [Priest later: 1]
+  Armor         level  defense  damage reduction
+    Robe/cloth   1     +50      0
+    Leather      2     +80      1
+    Chain        3     +20      2
+    Scale        4     +10      4
+    Nerudite     5      0       5
+    Plate        6      0       6
+  Helmets       level  defense  reduction
+    Circlet, Ivy circlet, Thorn circlet, Wizard hat, Qorma's helm, masks    1   (small or 0)
+    Helm, Simple helm, Daemon helm                                           2   (20-25 / 1)
+    Steel helm, War helm, Legion helm                                        3   (30 / 2)
+    Knight's helm                                                            4   (10 / 4)
+  Shields       level  defense(block)  reduction
+    Torch, Beer mug, Gold shield, Metal shield          1
+    Knight shield (15/2), Guild shield (20/2), Orc shield (20/2)   2
+    Soldier and Rebel (faction) shields                 2   (20/2 for Warrior and Paladin, 10/2 for every other class)
+    Nerudite shield                                     5   (25/3)
+  Pants, skirts, shirts: level 1.
+  Weapons: Monks use no weapons. Warriors and Paladins: no daggers, no ranged weapons.
+
+COMBAT NOTES
+  Defense = Parry + Block (+ shield bonus) + Dodge x2 (Monk: x3) + Agility x8 + a health term + gear defense.
+  Fists (Punch stroke): base damage 2-11 (+5 and +25% at max skill and stats, about 9-20): already near the best melee weapons, so no monk damage buff.
+  Touch spells use Punch (or 2 x Mysticism) as their proficiency.

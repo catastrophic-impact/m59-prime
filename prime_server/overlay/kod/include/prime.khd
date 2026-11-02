@@ -1,0 +1,72 @@
+// Meridian 59 Prime: constants of our own systems (classes, crowd control, threat ...).
+// Included by our own files (overlay/kod/object/prime*); upstream files only ever see plain numbers or call into PrimeClasses.
+
+   // Player classes. 0 = no class (the upstream school rules).
+   CLASS_NONE = 0
+   CLASS_WARRIOR = 1
+   CLASS_MONK = 2
+   CLASS_PALADIN = 3
+   CLASS_ELEMENTALIST = 4
+   CLASS_PRIEST = 5          // not playable yet (the old Priest became the Monk); kept for the later Priest
+
+   // Character creation: the client sends the chosen class as a pseudo skill number CLASS_CREATE_BASE + class.
+   CLASS_CREATE_BASE = 1000
+
+   // Crowd control types: after a CC of a type ends, the target is immune to that type for twice its length.
+   CC_NONE = 0
+   CC_HOLD = 1
+   CC_BLIND = 2
+   CC_DAZZLE = 3
+   CC_STUN = 4
+
+   // Extra hatred points a warrior adds to a monster per hit (the brain gives a warrior who hits it 6x this).
+   WARRIOR_THREAT = 5
+   PALADIN_THREAT = 3
+
+   // Monk: what a point of Dodge is worth in defense (base game: 2). Fists need no buff: the Punch stroke already does 2-11.
+   MONK_DODGE_WEIGHT = 3
+
+   // Gear levels: cloth and robes 1, leather 2, chain 3, scale 4, nerudite 5, plate 6; a class wears gear up to its armour level
+   ARMOR_LEVEL_WARRIOR = 6
+   ARMOR_LEVEL_PALADIN = 5
+   ARMOR_LEVEL_MONK = 2
+   ARMOR_LEVEL_ELEMENTALIST = 2
+   // Faction (soldier / rebel) shields: full strength for the fighting classes, half for the others
+   FACTION_SHIELD_OTHERS = 10
+
+
+   // Learn rule (copies of player.kod's local constants, which we cannot see from our files)
+   PRIME_POINTS_SLOPE = 7
+   PRIME_MIN_NEEDED_TO_ADVANCE = 75
+
+
+   // Groups (primegroups.kod): our client's UC_PRIME_GROUP packet (after protocol.khd's UC_SELLABLE = 117), its kinds, and the row flags
+   UC_PRIME_GROUP = 200
+   GRP_PKT_STATE = 1
+   GRP_PKT_INVITE = 2
+   GRP_PKT_HEALTH = 3
+   GRP_PKT_COMBAT = 4
+   // The companion bots of a player (primebots.kod)
+   GRP_PKT_BOTS = 5
+   // The admin tools' lists and character (primeadmin.kod)
+   GRP_PKT_ADMIN = 6
+   GRP_LEADER = 1
+   GRP_COMPANION = 2
+   GRP_SELF = 4
+   GRP_OFF_ROOM = 8
+   GRP_DEAD = 16
+   GRP_INVITE_SECONDS = 60
+
+   // Snare (Ice Shard): percent of the normal speed while snared; Ice Shard's chance to snare on a hit (percent)
+   SNARE_SPEED_PERCENT = 50
+   ICESHARD_SNARE_CHANCE = 50
+
+   // Sword of Riija, worn: percent more spell power and percent less mana cost on every spell
+   RIIJA_SPELLPOWER_PERCENT = 10
+   RIIJA_MANA_SAVING_PERCENT = 25
+
+   // Prime: what a class companion's spell is for (PrimeCompanions.CompSupport)
+   CSUP_HEAL = 20
+   CSUP_BUFF = 21
+   CSUP_FOCUS = 22
+   CSUP_BATTERY = 23

@@ -1,0 +1,48 @@
+--- a/packages/world/src/index.ts
++++ b/packages/world/src/index.ts
+@@ -11,6 +11,7 @@
+ export * from "./chess.ts";
+ export * from "./navGrid.ts";
+ export * from "./ambient/ambientIds.ts";
++export * from "./ambient/primeNpcTags.ts";
+ export * from "./ambient/ambientLife.ts";
+ export * from "./ambient/ambientRooms.ts";
+ export * from "./ambient/tuning.ts";
+--- a/packages/world/src/ambient/ambientLife.ts
++++ b/packages/world/src/ambient/ambientLife.ts
+@@ -23,6 +23,7 @@
+ import { busyAt, isErrandRoom, torchHours, weatherScale, type AmbientRoomSpec } from "./ambientRooms.ts";
+ import { chatterLine, scatterLine, type ChatterContext, type Role, type Weather } from "./chatter.ts";
+ import { personName } from "./names.ts";
++import { tagAmbient } from "./primeNpcTags.ts";
+ import { tune } from "./tuning.ts";
+ import {
+   C, fighterAppearance, guardAppearance, knightAppearance, ladyAppearance, lookFor, mageAppearance, makePerson, nobleAppearance, randomAppearance, setTorch,
+@@ -685,6 +686,7 @@
+       say: null, beat: null, beatEnd: 0, emoteMs: 0, nextEmoteMs: 2000 + this.rand() * 8000, cheerFrame: 0, waveBackMs: 0,
+       name: personName(this.nameRand, role, look.female), fromRoom: null, toRoom: null, errandRoom: null,
+     };
++    tagAmbient(obj.info, w.name);     // Prime: name tag in the NPC colour
+     this.applyFade(w);
+     this.walkers.push(w);
+     return w;
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -17,7 +17,7 @@
+   type NameLabel, type ViewObject, type SpriteMood, moodUniforms, renderTune, sunAt, effectUniforms, roomSurfaceTextures,
+ } from "@shards/render";
+ import {
+-  AMBIENT_ROOMS, AMBIENT_SCALE, type AmbientRoomSpec, AmbientLife, LiveRoom, MOVEON, PlayerMover, REMOTE_VIEW, animStep, isAmbientId, localRes, localResName, townsfolkArt,
++  AMBIENT_ROOMS, AMBIENT_SCALE, type AmbientRoomSpec, AmbientLife, LiveRoom, MOVEON, PlayerMover, REMOTE_VIEW, animStep, isAmbientId, localRes, localResName, localNameOf, townsfolkArt,
+   Critters, batsOf, critterArt, decodeNavGrid, habitatOf, hourFromSun, isImpressiveBody, type AmbientExits, type DamageDealt, type NavGrid, type NavPoint, type RemoteView, type GameSession, type WorldObject,
+   FollowPlanner, navGridBuilder, AmbientStepper, type AmbientFrame, type AmbientSeed, Pets, petArt, type PetChoice, type PetOwner,
+   ARENA_SEND_EVERY, ARENA_TICK_MS, ARENA_ROOM_DEFS, ArenaSim, ArenaView, arenaArt, arenaFloorArea, arenaHourAt, arenaOpenAt, buildNavGrid, hashText, makeRoster, readArenaConfigs, seasonAt,
+@@ -638,7 +638,7 @@
+     roomSurfaceTextures.windows = windows;
+     this.rooms = new RoomCache(this.assets, this.palette, (l) => this.prepareRoom(l));
+     this.xlats = new XlatTable(pal.rgb, lightPal);
+-    this.objects = new ObjectsView(this.palette, this.xlats, (id) => this.bgf(id), (id) => this.session.resource(id));
++    this.objects = new ObjectsView(this.palette, this.xlats, (id) => this.bgf(id), (id) => localNameOf(id) ?? this.session.resource(id));     // Prime: ambient NPC names
+     this.scene.add(this.objects.group);
+     void this.assets.floorTextures().then(
+       (f) => void (this.floorTextures = f),

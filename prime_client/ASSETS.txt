@@ -1,0 +1,9 @@
+# The game files (art, sounds, rooms) are NOT part of this repository. m59primesetup.sh downloads exactly this release of Meridian Shards on the user's own
+# machine, checks the SHA-256 and unpacks the game files from it. Change the tag only on purpose (after a test run with the new files): the files change
+# between releases (v0.14.2 differs from the files our client was first tested with: 113 graphics changed, 297 sounds added).
+repo    jboullion/meridian-shards
+tag     v0.14.2
+file    Meridian-Shards-0.14.2-amd64.deb
+sha256  bd31b270fe7116da5eec83819d56610c53fc4398dda61a62efa7e25abc36ca6b
+path    ./opt/Meridian Shards/resources/assets
+# Alternative: point the setup at game files you already have with  m59primesetup.sh --assets-from <folder with manifest.json>

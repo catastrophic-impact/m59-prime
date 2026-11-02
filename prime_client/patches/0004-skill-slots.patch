@@ -1,0 +1,157 @@
+--- a/apps/client/src/game/quickSlots.ts
++++ b/apps/client/src/game/quickSlots.ts
+@@ -11,6 +11,9 @@
+ 
+ import type { ObjectInfo, Spell } from "@shards/protocol";
+ 
++/** Prime: drag data of a skill from the Skills list (an object id) */
++export const DRAG_SKILL = "application/x-shards-skill";
++
+ /** Slots in a row (the hotbar's, the phone's wheel) */
+ export const QUICK_SLOTS = 10;
+ /** Rows kept per character: the second is the Modern interface's only */
+@@ -23,7 +26,7 @@
+ export const DRAG_SLOT = "application/x-shards-slot";
+ 
+ export interface QuickSlot {
+-  kind: "spell" | "item";
++  kind: "spell" | "item" | "skill";
+   nameRes: number;
+   name: string;
+   /** The object's iconRes, for a slot that matches nothing now */
+@@ -44,7 +47,7 @@
+ 
+ function isSlot(s: unknown): s is QuickSlot {
+   const q = s as QuickSlot | null;
+-  return !!q && (q.kind === "spell" || q.kind === "item") && typeof q.nameRes === "number" && typeof q.name === "string" && typeof q.icon === "number";
++  return !!q && (q.kind === "spell" || q.kind === "item" || q.kind === "skill") && typeof q.nameRes === "number" && typeof q.name === "string" && typeof q.icon === "number";
+ }
+ 
+ export function loadQuickSlots(store: SlotStore, server: string, character: string): QuickSlots {
+@@ -79,6 +82,11 @@
+   return spells.find((s) => s.object.nameRes === slot.nameRes) ?? spells.find((s) => sameName(slot, s.object, name));
+ }
+ 
++/** Prime: the skill a slot names, among the ones we know */
++export function slotSkill(slot: QuickSlot, skills: readonly ObjectInfo[], name: (id: number) => string): ObjectInfo | undefined {
++  return skills.find((o) => o.nameRes === slot.nameRes) ?? skills.find((o) => sameName(slot, o, name));
++}
++
+ /**
+  * The inventory item a slot names: one in use first (using the slot again puts a wielded
+  * weapon away), else the first we carry.
+--- a/apps/client/src/game/ui/QuickSlots.tsx
++++ b/apps/client/src/game/ui/QuickSlots.tsx
+@@ -10,7 +10,7 @@
+ import { isNumberItem, type GameSession } from "@shards/world";
+ import type { ObjectInfo } from "@shards/protocol";
+ import { bareIcon, type Drawable, type IconRenderer } from "../icons.ts";
+-import { DRAG_ITEM, DRAG_SLOT, DRAG_SPELL, QUICK_SLOTS, slotFor, slotItem, slotSpell, type QuickSlot, type QuickSlots } from "../quickSlots.ts";
++import { DRAG_ITEM, DRAG_SKILL, DRAG_SLOT, DRAG_SPELL, QUICK_SLOTS, slotFor, slotItem, slotSkill, slotSpell, type QuickSlot, type QuickSlots } from "../quickSlots.ts";
+ import { bindingLabel, type Action, type Settings } from "../settings.ts";
+ import { useWorld } from "./hooks.ts";
+ import type { Cooldown } from "../cooldowns.ts";
+@@ -31,7 +31,7 @@
+ /** Each slot as it stands now, redrawn when spells, the inventory or what's in use change. */
+ function useSlotViews(session: GameSession, slots: QuickSlots): (SlotView | null)[] {
+   const world = session.world;
+-  useWorld(world, ["spells", "inventory", "inUse"]);
++  useWorld(world, ["spells", "inventory", "inUse", "skills"]);
+   const rs = (id: number) => session.resource(id) ?? "";
+   return slots.map((slot) => {
+     if (!slot) return null;
+@@ -39,6 +39,10 @@
+       const s = slotSpell(slot, world.spells, rs);
+       return { slot, object: s?.object ?? bareIcon(slot.icon), available: !!s, inUse: false, count: 0 };
+     }
++    if (slot.kind === "skill") {     // Prime
++      const k = slotSkill(slot, world.skills, rs);
++      return { slot, object: k ?? bareIcon(slot.icon), available: !!k, inUse: false, count: 0 };
++    }
+     const o = slotItem(slot, world.inventory.values(), world.inUse, rs);
+     const count = o ? [...world.inventory.values()].filter((x) => x.nameRes === o.nameRes).length : 0;
+     return { slot, object: o ?? bareIcon(slot.icon), available: !!o, inUse: !!o && world.inUse.has(o.id), count };
+@@ -83,7 +87,7 @@
+ }
+ 
+ const slotTitle = (view: SlotView | null, key: string) =>
+-  `${view ? view.slot.name + (view.available ? "" : view.slot.kind === "spell" ? " (not known)" : " (none carried)") : "Empty"}${key ? ` (${key})` : ""}`;
++  `${view ? view.slot.name + (view.available ? "" : view.slot.kind === "spell" || view.slot.kind === "skill" ? " (not known)" : " (none carried)") : "Empty"}${key ? ` (${key})` : ""}`;
+ 
+ /** The phone's hotbar: holding a slot this long changes it (as a right click does), ms */
+ const SLOT_HOLD_MS = 500;
+@@ -116,18 +120,21 @@
+   };
+   useEffect(() => endHold, []);
+   const rs = (id: number) => session.resource(id) ?? "";
+-  const accepts = (e: DragEvent) => [DRAG_ITEM, DRAG_SPELL, DRAG_SLOT].some((t) => e.dataTransfer.types.includes(t));
++  const accepts = (e: DragEvent) => [DRAG_ITEM, DRAG_SPELL, DRAG_SKILL, DRAG_SLOT].some((t) => e.dataTransfer.types.includes(t));
+   const drop = (i: number, e: DragEvent) => {
+     e.preventDefault();
+     e.stopPropagation();
+     const item = e.dataTransfer.getData(DRAG_ITEM);
+     const spell = e.dataTransfer.getData(DRAG_SPELL);
++    const skill = e.dataTransfer.getData(DRAG_SKILL);     // Prime
+     const from = e.dataTransfer.getData(DRAG_SLOT);
+     if (from !== "") return onSwap(Number(from), i);
+     const o = item ? world.inventory.get(Number(item)) : undefined;
+     if (o) return onSet(i, slotFor("item", o, rs(o.nameRes)));
+     const s = spell ? world.spells.find((x) => x.object.id === Number(spell)) : undefined;
+     if (s) onSet(i, slotFor("spell", s.object, rs(s.object.nameRes)));
++    const k = skill ? world.skills.find((x) => x.id === Number(skill)) : undefined;     // Prime
++    if (k) onSet(i, slotFor("skill", k, rs(k.nameRes)));
+   };
+   return (
+     <div className={row ? "hotbar second" : "hotbar"} role="toolbar" aria-label={row ? "Quick slots, second row" : "Quick slots"}>
+--- a/apps/client/src/game/ui/Sidebar.tsx
++++ b/apps/client/src/game/ui/Sidebar.tsx
+@@ -17,7 +17,7 @@
+ import { MiniMap } from "./MiniMap.tsx";
+ import type { MapWay } from "../questWays.ts";
+ import type { MapAnnotation } from "../annotations.ts";
+-import { DRAG_SPELL } from "../quickSlots.ts";
++import { DRAG_SKILL, DRAG_SPELL } from "../quickSlots.ts";
+ import { statRows } from "../statRows.ts";
+ import { Button } from "./kit.tsx";
+ 
+@@ -724,9 +724,9 @@
+         className={`stat-list-row${header ? " header" : ""}${selected === i ? " selected" : ""}`}
+         onClick={() => setSelected(i)}
+         // Ours: a spell dragged onto a quick slot fills it (QuickSlots.tsx Hotbar)
+-        draggable={group === STAT_GROUP.SPELLS && !!l.id}
++        draggable={(group === STAT_GROUP.SPELLS || group === STAT_GROUP.SKILLS) && !!l.id}     // Prime: skills too
+         onDragStart={(e) => {
+-          e.dataTransfer.setData(DRAG_SPELL, String(l.id));
++          e.dataTransfer.setData(group === STAT_GROUP.SKILLS ? DRAG_SKILL : DRAG_SPELL, String(l.id));
+           e.dataTransfer.effectAllowed = "copy";
+         }}
+         onDoubleClick={() => {
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -66,7 +66,8 @@
+ import { MAX_ANNOTATIONS, annotationAt, loadAnnotations, saveAnnotations, type MapAnnotation } from "./annotations.ts";
+ import { useWorld } from "./ui/hooks.ts";
+ import { TitleBar } from "./TitleBar.tsx";
+-import { QUICK_SLOTS, emptySlots, loadQuickSlots, saveQuickSlots, slotItem, slotSpell, type QuickSlot, type QuickSlots } from "./quickSlots.ts";
++import { QUICK_SLOTS, emptySlots, loadQuickSlots, saveQuickSlots, slotItem, slotSkill, slotSpell, type QuickSlot, type QuickSlots } from "./quickSlots.ts";
++import { activeSkillNumber } from "./activeSkills.ts";     // Prime
+ import { Hotbar, QuickSlotPicker } from "./ui/QuickSlots.tsx";
+ import {
+   DEFAULT_REST_REGEN, StudySession, carriedCounts, castsFromReagents, formatDuration, loadStudyMemory, saveStudyMemory, studyEstimate, type StudyAction,
+@@ -1497,6 +1498,16 @@
+       if (!s) return session.localMessage(`You don't know the spell ${slot.name}.`);
+       return castSpell(s.object.id, s.numTargets);
+     }
++    // Prime: an active skill (Shield Slam ...) goes to the selected target, or the next object clicked
++    if (slot.kind === "skill") {
++      const k = slotSkill(slot, session.world.skills, rs);
++      if (!k) return session.localMessage(`You don't know the skill ${slot.name}.`);
++      const num = activeSkillNumber(session.englishResource(k.nameRes) ?? slot.name);
++      if (num === undefined) return session.localMessage(`${slot.name} works by itself: there is nothing to use.`);
++      const scene = sceneRef.current;
++      if (scene?.target != null) return session.shardsObject(scene.target, `skill ${num}`);
++      return scene?.beginSelect((t) => session.shardsObject(t, `skill ${num}`));
++    }
+     const o = slotItem(slot, session.world.inventory.values(), session.world.inUse, rs);
+     if (!o) return session.localMessage(`You aren't carrying ${slot.name}.`);
+     if (o.flags & OF_APPLYABLE) return sceneRef.current?.beginSelect((t) => session.apply(o.id, t));

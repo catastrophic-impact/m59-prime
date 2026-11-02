@@ -1,0 +1,31 @@
+--- a/kod/object/active/holder/nomoveon/battler.kod
++++ b/kod/object/active/holder/nomoveon/battler.kod
+@@ -175,6 +175,9 @@
+ 
+ properties:
+ 
++   // Prime: snared until this time (GetTime() seconds): slowed to half speed, see PrimeClasses.SnarePercent
++   piSnareUntil = 0
++
+    // Evil twin object
+    poEvilTwin = $
+ 
+@@ -215,6 +218,18 @@
+ 
+ messages:
+ 
++   GetSnareUntil()
++   {
++      return piSnareUntil;
++   }
++
++   SetSnareUntil(time = 0)
++   {
++      piSnareUntil = time;
++
++      return;
++   }
++
+    // The first lump of code here deals with resistances and immunities/etc.
+    // They are included here in battler so both user and mobiles can enjoy
+    //  the effect.

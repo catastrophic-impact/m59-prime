@@ -1,0 +1,24 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/temples/kranprst.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/temples/kranprst.kod
+@@ -111,6 +111,9 @@
+          ],
+       $];
+ 
++      // Prime: the god of a class teaches that class everything in its table (PrimeClasses.ClassGodSchool / ClassAbilityTable)
++      plFor_Sale = Send(Send(SYS,@GetPrime),@TrainerStock,#iSchool=SS_KRAANAN,#lStock=plFor_Sale);
++
+       return;
+    }
+ 
+--- a/kod/object/active/holder/nomoveon/battler/monster/temples/shalprst.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/temples/shalprst.kod
+@@ -147,6 +147,9 @@
+          ],
+       $];
+ 
++      // Prime: the god of a class teaches that class everything in its table (PrimeClasses.ClassGodSchool / ClassAbilityTable)
++      plFor_Sale = Send(Send(SYS,@GetPrime),@TrainerStock,#iSchool=SS_SHALILLE,#lStock=plFor_Sale);
++
+       return;
+    }
+ 

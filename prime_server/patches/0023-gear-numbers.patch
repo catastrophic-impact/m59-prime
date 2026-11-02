@@ -1,0 +1,102 @@
+--- a/kod/object/item/passitem/defmod/armor/plate.kod
++++ b/kod/object/item/passitem/defmod/armor/plate.kod
+@@ -46,7 +46,7 @@
+    vrIcon_male = platearmor_male_icon_rsc
+    vrIcon_female = platearmor_female_icon_rsc
+ 
+-   viDefense_base = -200
++   viDefense_base = 0                // Prime: no heavy-armour dodge penalty (was -200)
+    viDamage_base = 6
+ 
+ properties:
+--- a/kod/object/item/passitem/defmod/armor/neruarmr.kod
++++ b/kod/object/item/passitem/defmod/armor/neruarmr.kod
+@@ -51,8 +51,8 @@
+    vrIcon_male = neruditearmor_male_icon_rsc
+    vrIcon_female = neruditearmor_female_icon_rsc
+ 
+-   viDefense_base = -125
+-   viDamage_base = 4
++   viDefense_base = 0                // Prime: was -125
++   viDamage_base = 5                // Prime: was 4
+ 
+ properties:
+ 
+--- a/kod/object/item/passitem/defmod/armor/chain.kod
++++ b/kod/object/item/passitem/defmod/armor/chain.kod
+@@ -41,7 +41,7 @@
+    viWeight = 200
+    viBulk = 250
+ 
+-   viDefense_base = -50
++   viDefense_base = 20                // Prime: was -50
+    viDamage_base = 2
+ 
+ properties:
+--- a/kod/object/item/passitem/defmod/armor/leather.kod
++++ b/kod/object/item/passitem/defmod/armor/leather.kod
+@@ -51,7 +51,7 @@
+    vrIcon_female = Leatherarmor_female_icon_rsc
+ 
+    viDefense_base = 80
+-   viDamage_base = 0
++   viDamage_base = 1                // Prime: was 0
+ 
+ properties:
+ 
+--- a/kod/object/item/passitem/defmod/armor/scale.kod
++++ b/kod/object/item/passitem/defmod/armor/scale.kod
+@@ -46,7 +46,7 @@
+    vrIcon_male = scalearmor_male_icon_rsc
+    vrIcon_female = scalearmor_female_icon_rsc
+ 
+-   viDefense_base = -100
++   viDefense_base = 10                // Prime: was -100
+    viDamage_base = 4
+ 
+ properties:
+--- a/kod/object/item/passitem/defmod/armor/robebase.kod
++++ b/kod/object/item/passitem/defmod/armor/robebase.kod
+@@ -70,7 +70,7 @@
+    viBroken_group = 3
+ 
+    viSpell_modifier = 10
+-   viDefense_base = 20
++   viDefense_base = 50                // Prime: was 20
+ 
+    viUse_type = ITEM_USE_BODY | ITEM_USE_LEGS
+ 
+--- a/kod/object/item/passitem/defmod/shield/nerushld.kod
++++ b/kod/object/item/passitem/defmod/shield/nerushld.kod
+@@ -47,8 +47,8 @@
+    viBroken_group = 4
+    viInventory_group = 1
+ 
+-   viDefense_base = 10
+-   viDamage_base = 1
++   viDefense_base = 25                // Prime: was 10 (a level 5 shield)
++   viDamage_base = 3                // Prime: was 1
+ 
+ properties:
+ 
+--- a/kod/object/item/passitem/defmod/shield.kod
++++ b/kod/object/item/passitem/defmod/shield.kod
+@@ -70,7 +70,8 @@
+    {
+       local iBonus;
+ 
+-      iBonus = piDefense_bonus;
++      // Prime: the faction (soldier and rebel) shields are worth less to the classes that are not fighters
++      iBonus = Send(Send(SYS,@GetPrime),@ShieldBonus,#who=who,#what=self,#bonus=piDefense_bonus);
+ 
+       if (who <> $)
+       {
+@@ -103,7 +104,7 @@
+       // If shield gives a damage reduction, and if the user has block, give them a skill check
+       //  with the defense bonus as a positive modifier.
+       if (send(who,@GetSkillAbility,#skill_num=SKID_BLOCK) > 0)
+-         AND Send(oBlock,@SuccessChance,#who=who,#modifier=piDefense_bonus)
++         AND Send(oBlock,@SuccessChance,#who=who,#modifier=Send(Send(SYS,@GetPrime),@ShieldBonus,#who=who,#what=self,#bonus=piDefense_bonus))
+       {
+          // We succeeded!  Propagate up and reduce damage.
+          propagate;

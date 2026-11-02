@@ -1,0 +1,22 @@
+# claude_tools: debugging and analysis tools (not part of the game)
+
+Run from the project root. Test-server tools need `PRIME_ADMIN_PORT=9998 PRIME_SERVER_DIR=server2` (the second test server, never the live one) and `$PRIME_WORK/admin-venv/bin/python`.
+Server-side helpers these use stay in `prime_server/scripts/` (admin_prime.py, bot_scenarios.py, test_redeploy.sh, ...).
+
+| tool | what it does |
+|---|---|
+| `roomview.py ROOM [--start R,C] [--goal R,C]` | one picture of a room: floor heights, what the server lets a body walk on, walls, objects, doors, entrances, region reachable from the start, a planned path -> `docs/roomview/` |
+| `roomgrid.py ROOM ..` | makes the test server dump the walkable grid of rooms (needed by roomview/roomreach) |
+| `roomreach.py ROOM ..` | no trips: which entrances and doors lie in a room's main walkable region (server rules) -> `docs/room_reachability_grid.md/.json` |
+| `clientreach.ts` | the same question asked of the CLIENT's own movement code (wall sliding, small object blocking); run with node from the client build tree (see its header) |
+| `place_user.py ROOM ROW COL` / `--where` | puts the logged-in character on an exact square (works on the live server) and reads back where it stands and faces |
+| `worldmap.py` | offline destination map of all rooms (OPEN / EXCLUDED / GAP, hops from towns, one-way links) -> `docs/world_map.md/json`; extra exclusions in `docs/world_map_exclusions.json` |
+| `botfollow.py BOT_ID` | follows ONE bot live (read-only): exact position, room, doing, stuck, goal node every 0.4 s -> `docs/botfollow/*.json`; draw with `roomview.py ROOM --trail FILE` (blue to yellow with time, red = stuck, white start, magenta end) |
+| `walkcheck.py ROOM..` | WALK REGRESSION of the one walker (the planner): random start/goal pairs on test bots (server2), outcomes arrived/stuck/exited/fled/timeout, failed trips as bundles -> `docs/walkcheck/`, `docs/scenarios/` |
+| `roomview.py ... --crop R,C,HALF --scale PX` | zoom on one wall/neck; with `--live snapshot.json` (from botinspect) or `--trail` |
+| `botinspect.py BOT` | ONE report + picture of what a bot does RIGHT NOW: position, doing, route it holds, planner state, first refused step, nearest bodies (mobs, bots, players) with distance -> `docs/botinspect/`; library `botlab.py` |
+| `botevents.py BOT [--on] [--watch N]` | the bot's FLIGHT RECORDER: its last 40 decisions in plain words (stop moving, enter room, planner refusals, give-ups), read live over admin; needs `PlayerBot.TraceRing` (server2 build 2026-11-01) and the bot trace on (`--on`) |
+| `botscenario.py` | the SCENARIO LIBRARY (import): place / walk / events / inspect; failed trips return a bundle (picture, report, recorder, trail) -> `docs/scenarios/`; `walkcheck.py` is built on it |
+| `botdash.py` | ALL bots in one table with flags (STUCK, NOMOVE, PILE, PLANNER, NOROOM) |
+| `kodbuild.sh [--c]` | build the Kod (and compiler/server) in the box; deploy notes in its header |
+Rows grow to the SOUTH, columns to the EAST; angles east 0, south 1024, west 2048, north 3072.

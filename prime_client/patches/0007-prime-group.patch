@@ -1,0 +1,98 @@
+--- a/packages/protocol/src/messages.ts
++++ b/packages/protocol/src/messages.ts
+@@ -771,6 +771,8 @@
+ 
+ /** Some user command types (include/proto.h UC_*). */
+ export const UC = {
++  /** Ours (Meridian 59 Prime): our group (prime_server kod/object/prime/primegroups.kod); a number far from the ones upstream hands out */
++  PRIME_GROUP: 200,
+   SEND_QUIT: 1, LOOK_PLAYER: 2, CHANGE_URL: 3, SPELL_SCHOOLS: 4, REST: 5, STAND: 6, REQ_PREFERENCES: 7, SUICIDE: 8, SEND_PREFERENCES: 9,
+   REQ_GUILDINFO: 10, GUILDINFO: 11, INVITE: 12, EXILE: 13, RENOUNCE: 14, ABDICATE: 15, VOTE: 16, SET_RANK: 17, GUILD_ASK: 18,
+   GUILD_CREATE: 19, DISBAND: 20, REQ_GUILD_LIST: 21, GUILD_LIST: 22, MAKE_ALLIANCE: 23, END_ALLIANCE: 24, MAKE_ENEMY: 25,
+--- a/packages/world/src/session.ts
++++ b/packages/world/src/session.ts
+@@ -20,6 +20,7 @@
+ import { readDamageDealt, type DamageDealt } from "./combatHit.ts";
+ import { readSpellRefusal, type SpellRefusal } from "./spellRefusal.ts";
+ import { readCompanion, type CompanionEvent } from "./companion.ts";
++import { readPrimeGroup, type GroupEvent } from "./primeGroup.ts";
+ import { readArena, type ArenaStatus } from "./arenaBouts.ts";
+ import { readCosmetics, type CosmeticsEvent } from "./cosmetics.ts";
+ import { readAppraisal, readSellable, readTraining, type Appraisal, type Sellable, type TrainingCost } from "./training.ts";
+@@ -286,6 +287,8 @@
+   quest?: (e: QuestEvent) => void;
+   /** Ours: our companion, from our server (docs/adr/0010-followers.md) */
+   companion?: (e: CompanionEvent) => void;
++  /** Ours (Meridian 59 Prime): our group */
++  primeGroup?: (e: GroupEvent) => void;
+   /** Ours: the arena's mock bouts, where we stand in them, and our records (docs/adr/0019-arena-bouts.md) */
+   arena?: (s: ArenaStatus) => void;
+   /** Ours: a tailor's or barber's menu (docs/adr/0012-cosmetics.md) */
+@@ -1141,6 +1144,10 @@
+             // Ours (companionbook.kod SendStatus, HealthChanged)
+             const e = readCompanion(r, (id) => this.resource(id));
+             if (e) this.events.companion?.(e);
++          } else if (uc === UC.PRIME_GROUP) {
++            // Ours (primegroups.kod SendState, SendInvite)
++            const e = readPrimeGroup(r);
++            if (e) this.events.primeGroup?.(e);
+           } else if (uc === UC.COSMETICS) {
+             // Ours (cosmeticsbook.kod SendTailorMenu, SendBarberMenu)
+             const e = readCosmetics(r, (id) => this.resource(id));
+--- a/packages/world/src/index.ts
++++ b/packages/world/src/index.ts
+@@ -26,6 +26,7 @@
+ export * from "./pets.ts";
+ export * from "./quests.ts";
+ export * from "./companion.ts";
++export * from "./primeGroup.ts";
+ export * from "./arenaBouts.ts";
+ export * from "./cosmetics.ts";
+ export * from "./training.ts";
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -8,6 +8,7 @@
+ } from "@shards/world";
+ import type { QuestStore } from "./quests.ts";
+ import { useCompanion, type CompanionStore } from "./companion.ts";
++import { PrimeGroupWindow } from "./ui/PrimeGroupWindow.tsx";
+ import { useArena, type ArenaStore } from "./arenaBouts.ts";
+ import { ArenaDialog } from "./ui/ArenaDialog.tsx";
+ import { CompanionPanel } from "./ui/CompanionPanel.tsx";
+@@ -2363,6 +2364,18 @@
+             arenaActive={arenaActive}
+           />
+         )}
++        {!touch && (
++          <PrimeGroupWindow
++            command={(line) => session.shardsCommand(line)}
++            target={target}
++            targetName={(() => {
++              const t = target !== null ? session.world.objects.get(target) : undefined;
++              return t && t.info.flags & OF_PLAYER ? (session.resource(t.info.nameRes) ?? null) : null;
++            })()}
++            onSelect={selectObject}
++            inRoom={(id) => session.world.objects.has(id)}
++          />
++        )}
+         {!touch && !modern && (
+           <Hotbar
+             session={session}
+--- a/apps/client/src/game/Game.tsx
++++ b/apps/client/src/game/Game.tsx
+@@ -19,6 +19,7 @@
+ import { IconRenderer } from "./icons.ts";
+ import { QuestStore } from "./quests.ts";
+ import { CompanionStore } from "./companion.ts";
++import { primeGroup } from "./primeGroup.ts";
+ import { ArenaStore } from "./arenaBouts.ts";
+ import { ConnectingScreen, LoginScreen, rememberName } from "./LoginScreen.tsx";
+ 
+@@ -289,6 +290,7 @@
+         appraisal: appraisal.emit,
+         sellable: sellable.emit,
+         companion: (e) => companion.handle(e),
++        primeGroup: (e) => primeGroup.handle(e),
+         arena: (s) => arena.handle(s),
+         offer: offers.emit,
+         sound: (e) => audio.handle(e),

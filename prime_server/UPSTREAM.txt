@@ -1,0 +1,6 @@
+# The code base the Prime server is built on (never edited in place: see README.md)
+url    https://github.com/jboullion/shards-server.git
+commit a9960bf1ac00459fb640aeacbe91c5d1e0c1ec7e
+# 2026-10-21 'hat sprite fixes' (magic item revamp phase 1)
+# lineage: Server 104 code (Meridian 59), via the Meridian Shards fork. GPL v2.
+# Also watch (for ideas / updates): https://github.com/Meridian59/Meridian59 (open-source repo, our old base @01839278)

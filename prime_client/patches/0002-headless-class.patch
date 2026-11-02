@@ -1,0 +1,89 @@
+--- a/tools/headless/client.ts
++++ b/tools/headless/client.ts
+@@ -17,9 +17,10 @@
+ import { readFileSync } from "node:fs";
+ import { parseArgs } from "node:util";
+ import { parseRsb, type RsbBundle } from "../../packages/formats/src/rsb.ts";
++import { formatServerMessage } from "../../packages/world/src/text.ts";
+ import {
+   AP, BP, ByteReader, Connection, GENDER, KOD_FINENESS, SPEED_WALK, apName, bpName,
+-  buildLogin, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSimple, buildUseCharacter,
++  buildLogin, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSimple, buildUseCharacter,
+   passwordDigest, readCharacters, readMove, readPlayer, readRoomContents, readRoomObject,
+   type PlayerInfo, type RoomObject,
+ } from "../../packages/protocol/src/index.ts";
+@@ -37,6 +38,12 @@
+     loop: { type: "boolean", default: false },
+     stay: { type: "string", default: "10" },
+     say: { type: "string" },
++    cast: { type: "string" },        // Prime: "spellNum[:target]" cast every --castevery s (target: self | nearest | an object id)
++    castat: { type: "string", default: "2" },
++    castevery: { type: "string", default: "4" },
++    skill: { type: "string" },        // Prime: "skillNum[:target]" used every --castevery s from --castat (UC_SHARDS_OBJECT "skill N")
++    attack: { type: "boolean", default: false },     // Prime: melee the nearest attackable every 2 s
++    class: { type: "string" },       // Prime: class to pick at creation (1 warrior, 2 monk, 3 paladin); sent as pseudo skill 1000+class
+     verbose: { type: "boolean", default: false },
+   },
+ });
+@@ -176,7 +183,7 @@
+         buildNewCharInfo({
+           id: slot.id, name: wanted, description: "A visitor from another shard.", gender: GENDER.MALE,
+           faceParts: [], hairTranslation: 0, skinTranslation: 3,
+-          stats: [35, 35, 35, 35, 35, 35], spells: [], skills: [],
++          stats: [35, 35, 35, 35, 35, 35], spells: [], skills: opt.class ? [1000 + Number(opt.class)] : [],
+         }),
+       );
+       break;
+@@ -211,6 +218,16 @@
+       afterRoomLoaded();
+       break;
+     }
++    case BP.MESSAGE:
++    case BP.SYS_MESSAGE: {      // Prime: game messages, for tests
++      log(`MSG: ${formatServerMessage(r.u32(), r, (id) => (id ? rs(id) : undefined))}`);
++      break;
++    }
++    case BP.SAID: {      // Prime: show what is said (NPC answers), for tests
++      const sender = r.u32(), nameRsc = r.u32(), sayType = r.u8();
++      log(`SAID type ${sayType} ${rs(nameRsc)}: ${formatServerMessage(r.u32(), r, (id) => (id ? rs(id) : undefined))}`);
++      break;
++    }
+     case BP.CREATE: {
+       const o = readRoomObject(r);
+       room.set(o.id, o);
+@@ -268,6 +285,35 @@
+     conn.sendGame(buildSay(opt.say));
+     sayTimer = setInterval(() => conn.sendGame(buildSay(opt.say!)), 3000);
+   }
++  // Prime: test actions
++  const pickTarget = (spec: string): number | undefined => {
++    if (spec === "self") return player?.id;
++    if (/^\d+$/.test(spec)) return Number(spec);
++    let best: number | undefined, bestD = Infinity;
++    for (const o of room.values()) {
++      if (!(o.flags & 0x8) || o.id === player?.id) continue;       // OF_ATTACKABLE
++      const d = (o.kodRow - me.row) ** 2 + (o.kodCol - me.col) ** 2;
++      if (d < bestD) { bestD = d; best = o.id; }
++    }
++    return best;
++  };
++  if (opt.cast) {
++    const [spell, tgt = "nearest"] = opt.cast.split(":");
++    setTimeout(() => {
++      const fire = () => { const t = pickTarget(tgt); log(`cast ${spell} at ${t}`); conn.sendGame(buildReqCast(Number(spell), t === undefined ? [] : [t])); };
++      fire();
++      setInterval(fire, Number(opt.castevery) * 1000);
++    }, Number(opt.castat) * 1000);
++  }
++  if (opt.skill) {
++    const [num, tgt = "nearest"] = opt.skill.split(":");
++    setTimeout(() => {
++      const fire = () => { const t = pickTarget(tgt); log(`skill ${num} at ${t}`); if (t !== undefined) conn.sendGame(buildShardsObjectCommand(t, `skill ${num}`)); };
++      fire();
++      setInterval(fire, Number(opt.castevery) * 1000);
++    }, Number(opt.castat) * 1000);
++  }
++  if (opt.attack) setInterval(() => { const t = pickTarget("nearest"); if (t !== undefined) conn.sendGame(buildReqAttack(t)); }, 2000);
+   if (path.length) startWalking();
+   const stayMs = Number(opt.stay) * 1000;
+   log(`staying connected for ${opt.stay}s (pings every 5 s)`);

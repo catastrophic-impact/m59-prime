@@ -1,0 +1,63 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -3518,6 +3518,12 @@
+    {
+       local oTimer, lNew_enchantment;
+ 
++      // Prime: crowd control bookkeeping. FALSE = a crowd control we are still immune to
++      if NOT Send(Send(SYS,@GetPrime),@SpellEnchantStarted,#who=self,#what=what,#time=time)
++      {
++         return;
++      }
++
+       if time = $ OR time = SPELL_INDEFINITE_DURATION 
+       {
+          oTimer = $;
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -899,6 +899,12 @@
+    {
+       local oTimer, lNew_enchantment;
+ 
++      // Prime: crowd control bookkeeping. FALSE = a crowd control we are still immune to
++      if NOT Send(Send(SYS,@GetPrime),@SpellEnchantStarted,#who=self,#what=what,#time=time)
++      {
++         return;
++      }
++
+       if time = $ OR time = SPELL_INDEFINITE_DURATION 
+       {
+          oTimer = $;
+--- a/kod/object/passive/spell.kod
++++ b/kod/object/passive/spell.kod
+@@ -819,6 +819,12 @@
+          }
+       }
+ 
++      // Prime: a crowd control the single target is still immune to
++      if Send(Send(SYS,@GetPrime),@CCBlocked,#who=who,#oSpell=self,#lTargets=lTargets,#bItemCast=bItemCast)
++      {
++         return FALSE;
++      }
++
+       if NOT IsClass(who,&User)
+       {
+          return TRUE;
+--- a/kod/util/system.kod
++++ b/kod/util/system.kod
+@@ -3503,6 +3503,7 @@
+    "Admin supported\n"
+    "Call this to create any spells in this function that don't currently exist."
+    {
++      Send(Send(self,@GetPrime),@RegisterSpells);     // Prime
+       Send(self,@CreateOneSpellIfNew,#num=SID_LIGHTNING_BOLT,#class=&Lightning);
+       Send(self,@CreateOneSpellIfNew,#num=SID_MINOR_HEAL,#class=&MinorHeal);
+       Send(self,@CreateOneSpellIfNew,#num=SID_NIGHT_VISION,#class=&NightVision);
+@@ -3940,6 +3941,7 @@
+    "Admin supported\n"
+    "Call this to create any skills in this function that don't currently exist."
+    {
++       Send(Send(self,@GetPrime),@RegisterSkills);     // Prime
+        Send(self,@CreateOneSkillIfNew,#num=SKID_DODGE,#class=&Dodge);
+        Send(self,@CreateOneSkillIfNew,#num=SKID_PARRY,#class=&Parry);
+        Send(self,@CreateOneSKillIfNew,#num=SKID_SLASH,#class=&Slash);

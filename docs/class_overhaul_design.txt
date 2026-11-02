@@ -1,0 +1,136 @@
+MERIDIAN 59 PRIME: CLASS OVERHAUL DESIGN (living document, from the user's design paste of 2026-10-20 plus the answers to my questions)
+
+DECISIONS SO FAR (user answers)
+- Lives in its own project folder. 
+- Existing characters are WIPED when the class system lands.
+- Class is picked at character creation (look + name only; no skill/spell choice, no stat choice). A class can never be switched, no second class.
+- Deity trainers serve several classes: the trainer only offers what the player's own class may train (a Warrior at the Kraanan priestess sees Warrior skills only).
+- Skills/spells work as in classic Meridian: 3 per level; their percentages together unlock the next level; each level is defined per CLASS, not per school. When the threshold is reached, all three of the next level can be bought at the trainer as usual.
+- Stats are locked per class and permanent (boons/temporary effects can raise them); stats do NOT grow with ECL.
+- Companions and playerbots will use the class system later. For now only a WARRIOR companion bot. Keep the threat/hate system; warriors generate more threat (natural tanks).
+- Robes: only increase spell effectiveness. Robe COLOUR shows the class level with that god (a level 5 Warrior has a blue Kraanan robe even if he only casts one buff with it; more buffs like Magic Shield / Free Action may come later).
+- To work out later: what Sword of the Hunt and Amulet of the Three mean in this game; the full class list (Warrior first as the template class and test class).
+
+1. VISION
+- Replace Meridian 59's open skill-stacking sandbox with structured classes (like WoW). Vanilla: players mix Weaponcraft with heavy spell schools (Kraanan, Qor, Shal'ille...) so pure martial / pure caster archetypes are obsolete.
+- Remove raw school access (Kraanan, Qor, Faren, Shal'ille, Jala, Riija); redistribute chosen spells and physical skills as class abilities.
+- Locked class archetype (Warrior, Shadowblade, Mage, Necromancer...), locked stat presets, weapon/armor restrictions, 5-tier progression.
+- Progression keeps the 0-100% usage loop via class trainers: build the percentages of 3 curated abilities per tier (levels 1-5) before the next tier.
+
+2. TRAINERS AND DEITIES
+- Kraanan: Warrior, Ranger.  Qor: Necromancer, Warlock, Shadowblade.  Faren: Mage, Druid.  Shal'ille: Priest, Paladin.  Jala: Bard.  Monk: monasteries / martial masters (unarmed).
+- A trainer checks the player has met the percentage threshold on ALL 3 skills/spells of the current tier before offering the next tier.
+
+3. ROBES
+- Vanilla: Robes of the Disciple are bound to a school (+20 spell power for that school).
+- Qor robes: Warlock/Necromancer spell power. Shal'ille: healing and ward strength (Priest/Paladin). Jala: song duration, aura radius, effect strength (Bard). Faren: elemental destruction (Mage/Druid).
+- Trim/colour reflects class tier achieved (levels 1-5).
+
+4. CUSTOM ABILITIES
+- Physical abilities (e.g. Shield Slam) inherit from base spell/skill templates (Hold/Paralyze scripts). They scale with Might and Stamina plus skill percentage instead of Intellect/Mysticism.
+- Spells adapted to martial abilities (Free Action, Magic Shield) are active casts using physical reagents (mushrooms/elderberries) instead of mana. (Open: how reagents relate to the "weaker without reagents" rule and our 200-vigor/endless reagent companions.)
+
+5. WARRIOR
+- Role: front-line combatant and shield defender. Stats: 50 Might / 50 Stamina / 50 Agility / 50 Aim / 1 Intellect / 1 Mysticism.
+- Gear: plate, chain, leather, shields. Weapons: maces, scimitars, axes, hammers, long swords. NO ranged weapons, NO daggers. Trainer: Kraanan NPC at the Temple of Kraanan.
+- LEVEL 1 core melee: Mace (proficiency), Dodge, Second Wind (active self-heal + vigor restore, scales with Stamina).
+- LEVEL 2 swords and deflection: Scimitar, Parry (active stance / weapon deflection), Disarm (strike forces target to unequip weapon).
+- LEVEL 3 heavy arms and shield control: Axe & Hammer, Long Sword, Block (needed for shield use and physical mitigation).
+- LEVEL 4 tactical defenses and control: Free Action (cleanse CC + temporary hold immunity), Magic Shield (physical/dodge absorption buffer), Shield Slam (needs a shield; stun scaling with Might and Stamina).
+- LEVEL 5 mastery: Resist Magic (spell mitigation, tuned down for caster fairness), Whirlwind (360 degree melee AoE), Taunt / Challenge (forces mob aggro; reduces target player damage in PvP).
+
+ANSWERS OF 2026-10-20 (second round)
+- Weapons/skills follow classic M59 schools: the class starts with its level 1 set (Warrior starts WITH a mace); the other 2 level 1 skills are bought from the Kraanan priestess; enough skill % unlocks level 2 at the trainer, and so on. The 3 skills/spells per level for each class still have to be decided (Warrior list above is a draft from Gemini and will be ironed out).
+- Whirlwind is DROPPED (Gemini leftover). Taunt is NOT needed: warriors generate extra threat per attack. Level 4/5 lists must be refilled.
+- Second Wind is redone WoW-style: out of combat for 10 s, then faster health regen: skill 1-33% = 1 hp/s, 34-66% = 2 hp/s, 67-98% = 3 hp/s, 99%+ = 4 hp/s. (Passive, not an active self-heal.)
+- Disarm is automatic like vanilla (higher skill % = more procs). Dodge/Parry/Block automatic as in classic.
+- Shield Slam is an active ability and needs a shield equipped.
+- Reagent-using class abilities follow the same "weaker without reagents" rule (piReagentMode); companions stay exempt.
+- Order: framework first (class on User, creation picker, Kraanan trainer filter, tier unlock), then Warrior levels 1 and 2 end to end. First step: build and run the copy, log in as tester/tester.
+
+ANSWERS (third round, 2026-10-20)
+- Unlock threshold: keep vanilla Meridian's. (Warriors have 1 Intellect so they need more training: fits the lore.)
+- Sword of the Hunt / Amulet of the Three: I propose a meaning later; low priority.
+- Warrior companion = the old Tank companion renamed; Fighter dropped.
+
+WARRIOR SKILL LIST v2 (user, 2026-10-20) - replaces the draft in section 5
+L1 (known from the start, all three): Slash, Create Weapon, Second Wind (Second Wind also regenerates MANA)
+L2: Dodge, Mace, Magic Shield
+L3: Axe, Hammer, Block   (Long Sword is not a skill in the game)
+L4: Free Action, Shield Slam, Parry
+L5: Resist Magic, Fencing, Bless
+Spell-like Warrior abilities should scale with Might/Stamina instead of Intellect/Mysticism; Kraanan robe boosts them as in vanilla. (To verify in kod.)
+
+ANSWERS (fourth round, 2026-10-20)
+- Stamina/Might scaling question: moot, Warrior has 50 in each.
+- Create Weapon stays vanilla but must not create daggers (short swords): only weapons the class can use.
+- Bless stays the vanilla Kraanan buff. Second Wind mana regen: assumed to use the same hp/s tiers (not explicitly confirmed).
+- RULE: keep a detailed CHANGELOG (design decisions AND implementation) so a wiki can be written from it.
+
+ANSWERS (fifth round, 2026-10-20)
+- Short swords are RENAMED Daggers; only certain classes may use them (future Shadowblade/rogue). Warriors cannot.
+- Second Wind mana regen uses the same tiers as hp (confirmed).
+- No per-account class limit: one account may create any number of characters of any class (10 slots).
+
+KOD FINDINGS (2026-10-20, for the framework; paths under kod/object/active/holder/nomoveon/battler/)
+- Creation: player.kod PlayerNewCharInfo (stats 1-50 sum<=200, picked spells/skills 45 points, AddDefaultSpells = Blink, AddDefaultObjects = Mace + money + reagents). The client picks stats/spells; the server validates.
+- Learning gate for EVERYTHING: player.kod PlayerCanLearn(spell_num, skill_num). It uses the ability's school + level (spell viSchool/viSpell_level, skill viSchool/viSkill_level), requires the best three abilities of the previous level of that school (sum of %), and compares with iNeed = points*SLOPE + const - Intellect bonus (so low Intellect = harder; fits Warrior lore). Level 1 is always open. Level 3+ spells at a temple priestess also need her "disciple" quest (temples.kod CanAddSpell / monster.kod CanDoTeach, HasDoneLearnQuest).
+- Teachers: monster.kod MOB_TEACHER + plFor_sale (kranprst.kod lists the Kraanan spells; weapon/skill teachers are other NPCs: smiths/sergeants). CanAddSkill/CanAddSpell call PlayerCanLearn.
+- Existing Kraanan spells (vanilla level): L1 Create Weapon, Create Food, Glow, Relay; L2 Bless, Haste(?), Enchant Weapon, Super Strength, Resist Poison; L3 Free Action, Magic Shield, Night Vision, Detect Invisible, Shroud; L4 Deflect, Eagle Eyes, Discordance, Mana Bomb, Dispel Illusion, Mend; L5 Resist Magic, Armor of Gort, Hunt; L6 Antimagic, Killing Fields, Shatterlock.
+- Existing skills: Dodge, Parry, Block, Assess, Second Wind, Disarm (school SKS_FENCING), strokes Slash/Thrust (SKS_FENCING level 1), proficiencies Sword (L3), Mace, Scimitar, Hammer, Axe, Short Sword (L2, SKS_FENCING), Bow, Brawling.
+- PROPOSED FRAMEWORK: a per-class ability table (ability -> class level 1-5) replacing the ability's own school/level inside PlayerCanLearn when the player has a class: abilities not in the class table cannot be learned; the class acts as one "school" with its own levels; level-1 abilities are granted at creation; trainers (deity NPCs) pass the player's class to filter their list. Warrior is the first table. Old schools/stat/spell pickers are removed from creation (class + look + name only).
+
+ANSWERS (sixth round, 2026-10-20)
+- "Fencing" = the long sword fighting skill (vanilla SKID_PROFICIENCY_SWORD, school Weaponcraft/SKS_FENCING naming aside). There is no separate "Long Sword" skill. Short Sword proficiency is renamed Dagger (not usable by Warriors).
+- User wants Scimitar at level 5 and Fencing at level 4 (levels may change later). Exact placement of the displaced skills still to be confirmed (each level has exactly 3).
+- Disciple quests are removed in general (no quest needed for any level).
+- Warriors start with the Mace item (they have Slash, so it is useful untrained).
+- Characters may be wiped any time without asking, for fresh testing.
+
+WARRIOR SKILL LIST v3 (PROVISIONAL, 2026-10-20; user: Fencing level 3, Scimitar level 5; my arrangement to fit 3 per level, awaiting confirmation)
+L1: Slash, Create Weapon, Second Wind (known from start)
+L2: Dodge, Mace, Magic Shield
+L3: Axe, Hammer, Fencing
+L4: Free Action, Shield Slam, Block
+L5: Resist Magic, Bless, Scimitar
+Parry is dropped for now (Dodge + Block cover defence). Tables are data, easy to change.
+
+WARRIOR SKILL LIST v4 (user, 2026-10-20; replaces v3; SIX levels, supersedes "5 levels" for the Warrior)
+L1: Slash, Mace Fighting, Second Wind (known from start)
+L2: Dodge, Create Weapon, Fencing
+L3: Axe, Block, Magic Shield
+L4: Hammer, Parry, Shield Slam
+L5: Resist Magic, Bless, Scimitar
+L6: Disarm, Free Action  (only two abilities; unlock maths that uses the top three of the previous level needs care)
+
+ANSWERS (seventh round, 2026-10-20): SHIELD SLAM and CROWD CONTROL
+- Second Wind implemented as designed (see CHANGELOG).
+- Shield Slam: active skill, needs a shield equipped; stun 5 seconds at full effect (scales with Might, Stamina and skill %); works on monsters AND players, full stun time on players.
+- No cooldown on Shield Slam. Instead a GAME-WIDE crowd-control rule: every CC effect (hold, stun, blind, dazzle, ...) grants the target immunity to CC for DOUBLE the length of the CC. Using a CC on an immune target only gives a message that the target cannot be affected yet.
+- Consequence: Free Action (cleanse CC + hold immunity) is no longer needed and is removed from the Warrior list; a level 6 skill moves down to fill the gap (exact arrangement pending).
+
+ANSWERS (eighth round, 2026-10-20)
+- CC immunity is PER TYPE (stun, hold, blind, dazzle ... each has its own): a target can be stunned, then held, then blinded in a row (keeps the Meridian spirit) but never permanently locked by one type: after a CC of a type ends its length again as immunity? No: immunity = double the CC's length, counted for THAT type only.
+- Warrior list option A: six levels; Free Action removed, Disarm stays alone at level 6 as the capstone. Final Warrior table: L1 Slash, Mace Fighting, Second Wind; L2 Dodge, Create Weapon, Fencing; L3 Axe, Block, Magic Shield; L4 Hammer, Parry, Shield Slam; L5 Resist Magic, Bless, Scimitar; L6 Disarm.
+
+ANSWERS (ninth round, 2026-10-20)
+- Warrior companion = renamed Tank (done). No armour restrictions for Warriors. Stats never grow with ECL (companion offense/defense fixed too).
+- Robe colour shows the class level with the class's god, up to level 5 (Warrior = Kraanan robe whose colour follows the Warrior level).
+- A trainer asked for something outside the player's class says: "You need to seek training elsewhere."
+
+PRIEST (second class, design started 2026-10-20) - Priest = Shal'ille/Faren style caster, god trainer: Shal'ille (temple priestess)
+Stats (fixed): Might 50, Stamina 50, Agility 1, Intellect 50, Mysticism 50, Aim 1.
+Gear: only robes and leather armour, circlets and ivy circlets, the small round shield; all classes may wear faction shields. No weapons, no punch (touch spells instead).
+Spells, six levels (user list; level 3 Dazzle duplicate replaced by Remove Curse):
+L1 Holy Touch, Minor Heal, Forces of Light
+L2 Zap, Mana Focus, Rescue
+L3 Hospice, Remove Curse, Lightning Bolt
+L4 Purify, Holy Blaze, Dazzle
+L5 Shocking Fury, Major Heal, Purge
+L6 Lightning Wall, Portal of Life, Truce
+Mana Focus: bonus damage for ALL spell damage (holy, evil, lightning, fire, ice, ...), also touch attacks; fix the description text. (In the code it already applies to every AttackSpell; touch spells Zap / Holy Touch get nothing yet.)
+Open: Zap level 1 or 2 at start (list says L2); Smite later as a high lightning spell?; Lightning Bolt (vanilla L5) before Shocking Fury (vanilla L3) is kept as the user listed it.
+
+USING MERIDIAN SHARDS (jboullion): the author allows using anything from the project (Reddit comment). Its server repo (shards-server) is a newer fork with extra spells, items, graphics, NPCs. We port pieces as needed (their Blakod needs small conversions for our compiler: // comments -> %, foreach -> for, else if -> nested if). Credit in NOTICE.md; project stays non-commercial.
+
+PRIEST ANSWERS (2026-10-20): Zap is level 2 (Holy Touch is the level 1 attack). "Smite" only means the electric spells as the wrathful-god line, no new spell. Holy Blaze reliable against any target (done). Lightning / electric spells STAY in the Priest list for now (user: talk about moving them to another class later). Karma: the user is strongly considering removing the karma system entirely (any character could use Sword of the Hunt / Amulet of the Three if they can equip it); not decided, to discuss. Holy Touch and Holy Blaze already ignore karma.

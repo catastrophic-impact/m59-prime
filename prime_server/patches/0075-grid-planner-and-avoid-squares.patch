@@ -1,0 +1,702 @@
+--- a/blakcomp/function.c
++++ b/blakcomp/function.c
+@@ -105,6 +105,8 @@
+ {"GetRandomPointBSP",   GETRANDOMPOINTBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+ {"GetStepTowardsBSP",   GETSTEPTOWARDSBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
++{"AvoidSquareBSP",      AVOIDSQUAREBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION, ANONE },
++{"ClearAvoidBSP",       CLEARAVOIDBSP, STORE_OPTIONAL, ANONE },
+ {"SetBodyRadiusBSP",    SETBODYRADIUSBSP, STORE_OPTIONAL, AEXPRESSION, ANONE },
+ {"ExplainMoveBSP",      EXPLAINMOVEBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+--- a/blakdeco/blakdeco.c
++++ b/blakdeco/blakdeco.c
+@@ -548,6 +548,8 @@
+    case FINDPATHSTEPBSP: return "FindPathStepBSP";
+    case EXPLAINMOVEBSP: return "ExplainMoveBSP";
+    case SETBODYRADIUSBSP: return "SetBodyRadiusBSP";
++   case AVOIDSQUAREBSP: return "AvoidSquareBSP";
++   case CLEARAVOIDBSP: return "ClearAvoidBSP";
+ 
+    case STRINGTONUMBER : return "StringToNumber";
+ 
+--- a/blakserv/adminfn.c
++++ b/blakserv/adminfn.c
+@@ -2392,6 +2392,8 @@
+ 		case FINDPATHSTEPBSP: strcpy(c_name, "FindPathStepBSP"); break;
+ 		case EXPLAINMOVEBSP: strcpy(c_name, "ExplainMoveBSP"); break;
+ 		case SETBODYRADIUSBSP: strcpy(c_name, "SetBodyRadiusBSP"); break;
++		case AVOIDSQUAREBSP: strcpy(c_name, "AvoidSquareBSP"); break;
++		case CLEARAVOIDBSP: strcpy(c_name, "ClearAvoidBSP"); break;
+ 		case BLOCKERADDBSP: strcpy(c_name, "BlockerAddBSP"); break;
+ 		case BLOCKERMOVEBSP: strcpy(c_name, "BlockerMoveBSP"); break;
+ 		case BLOCKERREMOVEBSP: strcpy(c_name, "BlockerRemoveBSP"); break;
+--- a/blakserv/ccode.c
++++ b/blakserv/ccode.c
+@@ -3566,6 +3566,48 @@
+ }
+ 
+ /*
++ * C_AvoidSquareBSP / C_ClearAvoidBSP: PRIME (patch 0075). AvoidSquareBSP(row, col): the move check refuses moves that ENTER this square (1-based big row/col) from another
++ *    square, until ClearAvoidBSP(). Returns how many squares are listed (at most 64). ClearAvoidBSP() empties the list and returns 0.
++ */
++int C_AvoidSquareBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[])
++{
++	val_type ret_val, r_val, c_val;
++
++	ret_val.v.tag = TAG_INT;
++	ret_val.v.data = g_AvoidN;
++
++	if (num_normal_parms != 2)
++		return ret_val.int_val;
++
++	r_val = RetrieveValue(object_id, local_vars, normal_parm_array[0].type, normal_parm_array[0].value);
++	c_val = RetrieveValue(object_id, local_vars, normal_parm_array[1].type, normal_parm_array[1].value);
++	if (r_val.v.tag != TAG_INT || c_val.v.tag != TAG_INT || g_AvoidN >= 64)
++		return ret_val.int_val;
++
++	g_AvoidRow[g_AvoidN] = r_val.v.data;
++	g_AvoidCol[g_AvoidN] = c_val.v.data;
++	g_AvoidN++;
++	ret_val.v.data = g_AvoidN;
++
++	return ret_val.int_val;
++}
++
++int C_ClearAvoidBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[])
++{
++	val_type ret_val;
++
++	g_AvoidN = 0;
++	ret_val.v.tag = TAG_INT;
++	ret_val.v.data = 0;
++
++	return ret_val.int_val;
++}
++
++/*
+  * C_ExplainMoveBSP: PRIME (patch 0073). ExplainMoveBSP(room, srow, scol, sfinerow, sfinecol, drow, dcol, dfinerow, dfinecol, objectid, *o1, *o2, *o3, *o4):
+  *    the verdict of CanMoveInRoomBSP with the reason. Returns 0 allowed, 1 a wall stops it (o1..o4 = wall P1.X, P1.Y, P2.X, P2.Y in roo units),
+  *    2 a body stops it (o1 = object id, o2/o3 = its position), 3 no room data / bad arguments. The four o variables are passed with the * operator.
+@@ -3695,6 +3737,7 @@
+ 	e.Y = GRIDCOORDTOROO(local_vars->locals[row_dest.v.data].v.data, local_vars->locals[finerow_dest.v.data].v.data);
+ 
+ 	V2 p;
++	{ resource_node* rn = GetResourceByID(r->data.resource_id); g_pathRoomName = (rn && rn->resource_val[0]) ? rn->resource_val[0] : "unknown"; }
+ 	if (BSPFindPathStep(&r->data, &s, &e, &p, objectid.v.data))
+ 	{
+ 		ret_val.v.data = 1;
+--- a/blakserv/ccode.h
++++ b/blakserv/ccode.h
+@@ -221,6 +221,14 @@
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+ 
++int C_AvoidSquareBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[]);
++
++int C_ClearAvoidBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[]);
++
+ int C_ExplainMoveBSP(int object_id, local_var_type *local_vars,
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+--- a/blakserv/roofile.c
++++ b/blakserv/roofile.c
+@@ -19,7 +19,8 @@
+ #include <queue>
+ #include <vector>
+ #include <cmath>
+-#include <ctime>
++#include <ctime>
++#include <map>
+ 
+ #pragma region Macros
+ /*****************************************************************************************
+@@ -726,6 +727,33 @@
+ float g_BodyRadius  = OBJMINDISTANCE;
+ float g_BodyRadius2 = OBJMINDISTANCE2;
+ 
++/* PRIME (patch 0075): EXIT SQUARES a walker must not step onto (door squares of the room: a creature or bot that steps on one leaves the room). A playerbot that travels inside
++ * a room lists the room's door squares with AvoidSquareBSP before its walking code runs and clears them with ClearAvoidBSP afterwards (single threaded: nobody else sees it).
++ * BSPCanMoveInRoom refuses a move that ENTERS a listed square from another square; moves inside it or out of it are allowed. BSPExplainMove reports it as reason 4. */
++#define MAXAVOIDSQUARES 64
++int g_AvoidN = 0;
++int g_AvoidRow[MAXAVOIDSQUARES];
++int g_AvoidCol[MAXAVOIDSQUARES];
++
++/* does a move from S to E enter an avoided square? (0 or 1; the entered square goes to *Row, *Col) */
++static int AvoidEntered(const V2* S, const V2* E, int* Row, int* Col)
++{
++   if (g_AvoidN <= 0)
++      return 0;
++   int er = ROOCOORDTOGRIDBIG(E->Y), ec = ROOCOORDTOGRIDBIG(E->X);
++   int sr = ROOCOORDTOGRIDBIG(S->Y), sc = ROOCOORDTOGRIDBIG(S->X);
++   if (er == sr && ec == sc)
++      return 0;
++   for (int i = 0; i < g_AvoidN; i++)
++      if (g_AvoidRow[i] == er && g_AvoidCol[i] == ec)
++      {
++         *Row = er;
++         *Col = ec;
++         return 1;
++      }
++   return 0;
++}
++
+ bool BSPCanMoveInRoom(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, Wall** BlockWall)
+ {
+    // sanity check: these are binary or operations because it's very unlikely
+@@ -749,6 +777,9 @@
+    if (!roomok)
+       return false;
+ 
++   // PRIME (patch 0075): a door square the walker was told to keep off
++   { int ar, ac; if (AvoidEntered(S, E, &ar, &ac)) return false; }
++
+    // otherwise also check against blockers
+    BlockerNode* blocker = Room->Blocker;
+    while (blocker)
+@@ -825,6 +856,8 @@
+       return 1;
+    }
+ 
++   { int ar, ac; if (AvoidEntered(S, E, &ar, &ac)) { out[0] = ar; out[1] = ac; return 4; } }
++
+    BlockerNode* blocker = Room->Blocker;
+    while (blocker)
+    {
+@@ -1276,7 +1309,7 @@
+ #define FP_MAX_CELLS       250000      // largest grid this will search
+ #define FP_MAX_EXPAND      80000       // most cells expanded in one search
+ #define FP_MAX_MS          60          // time limit of one search, ms
+-#define FP_MAX_LOG         25          // detailed log lines for the lifetime of the server
++#define FP_MAX_LOG         600         // detailed log lines for the lifetime of the server
+ 
+ static unsigned int fp_calls = 0, fp_found = 0, fp_direct = 0, fp_nopath = 0, fp_aborted = 0, fp_toobig = 0, fp_logged = 0;
+ static unsigned int fp_ms_total = 0, fp_ms_max = 0;
+@@ -1291,6 +1324,336 @@
+       fp_logged == FP_MAX_LOG ? " (detail log full: only summaries from now on)" : "");
+ }
+ 
++// A way is only as good as its steps: BSPCanMoveInRoom looks at the END of a move for the wall margin, so a long move can graze a wall that its 16-fine-unit
++// steps would be refused at. The walker moves in steps of 16 KOD fine units (256 ROO units): test every one.
++static Wall* fp_lastWall = NULL;   // the wall that refused the last failed FPWalk (NULL: an object or creature)
++
++static bool FPWalk(room_type* Room, V2* A, V2* B, int ObjectID)
++{
++   fp_lastWall = NULL;
++   // exactly the walker's steps (PlayerBot.PathStep): integer KOD fine units, the larger axis moves 16 per step
++   Wall* blockWall = NULL;
++   int ax = (int)roundf(A->X / 16.0f), ay = (int)roundf(A->Y / 16.0f);
++   const int bx = (int)roundf(B->X / 16.0f), by = (int)roundf(B->Y / 16.0f);
++   V2 prev = *A;
++   for (int k = 0; k < 4000; k++)
++   {
++      int dx = bx - ax, dy = by - ay;
++      int dist = abs(dx) > abs(dy) ? abs(dx) : abs(dy);
++      if (dist == 0)
++         return true;
++      int nx, ny;
++      if (dist <= 16)
++      {
++         nx = bx;
++         ny = by;
++      }
++      else
++      {
++         nx = ax + dx * 16 / dist;
++         ny = ay + dy * 16 / dist;
++      }
++      V2 next;
++      next.X = (float)nx * 16.0f;
++      next.Y = (float)ny * 16.0f;
++      blockWall = NULL;
++      if (!BSPCanMoveInRoom(Room, &prev, &next, ObjectID, false, &blockWall))
++      {
++         fp_lastWall = blockWall;
++         return false;
++      }
++      prev = next;
++      ax = nx;
++      ay = ny;
++      if (nx == bx && ny == by)
++         return true;
++   }
++   return false;
++}
++
++
++/*********************************************************************************************/
++/* PRIME navmesh-style grid: per room, once, a fine map (1/8 square cells) of which of the 8     */
++/* neighbours a body can walk to by the server's own wall rules (BSPCanMoveInRoom, the margin   */
++/* from the walls already inside). The path search then runs over these links without asking the */
++/* BSP again. Built from the static room only (creatures and loose objects are left out: the    */
++/* walker meets those and plans again). Guardrails: cell cap, build time cap, one cache per room.*/
++/*********************************************************************************************/
++#define FPG_CELL           128.0f      // ROO units: an eighth of a square
++#define FPG_MAX_CELLS      1500000     // largest grid built
++#define FPG_BUILD_MS       15000       // longest build
++#define FPG_MAX_EXPAND     900000
++#define FPG_MAX_MS         250
++#define FPG_GOAL_RADIUS    1536.0f
++
++struct FPGrid
++{
++   int ncols, nrows;
++   std::vector<unsigned char> links;      // bit d: the way to neighbour d (E,SE,S,SW,W,NW,N,NE) is open
++   std::vector<float> g;                  // scratch, valid where stamp == cur
++   std::vector<int> parent;
++   std::vector<unsigned int> stamp;
++   std::vector<unsigned char> closed;
++   unsigned int cur;
++   bool ok;
++};
++const char* g_pathRoomName = "";
++static std::map<int, FPGrid*> fp_grids;
++static unsigned int fp_grid_built = 0, fp_grid_failed = 0;
++
++static const int FPG_DC[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
++static const int FPG_DR[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
++
++static FPGrid* FPGetGrid(room_type* Room)
++{
++   auto it = fp_grids.find(Room->roomdata_id);
++   if (it != fp_grids.end())
++      return it->second->ok ? it->second : NULL;
++
++   FPGrid* gr = new FPGrid();
++   gr->ok = false;
++   gr->cur = 0;
++   fp_grids[Room->roomdata_id] = gr;
++
++   gr->ncols = (int)((float)Room->cols * ROOFINENESS / FPG_CELL) + 1;
++   gr->nrows = (int)((float)Room->rows * ROOFINENESS / FPG_CELL) + 1;
++   if (gr->ncols <= 1 || gr->nrows <= 1 || (long long)gr->ncols * gr->nrows > FPG_MAX_CELLS)
++   {
++      ++fp_grid_failed;
++      eprintf("BSPFindPathStep grid: room %i too big or empty (%d x %d cells)\n", Room->roomdata_id, gr->ncols, gr->nrows);
++      return NULL;
++   }
++
++   const int total = gr->ncols * gr->nrows;
++   gr->links.assign(total, 0);
++   BlockerNode* saved = Room->Blocker;
++   Room->Blocker = NULL;                  // static room only
++   const int fpSavedAvoid = g_AvoidN;     // PRIME (patch 0075): the cached grid is the room's pure geometry; the avoid list is applied in the search, not baked in
++   g_AvoidN = 0;
++   clock_t t0 = clock();
++   Wall* bw = NULL;
++   bool timedOut = false;
++   for (int r = 0; r < gr->nrows && !timedOut; r++)
++   {
++      for (int c = 0; c < gr->ncols; c++)
++      {
++         V2 a;
++         a.X = ((float)c + 0.5f) * FPG_CELL;
++         a.Y = ((float)r + 0.5f) * FPG_CELL;
++         unsigned char m = 0;
++         for (int d = 0; d < 8; d++)
++         {
++            int nc = c + FPG_DC[d], nr = r + FPG_DR[d];
++            if (nc < 0 || nr < 0 || nc >= gr->ncols || nr >= gr->nrows)
++               continue;
++            V2 b;
++            b.X = ((float)nc + 0.5f) * FPG_CELL;
++            b.Y = ((float)nr + 0.5f) * FPG_CELL;
++            bw = NULL;
++            if (BSPCanMoveInRoom(Room, &a, &b, 0, false, &bw))
++               m |= (unsigned char)(1 << d);
++         }
++         gr->links[r * gr->ncols + c] = m;
++      }
++      if ((r & 15) == 0 && (clock() - t0) * 1000 / CLOCKS_PER_SEC > FPG_BUILD_MS)
++         timedOut = true;
++   }
++   Room->Blocker = saved;
++   g_AvoidN = fpSavedAvoid;
++   unsigned int ms = (unsigned int)((clock() - t0) * 1000 / CLOCKS_PER_SEC);
++   if (timedOut)
++   {
++      ++fp_grid_failed;
++      eprintf("BSPFindPathStep grid: room %i build ran out of time (%u ms), not used\n", Room->roomdata_id, ms);
++      return NULL;
++   }
++
++   // DEBUG DUMP for the room viewer (scripts/roomview.py): while the file dumpgrid.txt exists in the server folder, every grid built is written to
++   // pathgrid_<room file name>.bin: "PGR1", ncols, nrows, cell size (ints), links (1 byte per cell), floor height of each cell centre (float, NaN outside any sector)
++   {
++      FILE* df = fopen("dumpgrid.txt", "rb");
++      if (df)
++      {
++         fclose(df);
++         char fname[300];
++         snprintf(fname, sizeof(fname), "pathgrid_%s.bin", g_pathRoomName);
++         FILE* out = fopen(fname, "wb");
++         if (out)
++         {
++            int hdr[3] = { gr->ncols, gr->nrows, (int)FPG_CELL };
++            fwrite("PGR1", 1, 4, out);
++            fwrite(hdr, sizeof(int), 3, out);
++            fwrite(gr->links.data(), 1, gr->links.size(), out);
++            std::vector<float> hts(total);
++            for (int r = 0; r < gr->nrows; r++)
++               for (int c = 0; c < gr->ncols; c++)
++               {
++                  V2 pt;
++                  pt.X = ((float)c + 0.5f) * FPG_CELL;
++                  pt.Y = ((float)r + 0.5f) * FPG_CELL;
++                  float hf = 0, hfwd = 0, hc = 0;
++                  BspLeaf* leaf = NULL;
++                  hts[r * gr->ncols + c] = BSPGetHeight(Room, &pt, &hf, &hfwd, &hc, &leaf) ? hf : NAN;
++               }
++            fwrite(hts.data(), sizeof(float), hts.size(), out);
++            fclose(out);
++            eprintf("BSPFindPathStep grid: dumped %s\n", fname);
++         }
++      }
++   }
++
++   gr->g.assign(total, 0.0f);
++   gr->parent.assign(total, -1);
++   gr->stamp.assign(total, 0);
++   gr->closed.assign(total, 0);
++   gr->ok = true;
++   ++fp_grid_built;
++   eprintf("BSPFindPathStep grid: room %i built, %d x %d cells in %u ms\n", Room->roomdata_id, gr->ncols, gr->nrows, ms);
++   return gr;
++}
++
++// 1 = a way (P set), 0 = none, -1 = no grid for this room (use the coarse search)
++/* PRIME (patch 0075): is the square this point lies in one the walker was told to keep off? */
++static bool FPPointAvoided(const V2* v)
++{
++   if (g_AvoidN <= 0)
++      return false;
++   int r = ROOCOORDTOGRIDBIG(v->Y), c = ROOCOORDTOGRIDBIG(v->X);
++   for (int i = 0; i < g_AvoidN; i++)
++      if (g_AvoidRow[i] == r && g_AvoidCol[i] == c)
++         return true;
++   return false;
++}
++
++static int FPGridSearch(room_type* Room, V2* S, V2* E, V2* P, int ObjectID, unsigned int* explored, int* total)
++{
++   FPGrid* gr = FPGetGrid(Room);
++   if (!gr)
++      return -1;
++   *total = gr->ncols * gr->nrows;
++   *explored = 0;
++
++   auto cellOf = [&](const V2* v, int& c, int& r) {
++      c = (int)(v->X / FPG_CELL); r = (int)(v->Y / FPG_CELL);
++      if (c < 0) c = 0; if (c >= gr->ncols) c = gr->ncols - 1;
++      if (r < 0) r = 0; if (r >= gr->nrows) r = gr->nrows - 1;
++   };
++   auto centre = [&](int cell) -> V2 {
++      V2 v;
++      v.X = ((float)(cell % gr->ncols) + 0.5f) * FPG_CELL;
++      v.Y = ((float)(cell / gr->ncols) + 0.5f) * FPG_CELL;
++      return v;
++   };
++
++   // start: the cell the body stands in, or a nearby one it can walk to
++   int sc, sr;
++   cellOf(S, sc, sr);
++   int startCell = -1;
++   float bestD = 1e30f;
++   for (int dr = -2; dr <= 2; dr++)
++      for (int dc = -2; dc <= 2; dc++)
++      {
++         int c = sc + dc, r = sr + dr;
++         if (c < 0 || r < 0 || c >= gr->ncols || r >= gr->nrows)
++            continue;
++         int cell = r * gr->ncols + c;
++         V2 cc = centre(cell);
++         float dx = cc.X - S->X, dy = cc.Y - S->Y, dd = dx * dx + dy * dy;
++         if (dd < bestD && (dd < 1.0f || FPWalk(Room, S, &cc, ObjectID)))
++         {
++            bestD = dd;
++            startCell = cell;
++         }
++      }
++   if (startCell < 0)
++      return 0;
++
++   ++gr->cur;
++   if (gr->cur == 0xFFFFFFFFu)
++   {
++      std::fill(gr->stamp.begin(), gr->stamp.end(), 0);
++      gr->cur = 1;
++   }
++   const unsigned int cur = gr->cur;
++
++   struct Item { float f; int cell; };
++   struct Cmp { bool operator()(const Item& a, const Item& b) const { return a.f > b.f; } };
++   std::priority_queue<Item, std::vector<Item>, Cmp> open;
++   auto h = [&](int cell) -> float {
++      V2 c = centre(cell);
++      float dx = c.X - E->X, dy = c.Y - E->Y;
++      return sqrtf(dx * dx + dy * dy);
++   };
++   auto touch = [&](int cell) {
++      if (gr->stamp[cell] != cur) { gr->stamp[cell] = cur; gr->g[cell] = 1e30f; gr->parent[cell] = -1; gr->closed[cell] = 0; }
++   };
++
++   touch(startCell);
++   gr->g[startCell] = 0.0f;
++   open.push({ h(startCell), startCell });
++   clock_t t0 = clock();
++   int found = -1;
++   unsigned int expanded = 0;
++   while (!open.empty())
++   {
++      Item it = open.top();
++      open.pop();
++      int cur2 = it.cell;
++      if (gr->closed[cur2])
++         continue;
++      gr->closed[cur2] = 1;
++      ++expanded;
++
++      V2 cc = centre(cur2);
++      float gx = cc.X - E->X, gy = cc.Y - E->Y;
++      if (gx * gx + gy * gy <= FPG_GOAL_RADIUS * FPG_GOAL_RADIUS)
++      {
++         found = cur2;
++         break;
++      }
++      if (expanded >= (unsigned int)FPG_MAX_EXPAND || ((expanded & 1023) == 0 && (clock() - t0) * 1000 / CLOCKS_PER_SEC > FPG_MAX_MS))
++         break;
++
++      const int cc_c = cur2 % gr->ncols, cc_r = cur2 / gr->ncols;
++      const unsigned char m = gr->links[cur2];
++      for (int d = 0; d < 8; d++)
++      {
++         if (!(m & (1 << d)))
++            continue;
++         int nb = (cc_r + FPG_DR[d]) * gr->ncols + (cc_c + FPG_DC[d]);
++         touch(nb);
++         if (gr->closed[nb])
++            continue;
++         { V2 nbc = centre(nb); if (FPPointAvoided(&nbc) && !FPPointAvoided(&cc)) continue; }   // PRIME (patch 0075): do not enter a door square
++         float ng = gr->g[cur2] + ((d & 1) ? 181.0f : 128.0f);
++         if (ng < gr->g[nb])
++         {
++            gr->g[nb] = ng;
++            gr->parent[nb] = cur2;
++            open.push({ ng + h(nb), nb });
++         }
++      }
++   }
++   *explored = expanded;
++   if (found < 0)
++      return 0;
++
++   std::vector<V2> way;
++   for (int c = found; c != -1 && way.size() < (size_t)*total; c = gr->parent[c])
++      way.push_back(centre(c));
++   // way[0] is the goal side, way.back() the start cell; the farthest point of it that can be walked to in a straight line (creatures included)
++   *P = way.size() > 1 ? way[way.size() - 2] : *E;
++   for (size_t i = 0; i + 1 < way.size(); i++)
++   {
++      if (FPWalk(Room, S, &way[i], ObjectID))
++      {
++         *P = way[i];
++         break;
++      }
++   }
++   return 1;
++}
++
+ bool BSPFindPathStep(room_type* Room, V2* S, V2* E, V2* P, int ObjectID)
+ {
+    if (!Room | !S | !E | !P)
+@@ -1303,8 +1666,13 @@
+ 
+    Wall* blockWall = NULL;
+ 
+-   // 1) a straight walk
+-   if (BSPCanMoveInRoom(Room, S, E, ObjectID, false, &blockWall))
++   // 1) a straight walk (not while the room viewer's dump is wanted: then the grid is built whatever the walk)
++   bool dumpWanted = false;
++   {
++      FILE* df = fopen("dumpgrid.txt", "rb");
++      if (df) { fclose(df); dumpWanted = true; }
++   }
++   if (!dumpWanted && FPWalk(Room, S, E, ObjectID))
+    {
+       *P = *E;
+       ++fp_found;
+@@ -1312,6 +1680,32 @@
+       return true;
+    }
+ 
++   {
++      // the navmesh-style grid first (fine cells, links from the server's own wall rules)
++      unsigned int gexp = 0;
++      int gtotal = 0;
++      clock_t gt0 = clock();
++      int gr = FPGridSearch(Room, S, E, P, ObjectID, &gexp, &gtotal);
++      unsigned int gms = (unsigned int)((clock() - gt0) * 1000 / CLOCKS_PER_SEC);
++      if (gr == 1)
++      {
++         ++fp_found;
++         fp_ms_total += gms;
++         if (gms > fp_ms_max) fp_ms_max = gms;
++         return true;
++      }
++      if (gr == 0)
++      {
++         ++fp_nopath;
++         fp_ms_total += gms;
++         if (gms > fp_ms_max) fp_ms_max = gms;
++         if (fp_logged < FP_MAX_LOG)
++            eprintf("BSPFindPathStep GRID-NOWAY: room %i from (%.0f,%.0f) to (%.0f,%.0f), cells explored %u of %d, %u ms\n",
++               Room->roomdata_id, S->X, S->Y, E->X, E->Y, gexp, gtotal, gms);
++         ++fp_logged;
++         return false;
++      }
++   }
+    const int ncols = Room->cols * 2 + 2;
+    const int nrows = Room->rows * 2 + 2;
+    if (ncols <= 2 || nrows <= 2 || (long long)ncols * nrows > FP_MAX_CELLS)
+@@ -1358,6 +1752,9 @@
+    static const int DC[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+    static const int DR[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+ 
++   unsigned int refWall = 0, refObj = 0, startRef = 0;
++   float nearWallD = 1e30f;
++   V2 nearP1 = { 0, 0 }, nearP2 = { 0, 0 };
+    clock_t t0 = clock();
+    unsigned int expanded = 0;
+    int found = -1;
+@@ -1376,13 +1773,18 @@
+       // from the exact start point for the first cell, else from the cell's centre
+       V2 from = (cur == startCell) ? *S : centre(cur);
+ 
+-      if (cur == endCell)
+       {
+-         // the last link goes to the exact goal
+-         if (BSPCanMoveInRoom(Room, &from, E, ObjectID, false, &blockWall))
++         // a door or an exit lies in the wall line and cannot be stood on: a cell within 1.5 squares of the goal is as good as the goal
++         // (the walker goes on to the exact point and stops next to it when refused)
++         V2 cc = centre(cur);
++         float gx = cc.X - E->X, gy = cc.Y - E->Y;
++         if (cur == endCell || gx * gx + gy * gy <= 1536.0f * 1536.0f)
+          {
+-            found = cur;
+-            break;
++            if (true)
++            {
++               found = cur;
++               break;
++            }
+          }
+       }
+ 
+@@ -1406,8 +1808,21 @@
+          float ng = g[cur] + sqrtf(dx * dx + dy * dy);
+          if (ng >= g[nb])
+             continue;
+-         if (!BSPCanMoveInRoom(Room, &from, &to, ObjectID, false, &blockWall))
++         if (!FPWalk(Room, &from, &to, ObjectID))
++         {
++            if (fp_lastWall)
++            {
++               ++refWall;
++               float mx = (fp_lastWall->P1.X + fp_lastWall->P2.X) * 0.5f - E->X, my = (fp_lastWall->P1.Y + fp_lastWall->P2.Y) * 0.5f - E->Y;
++               float dd = mx * mx + my * my;
++               if (dd < nearWallD) { nearWallD = dd; nearP1 = fp_lastWall->P1; nearP2 = fp_lastWall->P2; }
++            }
++            else
++               ++refObj;
++            if (cur == startCell)
++               ++startRef;
+             continue;
++         }
+          g[nb] = ng;
+          parent[nb] = cur;
+          state[nb] = 1;
+@@ -1429,7 +1844,24 @@
+       }
+       else
+       {
++         // no way past the solid objects and the creatures standing about: creatures move, so plan again as if they were not there
++         // (the walker bumps, waits and plans again); a room with nothing in it that blocks is truly closed
++         static bool fp_again = false;
++         if (!fp_again && Room->Blocker)
++         {
++            BlockerNode* saved = Room->Blocker;
++            Room->Blocker = NULL;
++            fp_again = true;
++            bool ok = BSPFindPathStep(Room, S, E, P, ObjectID);
++            fp_again = false;
++            Room->Blocker = saved;
++            if (ok)
++               return true;
++         }
+          ++fp_nopath;
++         if (fp_logged < FP_MAX_LOG)
++            eprintf("BSPFindPathStep NOWAY-DETAIL: room %i start-links-refused %u of 8, refused by walls %u, by objects %u, nearest refusing wall to the goal (%.2f,%.2f)-(%.2f,%.2f) squares (x,y from the room corner), cells explored %u of %d\n",
++               Room->roomdata_id, startRef, refWall, refObj, nearP1.X / 1024.0f, nearP1.Y / 1024.0f, nearP2.X / 1024.0f, nearP2.Y / 1024.0f, expanded, total);
+          FPLog("no way", Room, S, E, expanded, ms);
+       }
+       return false;
+@@ -1443,7 +1875,7 @@
+    *P = way.size() > 1 ? way[way.size() - 2] : *E;
+    for (size_t i = 0; i + 1 < way.size(); i++)
+    {
+-      if (BSPCanMoveInRoom(Room, S, &way[i], ObjectID, false, &blockWall))
++      if (FPWalk(Room, S, &way[i], ObjectID))
+       {
+          *P = way[i];
+          break;
+--- a/blakserv/roofile.h
++++ b/blakserv/roofile.h
+@@ -250,6 +250,9 @@
+ int   BSPExplainMove(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, int out[4]);
+ extern float g_BodyRadius;
+ extern float g_BodyRadius2;
++extern int g_AvoidN;
++extern int g_AvoidRow[];
++extern int g_AvoidCol[];
+ bool  BSPLineOfSightView(V2 *S, V2 *E, int kod_angle);
+ bool  BSPLineOfSight(room_type* Room, V3* S, V3* E);
+ void  BSPChangeTexture(room_type* Room, unsigned int ServerID, unsigned short NewTexture, unsigned int Flags);
+@@ -257,6 +260,7 @@
+ bool  BSPGetLocationInfo(room_type* Room, V2* P, unsigned int QueryFlags, unsigned int* ReturnFlags, float* HeightF, float* HeightFWD, float* HeightC, BspLeaf** Leaf);
+ bool  BSPGetRandomPoint(room_type* Room, int MaxAttempts, V2* P);
+ bool  BSPGetStepTowards(room_type* Room, V2* S, V2* E, V2* P, unsigned int* Flags, int ObjectID);
++extern const char* g_pathRoomName;   // PRIME: file name of the room being searched (set by C_FindPathStepBSP), for the debug dump
+ bool  BSPFindPathStep(room_type* Room, V2* S, V2* E, V2* P, int ObjectID);
+ bool  BSPBlockerAdd(room_type* Room, int ObjectID, V2* P);
+ bool  BSPBlockerMove(room_type* Room, int ObjectID, V2* P);
+--- a/blakserv/sendmsg.c
++++ b/blakserv/sendmsg.c
+@@ -204,6 +204,8 @@
+    ccall_table[FINDPATHSTEPBSP] = C_FindPathStepBSP;
+    ccall_table[EXPLAINMOVEBSP] = C_ExplainMoveBSP;
+    ccall_table[SETBODYRADIUSBSP] = C_SetBodyRadiusBSP;
++   ccall_table[AVOIDSQUAREBSP] = C_AvoidSquareBSP;
++   ccall_table[CLEARAVOIDBSP] = C_ClearAvoidBSP;
+ 
+    ccall_table[APPENDLISTELEM] = C_AppendListElem;
+    ccall_table[CONS] = C_Cons;
+--- a/include/bkod.h
++++ b/include/bkod.h
+@@ -182,6 +182,8 @@
+    FINDPATHSTEPBSP = 81,
+    EXPLAINMOVEBSP = 82,
+    SETBODYRADIUSBSP = 83,
++   AVOIDSQUAREBSP = 84,
++   CLEARAVOIDBSP = 85,
+ 
+    DELLASTLISTELEM = 98,
+    GETALLLISTNODESBYCLASS = 99,

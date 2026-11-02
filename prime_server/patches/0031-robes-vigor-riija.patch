@@ -1,0 +1,82 @@
+--- a/kod/object/passive/spell.kod
++++ b/kod/object/passive/spell.kod
+@@ -1804,6 +1804,9 @@
+          iCost = iCost - Send(oPrincessShield,@GetSpellManaReduction);
+       }
+ 	  
++      // Prime: the sword of Riija makes every spell cheaper
++      iCost = Send(Send(SYS,@GetPrime),@ManaCostFor,#who=who,#iCost=iCost);
++
+       return bound(iCost,1,$);
+    }
+ 
+@@ -2500,6 +2503,9 @@
+       // Prime: a spell cast without its reagents (optional reagent mode) is weaker
+       iSpellPower = Send(Send(SYS,@GetPrime),@WeakPower,#who=who,#iSpellPower=iSpellPower);
+ 
++      // Prime: the sword of Riija strengthens every spell
++      iSpellPower = Bound(Send(Send(SYS,@GetPrime),@RiijaPower,#who=who,#iSpellPower=iSpellPower),SPELLPOWER_MINIMUM,SPELLPOWER_MAXIMUM);
++
+       return iSpellPower;
+    }
+ 
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -1039,7 +1039,7 @@
+ 
+    piGender = GENDER_MALE
+ 
+-   piVigor_rest_threshold = 80
++   piVigor_rest_threshold = 100      // Prime: every class rests up to 100
+ 
+    // The user's string description, typed when created (and editable in game).
+    psPlayerDescription = $
+@@ -1578,8 +1578,8 @@
+          piVigor_rest_threshold = 10;
+       }
+ 
+-      piVigor_rest_threshold = Bound(piVigor_rest_threshold,10,80 +
+-               ((Send(self,@GetSkillAbility,#skill_num=SKID_SECOND_WIND)+1)/5));
++      // Prime: the cap is 100 for every class (it was 80 + Second Wind / 5, so only warriors with the skill reached 100)
++      piVigor_rest_threshold = Bound(piVigor_rest_threshold,10,100);
+ 
+       Send(self,@DrawVigor);
+ 
+@@ -2946,7 +2946,7 @@
+       piKarma = 0;
+ 
+       piVigor = 100;
+-      piVigor_rest_threshold = 80;
++      piVigor_rest_threshold = 100;     // Prime
+       piExertion = 0;
+       // percent stomach is full
+       piStomach = 0;
+--- a/kod/object/item/passitem/defmod/armor/robebase/robedisc.kod
++++ b/kod/object/item/passitem/defmod/armor/robebase/robedisc.kod
+@@ -96,6 +96,15 @@
+ 
+    GetBaseSpellModifier(oSpell=$)
+    {
++      local iPrime;
++
++      // Prime: a classed player's robe works for every spell of his class, but only if it is the robe of his class's god
++      iPrime = Send(Send(SYS,@GetPrime),@RobeSpellBonus,#who=poOwner,#iSchool=piSchool,#iLevel=piLevel);
++      if iPrime <> $
++      {
++         return iPrime;
++      }
++
+       if Send(oSpell,@GetSchool) = piSchool
+       {
+          return Bound(4 * piLevel,5,20);
+--- a/kod/object/item/passitem/weapon/riijaswd.kod
++++ b/kod/object/item/passitem/weapon/riijaswd.kod
+@@ -40,7 +40,7 @@
+    // Riija Swords are high quality thrusting weapons
+    viWeaponType = WEAPON_TYPE_THRUST
+    viWeaponQuality = WEAPON_QUALITY_HIGH
+-   viProficiency_needed = SKID_PROFICIENCY_SHORT_SWORD
++   viProficiency_needed = SKID_PROFICIENCY_SWORD       // Prime: it handles like a long sword (it was the dagger skill)
+    viValue_average = 5000
+    viWeight = 90
+    viBulk = 90

@@ -1,0 +1,19 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -161,6 +161,8 @@
+          vrDead_Icon = human_dead_female_icona_rsc;
+          vrDead_Legs = human_dead_female_iconb_rsc;
+          vrSound_death = human_female_sound_death;
++         // Prime: not the faction troop's "aware" shout every Human has (trps1awr.ogg), played whenever it starts a chase
++         vrSound_aware = $;
+       }
+       else
+       {
+@@ -171,6 +173,7 @@
+          vrDead_Icon = human_dead_male_icona_rsc;
+          vrDead_Legs = human_dead_male_iconb_rsc;
+          vrSound_death = human_male_sound_death;
++         vrSound_aware = $;
+       }
+ 
+       prHead = First(Send(SYS,@GetAllowedHeadIcons,#iGender=gender));

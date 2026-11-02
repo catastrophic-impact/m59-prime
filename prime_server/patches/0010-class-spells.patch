@@ -1,0 +1,62 @@
+--- a/kod/object/passive/spell/persench/touchatk.kod
++++ b/kod/object/passive/spell/persench/touchatk.kod
+@@ -302,6 +302,9 @@
+       // Myst boosts base damage
+       damage = Send(self,@DamageFactors,#damage=damage,#who=who,
+                     #victim=victim);
++
++      // Prime: Mana Focus boosts touch attacks too
++      damage = damage + Send(Send(SYS,@GetPrime),@ManaFocusBonus,#who=who);
+       
+       return bound(damage,0,$);
+    }
+--- a/kod/object/passive/spell/persench/touchatk/holytch.kod
++++ b/kod/object/passive/spell/persench/touchatk/holytch.kod
+@@ -143,11 +143,7 @@
+                   iDamage = iDamage + Random(500,1500);
+                }
+             }
+-            else
+-            {
+-               iKarma = Send(victim,@GetKarma,#detect=TRUE);
+-               iDamage = iDamage + ((-iKarma/12)*100);
+-            }
++            // Prime: no karma bonus against monsters: holy damage is equal across the board
+          }
+       }
+ 
+--- a/kod/object/passive/spell/creaweap.kod
++++ b/kod/object/passive/spell/creaweap.kod
+@@ -98,6 +98,12 @@
+                return;
+             }
+ 
++            // Prime: only weapons the class may use
++            if NOT Send(Send(SYS,@GetPrime),@ClassAllowsItem,#who=who,#what=i,#report=FALSE)
++            {
++               return;
++            }
++
+             oWeapon = Create(getClass(i));
+             isWeaponCreateable = true;
+             break;
+@@ -223,6 +229,9 @@
+          }
+       }
+ 
++      // Prime: only weapons the class may use
++      oWeapon = Send(Send(SYS,@GetPrime),@ClassWeaponFor,#who=who,#oWeapon=oWeapon);
++
+       // Weapon has half its hits, + iSpellPower// of the other half.
+       Send(oWeapon,@SetHits,#number=(Send(oWeapon,@GetHits)*(iSpellPower+100))/200);
+ 
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -5443,6 +5443,7 @@
+          }
+ 
+          iAim = Send(self,@GetAim);
++         iAim = Send(Send(SYS,@GetPrime),@TouchAim,#who=self,#oWeapon=oWeapon,#iAim=iAim);     // Prime
+          iOffense = (iStroke*2) + (iProficiency*2) + (iAim*8) +
+                (200 * Send(self,@GetBaseMaxHealth))
+                / (100 + Send(self,@GetStamina));

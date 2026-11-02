@@ -1,0 +1,715 @@
+// Meridian 59 Prime: companion bots. Temporary class companions (warrior, monk, paladin, elementalist) that a player summons beside their faction
+// companion, up to piMaxBots and as the group's seats allow. They are the upstream Companion body (following, assisting, stances, gear, looks) with none of
+// the faction companion's book-keeping: no bond, no vault, no hall, no corpse. They are made fresh for the owner's level, vanish when the owner logs off,
+// and a fallen one is gone and leaves its seat free (after piBotResummonSec seconds, if the rule asks for a wait).
+// PrimeClasses is a PrimeBots, so everything is reached with Send(Send(SYS,@GetPrime),@Message,...). The registry plBots is in primegroups.kod.
+//
+// Commands (User.ShardsCommand, "bot ..."):  call <warrior|monk|paladin|elementalist>,  dismiss [all|<number>],
+//                                             stance <follow|defend|stay|passive> [all|<number>],  look <number> <ten numbers>,  status
+// A number is the bot's place in the list the client shows (UC_PRIME_GROUP, GRP_PKT_BOTS).
+
+PrimeBots is PrimeCompanions
+
+constants:
+
+   include blakston.khd
+   include protocol.khd
+   include prime.khd
+
+resources:
+
+   pb_joined = "%s joins you as your bot."
+   pb_off = "Companion bots are turned off on this server."
+   pb_bad_kind = "Say which one: warrior, monk, paladin or elementalist."
+   pb_max = "You already have %i bots at your side."
+   pb_full = "Your group has no seat left: %i at most, every companion counts."
+   pb_wait = "You can summon another bot in %i seconds."
+   pb_cannot_here = "A bot cannot join you here."
+   pb_fell = "%s has fallen."
+   pb_gone = "%s leaves your side."
+   pb_none = "You have no bot with that number."
+   pb_stance = "%s changes its stance."
+   pb_attack = "Your companions go for %s%s."
+   pb_no_attack = "Your companions cannot attack that."
+
+properties:
+
+   // [ owner, GetTime() when they may summon again ]
+   plBotWaits = $
+   // [ bot, x, y, seconds not moved ] from the last BotMoveLog
+   plMoveWatch = $
+
+messages:
+
+   // ---------------------------------------------------------------------------------------------
+   // The registry
+
+   BotAdd(who = $, comp = $)
+   {
+      local i, lRest, lMine;
+
+      lRest = $;
+      lMine = $;
+      foreach i in plBots
+      {
+         if First(i) = who
+         {
+            lMine = i;
+         }
+         else
+         {
+            lRest = Cons(i,lRest);
+         }
+      }
+
+      if lMine = $
+      {
+         lMine = [who];
+      }
+
+      plBots = Cons(Cons(First(lMine),Cons(comp,Rest(lMine))),lRest);
+
+      return;
+   }
+
+   BotRemove(comp = $)
+   "The bot is no longer anyone's (its entry goes with the last of an owner's)."
+   {
+      local i, j, lRest, lNew;
+
+      lRest = $;
+      foreach i in plBots
+      {
+         if FindListElem(i,comp) = 0
+         {
+            lRest = Cons(i,lRest);
+         }
+         else
+         {
+            lNew = $;
+            foreach j in i
+            {
+               if j <> comp
+               {
+                  lNew = Cons(j,lNew);
+               }
+            }
+
+            // lNew is the owner and the other bots in reverse (the owner last); an owner left alone has no entry
+            if Length(lNew) > 1
+            {
+               lRest = Cons(Send(self,@Reversed,#lIn=lNew),lRest);
+            }
+         }
+      }
+
+      plBots = lRest;
+
+      return;
+   }
+
+   BotDelete(comp = $)
+   "A bot ends: out of the registry, then deleted."
+   {
+      Send(self,@BotRemove,#comp=comp);
+      Send(comp,@AllowDelete);
+      Send(comp,@Delete);
+
+      return;
+   }
+
+   BotKind(sKind = $)
+   {
+      if StringEqual(sKind,"warrior")
+      {
+         return COMPANION_WARRIOR;
+      }
+
+      if StringEqual(sKind,"monk")
+      {
+         return COMPANION_MONK;
+      }
+
+      if StringEqual(sKind,"paladin")
+      {
+         return COMPANION_PALADIN;
+      }
+
+      if StringEqual(sKind,"elementalist")
+      {
+         return COMPANION_ELEMENTALIST;
+      }
+
+      return 0;
+   }
+
+   BotTier(health = 50)
+   "Gear tier 1-5 of a bot for its owner's base health (no bond for bots)."
+   {
+      return Bound(1 + (health - 20) / 25,1,5);
+   }
+
+   BotWaitLeft(who = $)
+   "Seconds until who may summon another bot."
+   {
+      local i;
+
+      foreach i in plBotWaits
+      {
+         if First(i) = who AND Nth(i,2) > GetTime()
+         {
+            return Nth(i,2) - GetTime();
+         }
+      }
+
+      return 0;
+   }
+
+   BotSetWait(who = $)
+   {
+      local i, lKeep;
+
+      lKeep = $;
+      foreach i in plBotWaits
+      {
+         if First(i) <> who AND Nth(i,2) > GetTime()
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      if piBotResummonSec > 0
+      {
+         lKeep = Cons([who,GetTime() + piBotResummonSec],lKeep);
+      }
+
+      plBotWaits = lKeep;
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Commands
+
+   BotCommand(who = $, words = $)
+   {
+      local sVerb, lBots, iAt, sArg, iStance, i, iNum;
+
+      sVerb = $;
+      if Length(words) >= 2
+      {
+         sVerb = Nth(words,2);
+      }
+
+      if sVerb = $ OR StringEqual(sVerb,"status")
+      {
+         Send(self,@BotStatus,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"call")
+      {
+         sArg = $;
+         if Length(words) >= 3
+         {
+            sArg = Nth(words,3);
+         }
+
+         Send(self,@BotSummon,#who=who,#kind=Send(self,@BotKind,#sKind=sArg));
+
+         return;
+      }
+
+      lBots = Send(self,@BotsOf,#who=who);
+
+      if StringEqual(sVerb,"dismiss")
+      {
+         if Length(words) < 3 OR StringEqual(Nth(words,3),"all")
+         {
+            foreach i in lBots
+            {
+               Send(who,@MsgSendUser,#message_rsc=pb_gone,#parm1=Send(i,@GetName));
+               Send(self,@BotDelete,#comp=i);
+            }
+
+            Send(self,@BotStatus,#who=who);
+
+            return;
+         }
+
+         iNum = StringToNumber(Nth(words,3));
+         if iNum < 1 OR iNum > Length(lBots)
+         {
+            Send(who,@MsgSendUser,#message_rsc=pb_none);
+
+            return;
+         }
+
+         i = Nth(lBots,iNum);
+         Send(who,@MsgSendUser,#message_rsc=pb_gone,#parm1=Send(i,@GetName));
+         Send(self,@BotDelete,#comp=i);
+         Send(self,@BotStatus,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"look") AND Length(words) >= 3
+      {
+         iNum = StringToNumber(Nth(words,3));
+         if iNum < 1 OR iNum > Length(lBots)
+         {
+            Send(who,@MsgSendUser,#message_rsc=pb_none);
+
+            return;
+         }
+
+         // bot look <number> <gender> <hair> <eyes> <nose> <mouth> <beard> <hair colour> <skin> <c1> <c2>
+         Send(Send(SYS,@GetCompanionBook),@Look,#who=who,#words=words,#comp=Nth(lBots,iNum),#start=4);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"stance") AND Length(words) >= 3
+      {
+         sArg = Nth(words,3);
+         iStance = 0;
+         if StringEqual(sArg,"follow")
+         {
+            iStance = COMP_FOLLOW;
+         }
+         else if StringEqual(sArg,"defend")
+         {
+            iStance = COMP_DEFEND;
+         }
+         else if StringEqual(sArg,"stay")
+         {
+            iStance = COMP_STAY;
+         }
+         else if StringEqual(sArg,"passive")
+         {
+            iStance = COMP_PASSIVE;
+         }
+
+         if iStance = 0
+         {
+            return;
+         }
+
+         iAt = 0;
+         if Length(words) >= 4 AND NOT StringEqual(Nth(words,4),"all")
+         {
+            iAt = StringToNumber(Nth(words,4));
+            if iAt < 1 OR iAt > Length(lBots)
+            {
+               Send(who,@MsgSendUser,#message_rsc=pb_none);
+
+               return;
+            }
+         }
+
+         iNum = 0;
+         foreach i in lBots
+         {
+            ++iNum;
+            if iAt = 0 OR iAt = iNum
+            {
+               Send(i,@SetStance,#stance=iStance);
+               Send(who,@MsgSendUser,#message_rsc=pb_stance,#parm1=Send(i,@GetName));
+            }
+         }
+
+         Send(self,@BotStatus,#who=who);
+
+         return;
+      }
+
+      return;
+   }
+
+   BotStances(who = $, stance = COMP_FOLLOW)
+   "Every bot of who takes the stance (the group window's buttons set all companions at once). TRUE if there was a bot."
+   {
+      local i, lBots;
+
+      lBots = Send(self,@BotsOf,#who=who);
+      if lBots = $
+      {
+         return FALSE;
+      }
+
+      foreach i in lBots
+      {
+         Send(i,@SetStance,#stance=stance);
+         Send(who,@MsgSendUser,#message_rsc=pb_stance,#parm1=Send(i,@GetName));
+      }
+
+      Send(self,@BotStatus,#who=who);
+
+      return TRUE;
+   }
+
+   CompanionsAttack(who = $, what = $)
+   "The Attack button: every companion and bot that is not passive or staying goes for what, the same checks as the player's own blow (no friendly fire)."
+   {
+      local i, bAny;
+
+      if what = $ OR what = who OR NOT IsClass(what,&Battler) OR IsClass(what,&Revenant)
+         OR Send(self,@AreGrouped,#who=who,#what=what)
+         OR (IsClass(what,&Monster) AND Send(what,@GetMaster) = who)
+         OR NOT Send(who,@AllowBattlerAttack,#victim=what,#actual=FALSE)
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_no_attack);
+
+         return;
+      }
+
+      bAny = FALSE;
+      foreach i in Send(self,@CompanionsOf,#who=who)
+      {
+         if Send(i,@OrderAttack,#target=what)
+         {
+            bAny = TRUE;
+         }
+      }
+
+      if bAny
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_attack,#parm1=Send(what,@GetDef),#parm2=Send(what,@GetName));
+      }
+
+      return;
+   }
+
+   BotSummon(who = $, kind = 0)
+   "A new bot for who, if the rules, the bots already there and the group's seats allow it."
+   {
+      local oComp, oBook, party, iSeats;
+
+      if NOT pbCompanionBots
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_off);
+
+         return $;
+      }
+
+      if kind = 0
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_bad_kind);
+
+         return $;
+      }
+
+      if Length(Send(self,@BotsOf,#who=who)) >= piMaxBots
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_max,#parm1=piMaxBots);
+
+         return $;
+      }
+
+      if Send(self,@BotWaitLeft,#who=who) > 0
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_wait,#parm1=Send(self,@BotWaitLeft,#who=who));
+
+         return $;
+      }
+
+      party = Send(self,@PartyOf,#who=who);
+      if party = $
+      {
+         iSeats = Send(self,@WeightOf,#who=who);
+      }
+      else
+      {
+         iSeats = Send(self,@SeatsUsed,#party=party);
+      }
+
+      if iSeats + 1 > piMaxGroupSize
+      {
+         Send(who,@MsgSendUser,#message_rsc=pb_full,#parm1=piMaxGroupSize);
+
+         return $;
+      }
+
+      oBook = Send(SYS,@GetCompanionBook);
+      oComp = Create(&Companion,#kind=kind,#owner=who);
+      Send(oComp,@SetBot);
+      Send(oComp,@AllowDelete);
+      Send(self,@BotAdd,#who=who,#comp=oComp);
+      Send(oBook,@Rescale,#who=who,#comp=oComp);
+      if NOT Send(oBook,@PlaceWithOwner,#comp=oComp,#who=who)
+      {
+         Send(self,@BotDelete,#comp=oComp);
+         Send(who,@MsgSendUser,#message_rsc=pb_cannot_here);
+         Send(self,@BotStatus,#who=who);
+
+         return $;
+      }
+
+      Send(who,@MsgSendUser,#message_rsc=pb_joined,#parm1=Send(oComp,@GetName));
+      Send(self,@BotStatus,#who=who);
+
+      return oComp;
+   }
+
+   BotFell(comp = $, killer = $)
+   "Hook in Companion.Killed: a bot is gone, with no corpse. Its owner is told, and may have to wait to summon another."
+   {
+      local oOwner;
+
+      oOwner = Send(comp,@GetSworn);
+      Send(self,@BotRemove,#comp=comp);
+      if oOwner <> $
+      {
+         Send(oOwner,@MsgSendUser,#message_rsc=pb_fell,#parm1=Send(comp,@GetName));
+         Send(self,@BotSetWait,#who=oOwner);
+         Send(self,@BotStatus,#who=oOwner);
+      }
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // The owner comes and goes (hooks in CompanionBook)
+
+   BotsOwnerLoggingOff(who = $)
+   "Bots do not outlast a session."
+   {
+      local i;
+
+      foreach i in Send(self,@BotsOf,#who=who)
+      {
+         Send(self,@BotDelete,#comp=i);
+      }
+
+      return;
+   }
+
+   BotsOwnerLoggedOn(who = $)
+   {
+      Send(self,@BotStatus,#who=who);
+
+      return;
+   }
+
+   BotsOwnerMoved(who = $)
+   "The owner entered a room: the bots come along, or wait in limbo until a room will have them."
+   {
+      local i, oBook;
+
+      oBook = Send(SYS,@GetCompanionBook);
+      foreach i in Send(self,@BotsOf,#who=who)
+      {
+         if Send(i,@GetOwner) <> Send(who,@GetOwner)
+         {
+            if pbBotMoveLog
+            {
+               Send(self,@BotMoveEvent,#comp=i);
+            }
+
+            Send(oBook,@PlaceWithOwner,#comp=i,#who=who);
+         }
+      }
+
+      return;
+   }
+
+   BotMoveEvent(comp = $)
+   "TEST ONLY: its owner changed room and it is placed beside them."
+   {
+      Debug("BOTMOVE bot",comp,"placed beside its owner after a room change");
+
+      return;
+   }
+
+   BotsRescale(who = $)
+   {
+      local i, oBook;
+
+      oBook = Send(SYS,@GetCompanionBook);
+      foreach i in Send(self,@BotsOf,#who=who)
+      {
+         Send(oBook,@Rescale,#who=who,#comp=i);
+      }
+
+      return;
+   }
+
+   BotsTick()
+   "Every second: bots of an owner who is not playing go; so do all bots if the rule is turned off."
+   {
+      local i, j, lOwners;
+
+      lOwners = $;
+      foreach i in plBots
+      {
+         if NOT pbCompanionBots OR NOT Send(First(i),@IsLoggedOn)
+         {
+            lOwners = Cons(First(i),lOwners);
+         }
+      }
+
+      foreach i in lOwners
+      {
+         foreach j in Send(self,@BotsOf,#who=i)
+         {
+            Send(self,@BotDelete,#comp=j);
+         }
+      }
+
+      Send(self,@PBotsTick);     // the playerbots (primeplayerbots.kod)
+
+      if pbBotMoveLog
+      {
+         Send(self,@BotMoveLog);
+      }
+      else if plMoveWatch <> $
+      {
+         plMoveWatch = $;
+      }
+
+      return;
+   }
+
+   BotMoveLog()
+   "TEST ONLY (rule pbBotMoveLog): a line each second per bot in the debug log, starting BOTMOVE: bot, kind, room, owner x y, bot x y (sixty-fourths of a square), distance, how many seconds it has not moved, state, target, behaviour, stance. A bot that is not in its owner's room says so."
+   {
+      local i, j, k, oOwner, oRoom, lNew, iBotX, iBotY, iOwnX, iOwnY, iStill, lDbg;
+
+      lNew = $;
+      foreach i in plBots
+      {
+         oOwner = First(i);
+         if NOT Send(oOwner,@IsLoggedOn)
+         {
+            continue;
+         }
+
+         iOwnX = Send(oOwner,@GetCol) * 64 + Send(oOwner,@GetFineCol);
+         iOwnY = Send(oOwner,@GetRow) * 64 + Send(oOwner,@GetFineRow);
+         foreach j in i
+         {
+            if j = oOwner
+            {
+               continue;
+            }
+
+            oRoom = Send(j,@GetOwner);
+            if oRoom = $ OR oRoom <> Send(oOwner,@GetOwner)
+            {
+               Debug("BOTMOVE bot",j,"kind",Send(j,@GetKind),"NOT IN THE OWNER'S ROOM");
+
+               continue;
+            }
+
+            iBotX = Send(j,@GetCol) * 64 + Send(j,@GetFineCol);
+            iBotY = Send(j,@GetRow) * 64 + Send(j,@GetFineRow);
+            iStill = 0;
+            foreach k in plMoveWatch
+            {
+               if First(k) = j AND Nth(k,2) = iBotX AND Nth(k,3) = iBotY
+               {
+                  iStill = Nth(k,4) + 1;
+               }
+            }
+
+            lNew = Cons([j,iBotX,iBotY,iStill],lNew);
+            lDbg = Send(j,@GetMoveDebug);
+            Debug("BOTMOVE bot",j,"kind",Send(j,@GetKind),"room",Send(oRoom,@GetRoomNum),"owner",iOwnX,iOwnY,"bot",iBotX,iBotY,
+                  "dx",iBotX - iOwnX,"dy",iBotY - iOwnY,"still",iStill,"state",First(lDbg),"target",Nth(lDbg,2),
+                  "behavior",Nth(lDbg,3),"stance",Nth(lDbg,4));
+         }
+      }
+
+      plMoveWatch = lNew;
+
+      return;
+   }
+
+   SplitXP(who = $, xp = 0)
+   "Hook in Player.AdvancementCheck: with the rule on, and bots in the group, the XP of a kill is shared by every seat of the group "
+   "(players, their companions and the bots), so a lone player with 4 bots gets a fifth."
+   {
+      local party, iSeats, i, bBots;
+
+      if NOT pbBotSplitXP OR xp <= 0
+      {
+         return xp;
+      }
+
+      party = Send(self,@PartyOf,#who=who);
+      if party = $
+      {
+         party = [who];
+      }
+
+      iSeats = 0;
+      bBots = FALSE;
+      foreach i in party
+      {
+         iSeats = iSeats + Send(self,@WeightOf,#who=i);
+         if Send(self,@BotsOf,#who=i) <> $
+         {
+            bBots = TRUE;
+         }
+      }
+
+      if NOT bBots OR iSeats < 2
+      {
+         return xp;
+      }
+
+      return xp / iSeats;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // What the client shows (UC_PRIME_GROUP, GRP_PKT_BOTS)
+
+   BotStatus(who = $)
+   "UC_PRIME_GROUP GRP_PKT_BOTS: the summon rules and each bot: id, name, kind, stance, flags (1 = not in the room), health and mana."
+   {
+      local oSession, lBots, i, iFlags, oBook;
+
+      oBook = Send(SYS,@GetCompanionBook);
+      oSession = Send(who,@GetShardsSession);
+      if oSession = $
+      {
+         return;
+      }
+
+      lBots = Send(self,@BotsOf,#who=who);
+      AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_BOTS);
+      // bots allowed, most bots, seconds to wait, how many there are
+      if pbCompanionBots
+      {
+         AddPacket(1,1);
+      }
+      else
+      {
+         AddPacket(1,0);
+      }
+
+      AddPacket(1,piMaxBots, 2,Bound(Send(self,@BotWaitLeft,#who=who),0,65535), 1,Length(lBots));
+      foreach i in lBots
+      {
+         iFlags = 0;
+         if Send(i,@GetOwner) = $ OR Send(i,@GetOwner) <> Send(who,@GetOwner)
+         {
+            iFlags = 1;
+         }
+
+         AddPacket(4,i);
+         AddPacket(STRING_RESOURCE,Send(i,@GetName));
+         AddPacket(1,Send(i,@GetKind), 1,Send(i,@GetStance), 1,iFlags);
+         AddPacket(2,Bound(Send(i,@GetHealth),0,65535), 2,Bound(Send(i,@GetMaxHealth),0,65535),
+                   2,Bound(Send(i,@GetMana),0,65535), 2,Bound(Send(i,@GetMaxMana),0,65535));
+         // its look and the colours it may wear, for the appearance window
+         Send(oBook,@AddLookPackets,#oComp=i);
+      }
+
+      SendPacket(oSession);
+
+      return;
+   }
+
+end

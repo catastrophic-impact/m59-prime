@@ -1,0 +1,22 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -5687,6 +5687,8 @@
+ 
+       // Prime: a dagger sometimes hits twice (kod/object/prime/primeclasses.kod)
+       iDamage = Send(Send(SYS,@GetPrime),@DaggerDouble,#who=self,#what=what,#damage=iDamage);
++      // Prime: a paladin's spirit weapon gives mana back on every hit
++      Send(Send(SYS,@GetPrime),@SpiritHit,#who=self);
+ 
+       return iDamage;
+    }
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -2453,6 +2453,8 @@
+          iDamage = Send(self,@ArmorCheck,#what=what,#bonus=bonus,#atype=atype,
+             #aspell=aspell,#damage=damage);
+          iResist = Send(self,@ResistanceCheck,#atype=atype,#aspell=aspell);
++         // Prime: a spirit weapon is not resisted for being holy
++         iResist = Send(Send(SYS,@GetPrime),@SpiritResist,#attacker=what,#target=self,#aspell=aspell,#resist=iResist);
+          iDamage = Send(self,@GetDamageFromResistance,#what=iDamage,#value=iResist);
+          iDamage = iDamage + bonus;
+          iDamage = iDamage * scalefactor / 1000;

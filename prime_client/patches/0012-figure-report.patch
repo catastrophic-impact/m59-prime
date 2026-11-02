@@ -1,0 +1,95 @@
+--- a/packages/render/src/objectsView.ts
++++ b/packages/render/src/objectsView.ts
+@@ -283,6 +283,15 @@
+   inSun: number;
+ }
+ 
++/** Prime: what a figure should be wearing and what was drawn, for primeFigures() in the console */
++export interface FigureDebug {
++  id: number;
++  baseRes: number;
++  viewAngle: number;
++  /** each overlay the server / the ambient crowd says it has: its resource, hotspot, group, whether its file is loaded (undefined = loading, null = failed or missing) and whether its picture is in the drawn composite */
++  overlays: { iconRes: number; hotspot: number; group: number; loaded: boolean | null | undefined; drawn: boolean }[];
++}
++
+ export class ObjectsView {
+   readonly group = new THREE.Group();
+   /** Ours: the shadows under figures (hidden for the glow pass, postFx.ts) */
+@@ -302,6 +311,8 @@
+     polygonOffsetUnits: -4,
+   });
+   private readonly entries = new Map<number, Entry>();
++  /** Prime: the figure report's notes, by object id (made when a picture is composited) */
++  private readonly debug = new Map<number, FigureDebug>();
+   /** Composites by what they're drawn from, shared between objects, the least recently used dropped first */
+   private readonly composites = new Map<string, CachedComposite>();
+   /** Until when this frame may make smoothed copies (SMOOTH_BUDGET_MS), and the sprites waiting for theirs */
+@@ -402,6 +413,11 @@
+     return floorHeightAt(s, x, y) - depth;
+   }
+ 
++  /** Prime: the figures drawn now, with what each was made of (see FigureDebug) */
++  figureReport(): FigureDebug[] {
++    return [...this.entries.keys()].map((id) => this.debug.get(id)).filter((d): d is FigureDebug => !!d);
++  }
++
+   /** Sync meshes with the objects and update their frame, placement and light. */
+   update(objects: Iterable<ViewObject>, ctx: ObjectViewContext, lights: LightSource[], selfId: number): NameLabel[] {
+     this.smoothUntil = performance.now() + SMOOTH_BUDGET_MS;
+@@ -504,6 +520,18 @@
+         );
+         e.composite = e.cached.composite;
+         this.setComposite(e);
++        // Prime: remember what this picture was made of, for the figure report
++        const layers = [...(e.composite?.layers ?? []), ...(e.composite?.face?.layers ?? [])];
++        this.debug.set(o.id, {
++          id: o.id,
++          baseRes: o.info.iconRes,
++          viewAngle,
++          overlays: look.overlays.map((ov) => {
++            const b = this.getBgf(ov.iconRes);
++            const bmp = b ? frameFor(b, viewAngle, ov.anim.group) : null;
++            return { iconRes: ov.iconRes, hotspot: ov.hotspot, group: ov.anim.group, loaded: b === undefined ? undefined : b === null ? null : true, drawn: !!bmp && layers.some((l) => l.bmp === bmp) };
++          }),
++        });
+       }
+       if (!e.composite) {
+         e.mesh.visible = false;
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -2600,6 +2600,24 @@
+    * rather than giving its id, so it's the target when the name matches (attacks and spells go
+    * there), else the nearest object with that name.
+    */
++  /**
++   * Prime: window.primeFigures() in the browser's console: every figure with an overlay that is not loaded or not drawn,
++   * and a count of all figures, to find out why a leg, an arm or a piece of gear is missing.
++   */
++  primeFigures(): void {
++    const rows = this.objects?.figureReport() ?? [];
++    const nameOf = (res: number) => localResName(res) ?? this.session.resource(res) ?? `#${res}`;
++    // (eyes, mouth and nose have no picture from behind: not a fault)
++    const faceSpot = (hs: number) => hs === 11 || hs === 12 || hs === 14;
++    const bad = rows.filter((r) => r.overlays.some((o) => !o.drawn && !faceSpot(o.hotspot)));
++    console.log(`[prime] ${rows.length} figures drawn, ${bad.length} with an overlay not drawn`);
++    for (const r of bad) {
++      const w = this.session.world.objects.get(r.id);
++      const who = (w && this.session.resource(w.info.nameRes)) || (isAmbientId(r.id) ? "ambient" : "?");
++      console.log(`[prime] ${who} (${r.id}) body ${nameOf(r.baseRes)} angle ${r.viewAngle}:`, r.overlays.filter((o) => !faceSpot(o.hotspot)).map((o) => `${nameOf(o.iconRes)} hs${o.hotspot} g${o.group} ${o.drawn ? "ok" : o.loaded === undefined ? "LOADING" : o.loaded === null ? "NOT LOADED" : "LOADED BUT NOT DRAWN"}`).filter((t) => !t.endsWith(" ok")));
++    }
++  }
++
+   /** Prime: a number over an object, from our server (UC_PRIME_GROUP combat): damage in gold, red on a player or companion, healing green */
+   primeNumber(id: number, amount: number, heal: boolean): void {
+     if (!this.settings.damageNumbers) return;
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -790,6 +790,7 @@
+   // Prime: floating numbers from our server go to the scene
+   useEffect(() => {
+     primeGroup.numberHandler = (id, amount, heal) => sceneRef.current?.primeNumber(id, amount, heal);
++    (window as unknown as { primeFigures: () => void }).primeFigures = () => sceneRef.current?.primeFigures();
+     return () => {
+       primeGroup.numberHandler = null;
+     };

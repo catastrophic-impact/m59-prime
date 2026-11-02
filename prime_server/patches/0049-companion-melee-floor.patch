@@ -1,0 +1,17 @@
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -629,6 +629,14 @@
+       iMin = Bound(iH * First(lDamage) / 1000 * (100 + iBonus) / 100,1,$);
+       iMax = Bound(iH * Nth(lDamage,2) / 1000 * (100 + iBonus) / 100,iMin,$);
+ 
++      // Prime: a class companion hits at least as hard as a new character of its class does
++      if Send(oComp,@GetKind) >= COMPANION_MONK
++      {
++         lWarrior = Send(Send(SYS,@GetPrime),@CompDamageFloor,#kind=Send(oComp,@GetKind));
++         iMin = Bound(iMin,First(lWarrior),$);
++         iMax = Bound(iMax,Nth(lWarrior,2),$);
++      }
++
+       iDefense = iFight;
+       // Prime: the warrior companion follows its owner's effective level (ECL): the owner's health, fixed
+       // fighting numbers, damage by ECL (PrimeClasses.WarriorNumbers)

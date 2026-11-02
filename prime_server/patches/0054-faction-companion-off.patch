@@ -1,0 +1,36 @@
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -1,3 +1,7 @@
++// *** PRIME: THE FACTION COMPANION IS SWITCHED OFF (rule pbFactionCompanions, default FALSE, PrimeRules). Nobody can get one: the leaders offer none,
++// *** the commands ask/call/dismiss/give/take/look are ignored, the Companion window shows only the companion bots (PrimeBots). Only status and the stance
++// *** words (follow, defend, stay, passive) still work: they set the bots. This file stays, unused, for the playerbots (pack, vault, hall, revival)
++// *** and a possible return; its bond is not used (a class companion is built from its owner's numbers, see PrimeCompanions.CompApply).
+ // Ours (Meridian Shards, docs/adr/0010-followers.md): companions. One object, SYS@GetCompanionBook,
+ // made on demand; it keeps nothing of its own. Each player's companion is a Companion
+ // (battler/monster/human/companion.kod) kept on User (poCompanion), with the bond there too, so
+@@ -102,6 +106,14 @@
+       }
+ 
+       sVerb = Nth(words,2);
++      // Prime: the faction companion is switched off (rule pbFactionCompanions): only status and the stance words (they set the bots) are answered
++      if NOT Send(Send(SYS,@GetPrime),@FactionCompanionsOn)
++         AND NOT (StringEqual(sVerb,"status") OR StringEqual(sVerb,"follow") OR StringEqual(sVerb,"defend")
++                  OR StringEqual(sVerb,"stay") OR StringEqual(sVerb,"passive"))
++      {
++         return;
++      }
++
+       if StringEqual(sVerb,"status")
+       {
+          Send(self,@SendStatus,#who=who);
+--- a/kod/util/questbook.kod
++++ b/kod/util/questbook.kod
+@@ -1974,7 +1974,7 @@
+                }
+                if iKind = QK_COMPANION
+                {
+-                  bDone = Send(who,@GetCompanion) <> $;
++                  bDone = Send(who,@GetCompanion) <> $ OR Send(Send(SYS,@GetPrime),@BotsOf,#who=who) <> $;     // Prime: a companion bot counts
+                }
+                if iKind = QK_LEARN
+                {

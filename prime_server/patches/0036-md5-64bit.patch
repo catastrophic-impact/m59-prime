@@ -1,0 +1,22 @@
+--- a/include/md5.h
++++ b/include/md5.h
+@@ -37,7 +37,7 @@
+ typedef unsigned short int UINT2;
+ 
+ /* UINT4 defines a four byte word */
+-typedef unsigned long int UINT4;
++typedef unsigned int UINT4;   /* Prime: four bytes on 64-bit Linux too (it was unsigned long: wrong digests, so admin-created accounts could never log in) */
+ 
+ void MDString (char *string, unsigned char *digest);
+ void MDFileHash(char *string, char *filehash, unsigned int bytes);
+--- a/util/global.h
++++ b/util/global.h
+@@ -17,7 +17,7 @@
+ typedef unsigned short int UINT2;
+ 
+ /* UINT4 defines a four byte word */
+-typedef unsigned long int UINT4;
++typedef unsigned int UINT4;   /* Prime: four bytes on 64-bit Linux too (it was unsigned long: wrong digests, so admin-created accounts could never log in) */
+ 
+ /* PROTO_LIST is defined depending on how PROTOTYPES is defined above.
+ If using PROTOTYPES, then PROTO_LIST returns the list, otherwise it

@@ -1,0 +1,15 @@
+--- a/blakserv/adminfn.c
++++ b/blakserv/adminfn.c
+@@ -4324,9 +4324,11 @@
+ 	
+ 	aprintf("Account %i will be deleted.\n",a->account_id);
+ 
+-   // XXX Need a replacement for this on Linux
++   // Prime: on Linux there was nothing here, so the account was never deleted: delete it now (its characters go with it)
+ #ifdef BLAK_PLATFORM_WINDOWS
+ 	PostThreadMessage(main_thread_id,WM_BLAK_MAIN_DELETE_ACCOUNT,0,a->account_id);
++#else
++	DeleteAccountAndAssociatedUsersByID(a->account_id);
+ #endif
+ }
+ 

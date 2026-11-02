@@ -1,0 +1,56 @@
+--- a/blakserv/main.c	2026-10-31 07:40:20.206089327 -0600
++++ b/blakserv/main.c	2026-10-31 07:40:20.208491619 -0600
+@@ -40,9 +40,53 @@
+ 
+ #else
+ 
++#include <signal.h>
++#include <execinfo.h>
++#include <unistd.h>
++#include <fcntl.h>
++
++// Prime diagnostics (2026-10-31): the server used to vanish with no message. A fatal signal now writes its number and a backtrace to crash.txt
++// (resolve with addr2line -e blakserv), and SIGPIPE (a write to a connection the other side has just closed, which killed the process silently) is
++// ignored and noted in crash.txt.
++static void PrimeCrashHandler(int sig)
++{
++   void *frames[40];
++   int n, fd;
++   char head[64];
++   int len = 0;
++
++   fd = open("crash.txt", O_WRONLY | O_CREAT | O_APPEND, 0644);
++   if (fd >= 0)
++   {
++      head[len++] = 'S'; head[len++] = 'I'; head[len++] = 'G'; head[len++] = ' ';
++      if (sig >= 10) head[len++] = '0' + sig / 10;
++      head[len++] = '0' + sig % 10;
++      head[len++] = '\n';
++      write(fd, head, len);
++      n = backtrace(frames, 40);
++      backtrace_symbols_fd(frames, n, fd);
++      write(fd, "----\n", 5);
++      close(fd);
++   }
++   if (sig == SIGPIPE)
++   {
++      return;
++   }
++   signal(sig, SIG_DFL);
++   raise(sig);
++}
++
+ int main(int argc, char **argv)
+ {
+     main_thread_id = pthread_self();
++    signal(SIGSEGV, PrimeCrashHandler);
++    signal(SIGABRT, PrimeCrashHandler);
++    signal(SIGBUS, PrimeCrashHandler);
++    signal(SIGFPE, PrimeCrashHandler);
++    signal(SIGILL, PrimeCrashHandler);
++    signal(SIGTERM, PrimeCrashHandler);
++    signal(SIGHUP, PrimeCrashHandler);
++    signal(SIGPIPE, PrimeCrashHandler);
+ 
+     return MainServer(argc,argv);
+ }

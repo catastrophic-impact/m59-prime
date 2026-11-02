@@ -1,0 +1,4 @@
+# The client code base the Prime client is built on (never edited in place: see README.md)
+url    https://github.com/jboullion/meridian-shards.git
+commit e631c9ed47e2c52cec14cb46f51d7a948d4787ff
+# Meridian Shards web client (TypeScript, Vite/React, Electron). GPL v2. Credit: NOTICE.md

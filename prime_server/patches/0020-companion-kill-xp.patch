@@ -1,0 +1,12 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -3823,6 +3823,9 @@
+             }
+          }
+ 
++         // Prime: a companion's kill is its owner's, experience included
++         Send(Send(SYS,@GetPrime),@CompanionKill,#comp=self,#master=poMaster,#victim=what);
++
+          // Our master handles the kill from here, since they
+          // made us do it.
+          return Send(poMaster,@KilledSomething,#what=what,

@@ -1,0 +1,48 @@
+--- a/apps/client/src/assets.ts
++++ b/apps/client/src/assets.ts
+@@ -123,6 +123,11 @@
+     let p = this.bgfs.get(key);
+     if (!p) {
+       p = this.has(key) ? this.download(key).then((b) => parseBgf(b)) : Promise.resolve(null);
++      // Prime: a failed load is forgotten, so that it can be tried again (gameScene.ts loadBgf)
++      p = p.catch((e) => {
++        this.bgfs.delete(key);
++        throw e;
++      });
+       this.bgfs.set(key, p);
+     }
+     return p;
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -711,15 +711,26 @@
+     if (!p) {
+       this.bgfs.set(resource, undefined);
+       // Ambient life's art is named by file (ambientIds.ts), the rest by the server's resources
++      // Prime: a picture that fails to load is tried again (a few times) and the failure is logged, instead of being
++      // dropped for the whole session: a missing leg, arm, shield or weapon on a figure was one of these
+       const name = localResName(resource) ?? this.session.resource(resource);
+       if (!name) {
++        console.warn("[prime] picture without a name, resource", resource);
+         this.bgfs.set(resource, null);
+         p = Promise.resolve();
+-      } else
+-        p = this.assets.bgf(name).then(
+-          (b) => void this.bgfs.set(resource, b),
+-          () => void this.bgfs.set(resource, null),
+-        );
++      } else {
++        const attempt = async (n: number): Promise<void> => {
++          try {
++            this.bgfs.set(resource, await this.assets.bgf(name));
++          } catch (e) {
++            console.warn(`[prime] picture ${name} failed to load (try ${n + 1})`, e);
++            if (n >= 4) return void this.bgfs.set(resource, null);
++            await new Promise((r) => setTimeout(r, 400 * (n + 1)));
++            return attempt(n + 1);
++          }
++        };
++        p = attempt(0);
++      }
+       this.bgfLoads.set(resource, p);
+     }
+     return p;

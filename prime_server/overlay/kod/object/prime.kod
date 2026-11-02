@@ -1,0 +1,20 @@
+// Meridian 59 Prime. Root of everything we add that has no better place in the upstream class tree.
+// The classes of kod/object/prime/ are built from here (see prime_server/README.md).
+
+PrimeRoot is Object
+
+constants:
+
+   include blakston.khd
+
+resources:
+
+classvars:
+
+properties:
+
+messages:
+
+end
+
+////////////////////////////////////////////////////////////////////////////////

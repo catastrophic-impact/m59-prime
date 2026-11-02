@@ -1,0 +1,30 @@
+--- a/tools/headless/client.ts
++++ b/tools/headless/client.ts
+@@ -20,7 +20,7 @@
+ import { formatServerMessage } from "../../packages/world/src/text.ts";
+ import {
+   AP, BP, ByteReader, Connection, GENDER, KOD_FINENESS, SPEED_WALK, apName, bpName,
+-  buildLogin, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSimple, buildUseCharacter,
++  buildLogin, buildShardsCommand, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSimple, buildUseCharacter,
+   passwordDigest, readCharacters, readMove, readPlayer, readRoomContents, readRoomObject,
+   type PlayerInfo, type RoomObject,
+ } from "../../packages/protocol/src/index.ts";
+@@ -41,6 +41,7 @@
+     cast: { type: "string" },        // Prime: "spellNum[:target]" cast every --castevery s (target: self | nearest | an object id)
+     castat: { type: "string", default: "2" },
+     castevery: { type: "string", default: "4" },
++    cmd: { type: "string", multiple: true }, // Prime: "seconds:line" sends a UC_SHARDS command (e.g. "5:group invite Bob") after that many seconds
+     skill: { type: "string" },        // Prime: "skillNum[:target]" used every --castevery s from --castat (UC_SHARDS_OBJECT "skill N")
+     attack: { type: "boolean", default: false },     // Prime: melee the nearest attackable every 2 s
+     class: { type: "string" },       // Prime: class to pick at creation (1 warrior, 2 monk, 3 paladin); sent as pseudo skill 1000+class
+@@ -305,6 +306,10 @@
+       setInterval(fire, Number(opt.castevery) * 1000);
+     }, Number(opt.castat) * 1000);
+   }
++  for (const c of opt.cmd ?? []) {
++    const i = c.indexOf(":");
++    setTimeout(() => { log(`command ${c.slice(i + 1)}`); conn.sendGame(buildShardsCommand(c.slice(i + 1))); }, Number(c.slice(0, i)) * 1000);
++  }
+   if (opt.skill) {
+     const [num, tgt = "nearest"] = opt.skill.split(":");
+     setTimeout(() => {

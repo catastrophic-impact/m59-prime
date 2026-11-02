@@ -1,0 +1,611 @@
+// Meridian 59 Prime: the admin tools behind the Items, Creatures and Character tabs of the in-game admin console (client PrimeAdminTabs.tsx).
+// Only an Admin character may use them. Lists (every item, every creature, every spell and skill) are read from the running server and sent in
+// small pieces; a tab refers to an entry by its place in the list, which stays the same while the server runs. The commands arrive as UC_SHARDS
+// lines "padmin ..." (User.ShardsCommand); a trailing "to <player name>" aims one at another player instead of at the admin:
+//   padmin list items|monsters|abilities       the list, as GRP_PKT_ADMIN kind 1 pieces
+//   padmin char [to <name>]                    the character's numbers and abilities (kinds 2 and 3)
+//   padmin give item <n> [to <name>]           item n of the item list
+//   padmin give gold <amount> [to <name>]
+//   padmin spawn <n> <count>                   creature n of the creature list, beside the admin
+//   padmin hp <base health> [to <name>]        the character's permanent base health
+//   padmin ability set <0 spell|1 skill> <number> <percent> [to <name>]     adds it when the character lacks it
+//   padmin ability remove <0|1> <number> [to <name>]
+//   padmin weather <rain|snow|sand|fireworks|clear> <here|all>      the weather of the admin's room, or of every room
+// PrimeClasses is a PrimeAdmin, so everything is reached with Send(Send(SYS,@GetPrime),@Message,...).
+
+PrimeAdmin is PrimePlayerBots
+
+constants:
+
+   include blakston.khd
+   include protocol.khd
+   include prime.khd
+
+   PA_LIST_ITEMS = 1
+   PA_LIST_MONSTERS = 2
+   PA_LIST_ABILITIES = 3
+   PA_CHUNK = 40
+
+resources:
+
+   pa_denied = "Only an admin character can use that."
+   pa_no_player = "There is nobody called %s."
+   pa_bad_entry = "That entry is not in the list: open the tab again."
+   pa_gave_item = "%s given to %s."
+   pa_gave_gold = "%i shillings given to %s."
+   pa_hp = "%s now has %i base health."
+   pa_ability = "%s: %s is now at %i percent."
+   pa_ability_removed = "%s no longer has %s."
+   pa_spawned = "%i of them created here: %s."
+   pa_weather = "The weather is now %s in %i room(s)."
+   pa_weather_rain = "rain"
+   pa_weather_snow = "snow"
+   pa_weather_sand = "a sandstorm"
+   pa_weather_fireworks = "fireworks"
+   pa_weather_clear = "clear"
+   pa_bad = "That admin command was not understood."
+
+classvars:
+
+properties:
+
+messages:
+
+   // ---------------------------------------------------------------------------------------------
+   // Who may, and aimed at whom
+
+   AdminCan(who = $)
+   {
+      return who <> $ AND IsClass(who,&Admin);
+   }
+
+   AdminTargetOf(who = $, words = $, from = 1)
+   "The player a command is aimed at: the one named after `to` at word `from`, else the admin; $ when the name is wrong (the admin is told)."
+   {
+      local sName, oTarget;
+
+      if Length(words) >= from AND StringEqual(Nth(words,from),"to")
+      {
+         sName = Send(self,@JoinWords,#words=words,#from=from + 1);
+         oTarget = Send(SYS,@FindUserByString,#string=sName);
+         if oTarget = $
+         {
+            Send(who,@MsgSendUser,#message_rsc=pa_no_player,#parm1=sName);
+         }
+
+         return oTarget;
+      }
+
+      return who;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // The lists
+
+   AdminItems()
+   "Every item that can be given: the item templates, but not the special ones."
+   {
+      local i, lAll;
+
+      lAll = $;
+      foreach i in Send(SYS,@GetItemTemplates)
+      {
+         if NOT Send(i,@IsItemType,#type=ITEMTYPE_SPECIAL)
+         {
+            lAll = Cons(i,lAll);
+         }
+      }
+
+      return Send(self,@Reversed,#lIn=lAll);
+   }
+
+   AdminMonsters()
+   "Every creature that can be made: the monster templates that are real (the list can hold stale ones)."
+   {
+      local i, lAll;
+
+      lAll = $;
+      foreach i in Send(SYS,@GetMonsterTemplates)
+      {
+         if IsClass(i,&Monster)
+         {
+            lAll = Cons(i,lAll);
+         }
+      }
+
+      return Send(self,@Reversed,#lIn=lAll);
+   }
+
+   AdminAbilities()
+   "Every spell the players can have, then every skill."
+   {
+      local i, lAll;
+
+      lAll = $;
+      foreach i in Send(SYS,@GetSpells)
+      {
+         // the schools 1 to 7 are the players'; the others belong to monsters and the system
+         if IsClass(i,&Spell) AND Send(i,@GetSchool) >= 1 AND Send(i,@GetSchool) <= 7
+         {
+            lAll = Cons(i,lAll);
+         }
+      }
+
+      foreach i in Send(SYS,@GetSkills)
+      {
+         if IsClass(i,&Skill)
+         {
+            lAll = Cons(i,lAll);
+         }
+      }
+
+      return Send(self,@Reversed,#lIn=lAll);
+   }
+
+   SendAdminList(who = $, iType = 0)
+   "GRP_PKT_ADMIN kind 1: a list in pieces of PA_CHUNK entries: its type, how many in all, where this piece starts, how many in it."
+   {
+      local oSession, lAll, iTotal, iCount, iPiece, i;
+
+      oSession = Send(who,@GetShardsSession);
+      if oSession = $
+      {
+         return;
+      }
+
+      if iType = PA_LIST_ITEMS
+      {
+         lAll = Send(self,@AdminItems);
+      }
+      else if iType = PA_LIST_MONSTERS
+      {
+         lAll = Send(self,@AdminMonsters);
+      }
+      else
+      {
+         lAll = Send(self,@AdminAbilities);
+      }
+
+      iTotal = Length(lAll);
+      if iTotal = 0
+      {
+         AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_ADMIN, 1,1, 1,iType, 2,0, 2,0, 1,0);
+         SendPacket(oSession);
+
+         return;
+      }
+
+      iCount = 0;
+      foreach i in lAll
+      {
+         if iCount % PA_CHUNK = 0
+         {
+            iPiece = iTotal - iCount;
+            if iPiece > PA_CHUNK
+            {
+               iPiece = PA_CHUNK;
+            }
+
+            AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_ADMIN, 1,1, 1,iType, 2,iTotal, 2,iCount, 1,iPiece);
+         }
+
+         if iType = PA_LIST_ABILITIES
+         {
+            if IsClass(i,&Spell)
+            {
+               AddPacket(1,0, 2,Send(i,@GetSpellNum));
+            }
+            else
+            {
+               AddPacket(1,1, 2,Send(i,@GetSkillNum));
+            }
+
+            AddPacket(STRING_RESOURCE,Send(i,@GetName));
+            AddPacket(1,Send(i,@GetSchool), 1,Send(i,@GetLevel));
+         }
+         else if iType = PA_LIST_ITEMS
+         {
+            AddPacket(STRING_RESOURCE,Send(i,@GetTrueName));
+         }
+         else
+         {
+            AddPacket(STRING_RESOURCE,Send(i,@GetName));
+         }
+
+         iCount = iCount + 1;
+         if iCount % PA_CHUNK = 0 OR iCount = iTotal
+         {
+            SendPacket(oSession);
+         }
+      }
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // One character
+
+   SendAdminChar(who = $, oTarget = $)
+   "GRP_PKT_ADMIN kind 2: id, name, class, base health, health; then kind 3 pieces: its abilities [ kind, number, name, percent ]."
+   {
+      local oSession, lAbilities, i, iCount, iTotal, iPiece, oAbility, iNum, iKind;
+
+      oSession = Send(who,@GetShardsSession);
+      if oSession = $ OR oTarget = $
+      {
+         return;
+      }
+
+      AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_ADMIN, 1,2);
+      AddPacket(4,oTarget);
+      AddPacket(STRING_RESOURCE,Send(oTarget,@GetTrueName));
+      AddPacket(1,Send(oTarget,@GetPlayerClass), 2,Bound(Send(oTarget,@GetBaseMaxHealth),0,65535),
+                2,Bound(Send(oTarget,@GetHealth),0,65535));
+      SendPacket(oSession);
+
+      // [ kind, number, percent ] for each spell, then each skill
+      lAbilities = $;
+      foreach i in Send(oTarget,@GetSpellList)
+      {
+         lAbilities = Cons([0,Send(oTarget,@DecodeSpellNum,#compound=i),Send(oTarget,@DecodeSpellAbility,#compound=i)],lAbilities);
+      }
+
+      foreach i in Send(oTarget,@GetSkillList)
+      {
+         lAbilities = Cons([1,Send(oTarget,@DecodeSkillNum,#compound=i),Send(oTarget,@DecodeSkillAbility,#compound=i)],lAbilities);
+      }
+
+      lAbilities = Send(self,@Reversed,#lIn=lAbilities);
+      iTotal = Length(lAbilities);
+      if iTotal = 0
+      {
+         AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_ADMIN, 1,3, 2,0, 2,0, 1,0);
+         SendPacket(oSession);
+
+         return;
+      }
+
+      iCount = 0;
+      foreach i in lAbilities
+      {
+         if iCount % PA_CHUNK = 0
+         {
+            iPiece = iTotal - iCount;
+            if iPiece > PA_CHUNK
+            {
+               iPiece = PA_CHUNK;
+            }
+
+            AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_ADMIN, 1,3, 2,iTotal, 2,iCount, 1,iPiece);
+         }
+
+         iKind = First(i);
+         iNum = Nth(i,2);
+         if iKind = 0
+         {
+            oAbility = Send(SYS,@FindSpellByNum,#num=iNum);
+         }
+         else
+         {
+            oAbility = Send(SYS,@FindSkillByNum,#num=iNum);
+         }
+
+         AddPacket(1,iKind, 2,iNum);
+         if oAbility = $
+         {
+            AddPacket(STRING_RESOURCE,pa_bad);
+         }
+         else
+         {
+            AddPacket(STRING_RESOURCE,Send(oAbility,@GetName));
+         }
+
+         AddPacket(1,Nth(i,3));
+         iCount = iCount + 1;
+         if iCount % PA_CHUNK = 0 OR iCount = iTotal
+         {
+            SendPacket(oSession);
+         }
+      }
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Weather
+
+   AdminWeather(who = $, sKind = $, bAll = FALSE)
+   "The weather of the admin's room or of every room: whatever was there ends, then the new weather starts where the room allows weather."
+   {
+      local lRooms, oRoom, iCount, rKind;
+
+      if bAll
+      {
+         lRooms = Send(SYS,@GetRooms);
+      }
+      else
+      {
+         lRooms = [Send(who,@GetOwner)];
+      }
+
+      rKind = pa_weather_clear;
+      if StringEqual(sKind,"rain")
+      {
+         rKind = pa_weather_rain;
+      }
+      else if StringEqual(sKind,"snow")
+      {
+         rKind = pa_weather_snow;
+      }
+      else if StringEqual(sKind,"sand")
+      {
+         rKind = pa_weather_sand;
+      }
+      else if StringEqual(sKind,"fireworks")
+      {
+         rKind = pa_weather_fireworks;
+      }
+      else if NOT StringEqual(sKind,"clear")
+      {
+         Send(who,@MsgSendUser,#message_rsc=pa_bad);
+
+         return;
+      }
+
+      iCount = 0;
+      foreach oRoom in lRooms
+      {
+         if oRoom = $ OR NOT IsClass(oRoom,&Room)
+         {
+            continue;
+         }
+
+         Send(oRoom,@EndRain);
+         Send(oRoom,@EndSnow,#override=TRUE);
+         Send(oRoom,@EndSandstorm);
+         Send(oRoom,@EndFireworks);
+         if StringEqual(sKind,"rain")
+         {
+            Send(oRoom,@StartRain);
+         }
+         else if StringEqual(sKind,"snow")
+         {
+            Send(oRoom,@StartSnow);
+         }
+         else if StringEqual(sKind,"sand")
+         {
+            Send(oRoom,@StartSandstorm);
+         }
+         else if StringEqual(sKind,"fireworks")
+         {
+            Send(oRoom,@StartFireworks);
+         }
+
+         iCount = iCount + 1;
+      }
+
+      Send(who,@MsgSendUser,#message_rsc=pa_weather,#parm1=rKind,#parm2=iCount);
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // The commands
+
+   AdminCommand(who = $, words = $)
+   {
+      local sVerb, sWhat, oTarget, iNum, iKind, lList, oTemplate, oItem, i, iCount, oRoom, oMob, iAbility;
+
+      if NOT Send(self,@AdminCan,#who=who)
+      {
+         Send(who,@MsgSendUser,#message_rsc=pa_denied);
+
+         return;
+      }
+
+      if Length(words) < 2
+      {
+         return;
+      }
+
+      sVerb = Nth(words,2);
+
+      if StringEqual(sVerb,"list") AND Length(words) >= 3
+      {
+         sWhat = Nth(words,3);
+         if StringEqual(sWhat,"items")
+         {
+            Send(self,@SendAdminList,#who=who,#iType=PA_LIST_ITEMS);
+         }
+         else if StringEqual(sWhat,"monsters")
+         {
+            Send(self,@SendAdminList,#who=who,#iType=PA_LIST_MONSTERS);
+         }
+         else if StringEqual(sWhat,"abilities")
+         {
+            Send(self,@SendAdminList,#who=who,#iType=PA_LIST_ABILITIES);
+         }
+
+         return;
+      }
+
+      if StringEqual(sVerb,"char")
+      {
+         oTarget = Send(self,@AdminTargetOf,#who=who,#words=words,#from=3);
+         if oTarget <> $
+         {
+            Send(self,@SendAdminChar,#who=who,#oTarget=oTarget);
+         }
+
+         return;
+      }
+
+      if StringEqual(sVerb,"give") AND Length(words) >= 4
+      {
+         oTarget = Send(self,@AdminTargetOf,#who=who,#words=words,#from=5);
+         if oTarget = $
+         {
+            return;
+         }
+
+         if StringEqual(Nth(words,3),"gold")
+         {
+            iNum = Bound(StringToNumber(Nth(words,4)),1,10000000);
+            Send(oTarget,@NewHold,#what=Create(&Shillings,#number=iNum));
+            Send(who,@MsgSendUser,#message_rsc=pa_gave_gold,#parm1=iNum,#parm2=Send(oTarget,@GetName));
+
+            return;
+         }
+
+         if StringEqual(Nth(words,3),"item")
+         {
+            oTemplate = Nth(Send(self,@AdminItems),StringToNumber(Nth(words,4)) + 1);
+            if oTemplate = $
+            {
+               Send(who,@MsgSendUser,#message_rsc=pa_bad_entry);
+
+               return;
+            }
+
+            oItem = Create(GetClass(oTemplate));
+            Send(oTarget,@NewHold,#what=oItem);
+            Send(who,@MsgSendUser,#message_rsc=pa_gave_item,#parm1=Send(oItem,@GetName),#parm2=Send(oTarget,@GetName));
+
+            return;
+         }
+
+         return;
+      }
+
+      if StringEqual(sVerb,"spawn") AND Length(words) >= 4
+      {
+         oTemplate = Nth(Send(self,@AdminMonsters),StringToNumber(Nth(words,3)) + 1);
+         iCount = Bound(StringToNumber(Nth(words,4)),1,20);
+         oRoom = Send(who,@GetOwner);
+         if oTemplate = $ OR oRoom = $
+         {
+            Send(who,@MsgSendUser,#message_rsc=pa_bad_entry);
+
+            return;
+         }
+
+         i = 0;
+         while i < iCount
+         {
+            oMob = Create(GetClass(oTemplate));
+            // not disposed of when nobody is about, and no karma for killing it (as dm monster)
+            Send(oMob,@SetDontDispose);
+            Send(oRoom,@NewHold,#what=oMob,#new_row=Send(who,@GetRow),#new_col=Send(who,@GetCol));
+            ++i;
+         }
+
+         Send(who,@MsgSendUser,#message_rsc=pa_spawned,#parm1=iCount,#parm2=Send(oTemplate,@GetName));
+
+         return;
+      }
+
+      if StringEqual(sVerb,"hp") AND Length(words) >= 3
+      {
+         oTarget = Send(self,@AdminTargetOf,#who=who,#words=words,#from=4);
+         if oTarget = $
+         {
+            return;
+         }
+
+         // permanent: the base maximum health. The game itself holds it between 20 and 100 plus the character's stamina, so that is what it becomes.
+         iNum = Bound(StringToNumber(Nth(words,3)),20,1000);
+         Send(oTarget,@GainBaseMaxHealth,#amount=iNum - Send(oTarget,@GetBaseMaxHealth));
+         Send(oTarget,@SetHealth,#amount=Send(oTarget,@GetMaxHealth));
+         // the guardian angel goes or comes back with the new health (as it does when health is earned)
+         Send(oTarget,@EvaluatePKStatus);
+         Send(who,@MsgSendUser,#message_rsc=pa_hp,#parm1=Send(oTarget,@GetName),#parm2=Send(oTarget,@GetBaseMaxHealth));
+         Send(self,@SendAdminChar,#who=who,#oTarget=oTarget);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"weather") AND Length(words) >= 4
+      {
+         Send(self,@AdminWeather,#who=who,#sKind=Nth(words,3),#bAll=StringEqual(Nth(words,4),"all"));
+
+         return;
+      }
+
+      if StringEqual(sVerb,"ability") AND Length(words) >= 5
+      {
+         iKind = StringToNumber(Nth(words,4));
+         iNum = StringToNumber(Nth(words,5));
+         if StringEqual(Nth(words,3),"set") AND Length(words) >= 6
+         {
+            oTarget = Send(self,@AdminTargetOf,#who=who,#words=words,#from=7);
+            iAbility = Bound(StringToNumber(Nth(words,6)),1,99);
+         }
+         else if StringEqual(Nth(words,3),"remove")
+         {
+            oTarget = Send(self,@AdminTargetOf,#who=who,#words=words,#from=6);
+            iAbility = 0;
+         }
+         else
+         {
+            return;
+         }
+
+         if oTarget = $
+         {
+            return;
+         }
+
+         if iKind = 0
+         {
+            oTemplate = Send(SYS,@FindSpellByNum,#num=iNum);
+         }
+         else
+         {
+            oTemplate = Send(SYS,@FindSkillByNum,#num=iNum);
+         }
+
+         if oTemplate = $
+         {
+            Send(who,@MsgSendUser,#message_rsc=pa_bad_entry);
+
+            return;
+         }
+
+         if iAbility = 0
+         {
+            if iKind = 0
+            {
+               Send(oTarget,@AdminSetSpell,#num=iNum,#ability=0,#add=-100);
+            }
+            else
+            {
+               Send(oTarget,@AdminSetSkill,#num=iNum,#ability=0,#add=-100);
+            }
+
+            Send(who,@MsgSendUser,#message_rsc=pa_ability_removed,#parm1=Send(oTarget,@GetName),#parm2=Send(oTemplate,@GetName));
+         }
+         else
+         {
+            if iKind = 0
+            {
+               Send(oTarget,@AdminSetSpell,#num=iNum,#ability=iAbility,#add=0);
+            }
+            else
+            {
+               Send(oTarget,@AdminSetSkill,#num=iNum,#ability=iAbility,#add=0);
+            }
+
+            Send(who,@MsgSendUser,#message_rsc=pa_ability,#parm1=Send(oTarget,@GetName),#parm2=Send(oTemplate,@GetName),#parm3=iAbility);
+         }
+
+         Send(self,@SendAdminChar,#who=who,#oTarget=oTarget);
+
+         return;
+      }
+
+      Send(who,@MsgSendUser,#message_rsc=pa_bad);
+
+      return;
+   }
+
+end

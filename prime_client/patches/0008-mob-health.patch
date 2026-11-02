@@ -1,0 +1,61 @@
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -9,6 +9,7 @@
+ //   yourself, no target;  R: look at the target;  F or double click: pick up / activate
+ //   PgUp/PgDn/Home: look up, down, straight; End: turn around;  Enter: chat
+ 
++import { primeMobBar } from "./primeGroup.ts";
+ import * as THREE from "three";
+ import { FINENESS, SF, ceilingHeightAt, floorHeightAt, gridTextureName, leafAt, skyboxForBackground, type Bgf, type Room } from "@shards/formats";
+ import {
+@@ -2550,7 +2551,7 @@
+       el.className = `name-label${l.id === this.hovered ? " hovered" : ""}${l.id === this.target ? " target" : ""}${friend ? " friend" : ""}`;
+       // Ours: our companion's health under its name, as a friend's
+       // and an arena bout's fighters'
+-      const arenaPct = this.arenaHp.get(l.id);
++      const arenaPct = this.arenaHp.get(l.id) ?? primeMobBar(l.id, this.target); // Prime: and monsters' health
+       const comp = this.companion && this.companion.id === l.id ? this.companion : arenaPct !== undefined ? { id: l.id, hpPct: arenaPct } : null;
+       if (comp && !friend) {
+         const width = Math.max(FRIEND_BAR_MIN, Math.min(FRIEND_BAR_WIDTH, FRIEND_BAR_WIDTH / Math.max(1, l.position.distanceTo(eye))));
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -2364,6 +2364,9 @@
+             arenaActive={arenaActive}
+           />
+         )}
++        {!touch && !modern && (
++          <TargetFrame session={session} icons={icons} target={target} onLook={(id) => lookAt(id, DESC.NONE)} onClear={() => sceneRef.current?.press("targetClear")} />
++        )}
+         {!touch && (
+           <PrimeGroupWindow
+             command={(line) => session.shardsCommand(line)}
+--- a/apps/client/src/game/ui/ModernHud.tsx
++++ b/apps/client/src/game/ui/ModernHud.tsx
+@@ -12,6 +12,7 @@
+ //     edge (it's meant to run off the screen), so anywhere else the swing shows a straight cut.
+ // The Classic interface draws the same things in the original's column (Sidebar.tsx).
+ 
++import { primeGroup, usePrimeGroup } from "../primeGroup.ts";
+ import type { ReactNode } from "react";
+ import type { MapWay } from "../questWays.ts";
+ import type { Room } from "@shards/formats";
+@@ -108,8 +109,11 @@
+ export function TargetFrame({ session, icons, target, onLook, onClear }: { session: GameSession; icons: IconRenderer; target: number | null; onLook: (id: number) => void; onClear: () => void }) {
+   const world = session.world;
+   useWorld(world, ["objectChanged", "objectRemoved", "roomContents"]);
++  usePrimeGroup(); // Prime: the health of what we target comes with the group's second
+   const o = target !== null ? world.objects.get(target) : undefined;
+   if (!o) return null;
++  const member = primeGroup.state?.members.find((m) => m.id === o.id && m.maxHp > 0);
++  const primeHp = primeGroup.mobHealth.get(o.id) ?? (member ? Math.round((100 * member.hp) / member.maxHp) : undefined);
+   const attackable = (o.info.flags & OF_ATTACKABLE) !== 0 && o.id !== world.self?.id;
+   return (
+     <div
+@@ -121,6 +125,7 @@
+     >
+       <ObjIcon icons={icons} object={o.info} opts={{ group: 0 }} className="target-icon" />
+       <span className="target-name">{session.resource(o.info.nameRes) ?? ""}</span>
++      {primeHp !== undefined && <i className="target-hp" title={`Health ${primeHp}%`} style={{ ["--pct" as string]: `${primeHp}%` }} />}
+       <button type="button" className="target-clear" aria-label="Clear the target" title="Clear the target" onClick={(e) => {
+           e.currentTarget.blur();
+           onClear();

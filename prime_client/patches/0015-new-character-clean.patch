@@ -1,0 +1,16 @@
+--- a/apps/client/src/game/CharacterCreator.tsx
++++ b/apps/client/src/game/CharacterCreator.tsx
+@@ -167,6 +167,13 @@
+       return;
+     }
+     // Prime: no stat or spell points to spend: the class fixes them
++    // Prime: a new character starts clean: nothing this browser kept under that name (hotbar, pet, friends, study) carries over
++    try {
++      const server = gameSocketUrl();
++      for (const kind of ["quickslots", "pet", "study", "friends"]) localStorage.removeItem(`shards.${kind}.${server}.${n.toLowerCase()}`);
++    } catch {
++      // no storage
++    }
+     // Ours: sent as the character first enters the game (GameView)
+     rememberStartCity(localStorage, gameSocketUrl(), n, skipTutorial ? startCity : null);
+     session.createCharacter({

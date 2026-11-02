@@ -1,0 +1,17 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { parseRoo } from "../../packages/formats/src/index.ts";
+import { buildNavGrid, findPath, nearestCell, cellCentre } from "../../packages/world/src/navGrid.ts";
+import { findWaterTextures } from "../assets/waterTextures.ts";
+const A = `${process.env.PRIME_WORK}/assets`;
+const [roo, x0, y0, x1, y1] = process.argv.slice(2).map((v, i) => (i ? Number(v) : v)) as [string, number, number, number, number];
+const water = new Set(findWaterTextures(readdirSync(A).filter((f) => f.endsWith(".roo")).map((f) => parseRoo(new Uint8Array(readFileSync(join(A, f)))))));
+const g = buildNavGrid(parseRoo(new Uint8Array(readFileSync(join(A, roo)))), water, true, true, 2);
+const S = { x: x0 * 1024, y: y0 * 1024 }, T = { x: x1 * 1024, y: y1 * 1024 };
+const cs = nearestCell(g, S.x, S.y, 8, 0, false), ct = nearestCell(g, T.x, T.y, 8, 0, false);
+console.log(`start cell ${cs} area ${g.area[cs]} walk ${g.walk[cs]}; target cell ${ct} area ${g.area[ct]}`);
+const p = findPath(g, S, T);
+console.log(p ? `path ${p.length} waypoints: ${p.map((q) => (q.x / 1024).toFixed(1) + "," + (q.y / 1024).toFixed(1)).join(" ")}` : "NO PATH");
+const c = nearestCell(g, T.x, T.y, 8, 0, false); const pc = cellCentre(g, c);
+console.log(`nearest to target: cell ${c} at ${(pc.x / 1024).toFixed(1)},${(pc.y / 1024).toFixed(1)}; path there: ${findPath(g, S, pc) ? "yes" : "NO"}`);
+console.log(`default nearestCell from start: ${nearestCell(g, S.x, S.y)}; to target: ${nearestCell(g, T.x, T.y, 4, g.area[cs])}`);

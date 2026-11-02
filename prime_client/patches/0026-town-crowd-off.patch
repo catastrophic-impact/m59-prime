@@ -1,0 +1,56 @@
+--- a/packages/world/src/session.ts
++++ b/packages/world/src/session.ts
+@@ -257,7 +257,7 @@
+   /** Pets of players in our room, by object id */
+   | { type: "pets"; pets: { id: number; pet: ServerPet | null }[] }
+   /** Our room's shared crowd: its seed, how long ago it began (ms), the game hour it began in */
+-  | { type: "ambient"; seed: number; elapsed: number; hour: number | null };
++  | { type: "ambient"; seed: number; elapsed: number; hour: number | null; /** Prime: the server draws no townsfolk crowd here (playerbots instead) */ off?: boolean };
+ 
+ export interface SessionEvents {
+   phase?: (phase: SessionPhase) => void;
+@@ -689,7 +689,7 @@
+       const seed = r.u32();
+       const elapsed = r.i32();
+       const hour = r.u8();
+-      return { type: "ambient", seed, elapsed, hour: hour < 24 ? hour : null };
++      return { type: "ambient", seed, elapsed, hour: hour < 24 ? hour : null, off: hour === 254 };
+     }
+     if (uc === UC.PETS) {
+       const pets: { id: number; pet: ServerPet | null }[] = [];
+--- a/packages/world/src/ambient/ambientStepper.ts
++++ b/packages/world/src/ambient/ambientStepper.ts
+@@ -22,6 +22,8 @@
+  * was made in (a late arrival can't know the hours that went by)
+  */
+ export interface AmbientSeed {
++  /** Prime: the server says no townsfolk crowd here (playerbots instead) */
++  off?: boolean;
+   seed: number;
+   since: number;
+   hour?: number | null;
+--- a/apps/client/src/game/social.ts
++++ b/apps/client/src/game/social.ts
+@@ -172,7 +172,7 @@
+     if (!e || this.disposed) return null;
+     // Half the round trip went by after the server measured
+     const since = Date.now() - e.elapsed - (Date.now() - asked) / 2;
+-    return { seed: e.seed >>> 0, since, hour: e.hour ?? hour };
++    return { seed: e.seed >>> 0, since, hour: e.hour ?? hour, off: e.off };
+   }
+ 
+   /**
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -1263,6 +1263,11 @@
+       // The room's crowd, the same for everyone in it (our server keeps its seed and start)
+       const seed = this.crowdSeed(file);
+       if (seed === "pending") return;
++      // Prime: the server (rule piTownLife) has playerbots instead of the townsfolk crowd here
++      if (seed?.off) {
++        this.ambientRoom = file;
++        return;
++      }
+       this.ambientRoom = file;
+       const life = new AmbientLife(this.loaded.room, spec, this.ambientExits[file], seed?.seed, grid === "build" ? undefined : grid, this.waterTextures);
+       this.ambientStep = new AmbientStepper(life, seed);

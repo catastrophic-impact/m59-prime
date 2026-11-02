@@ -1,0 +1,950 @@
+// Meridian 59 Prime: groups (parties). Server 104 has only chat groups, so ours is new: up to piMaxGroupSize
+// members, companions counted, a leader, invitations. PrimeClasses is a PrimeGroups, so everything is reached with
+// Send(Send(SYS,@GetPrime),@Message,...). Our client's group window listens to UC_PRIME_GROUP: every second it gets
+// the rows (you, your groupmates and each one's companion) with health and mana. Commands arrive as UC_SHARDS lines
+// "group <verb> ..." (User.ShardsCommand): invite <name>, accept, decline, leave, kick <name>, status.
+
+PrimeGroups is PrimeRules
+
+constants:
+
+   include blakston.khd
+   include protocol.khd
+   include prime.khd
+
+resources:
+
+   pg_invited = "You invite %s to your group."
+   pg_invite_got = "%s invites you to a group: accept it in the Group window, or type: group accept"
+   pg_joined = "%s joins the group."
+   pg_you_joined = "You join the group."
+   pg_left = "%s leaves the group."
+   pg_you_left = "You leave the group."
+   pg_disbanded = "The group is disbanded."
+   pg_full = "The group is full: %i members at most, your companions count."
+   pg_in_group = "%s is already in a group."
+   pg_not_leader = "Only the group's leader can do that."
+   pg_no_invite = "Nobody has invited you, or the invitation ran out."
+   pg_no_such = "There is nobody called %s."
+   pg_declined = "%s declines your invitation."
+   pg_kicked = "%s is removed from the group."
+   pg_you_kicked = "The leader removed you from the group."
+   pg_not_in = "You are not in a group."
+   pg_not_member = "%s is not in your group."
+   pg_self = "You cannot do that to yourself."
+   pg_rating = "Your rating is %i (1-50: health, skills and stats together; a bot's rating is its health on the same scale)."
+   pg_rating_other = "%s has rating %i."
+
+classvars:
+
+properties:
+
+   // Each party is a list of Users, the leader first
+   plParties = $
+   // Each invitation is [ invitee, inviter, GetTime() when it was made ]
+   plInvites = $
+
+   // Most members in a group; a member's active companion counts as one
+   piMaxGroupSize = 5
+
+   // seconds since the companions were last rescaled to their owners' ECL
+   piRescaleTicks = 0
+
+   // The companion bots (primebots.kod): [ owner, bot, bot ... ] for each owner who has any
+   plBots = $
+
+messages:
+
+   // ---------------------------------------------------------------------------------------------
+   // Who is with whom
+
+   PartyOf(who = $)
+   {
+      local i;
+
+      foreach i in plParties
+      {
+         if FindListElem(i,who) <> 0
+         {
+            return i;
+         }
+      }
+
+      return $;
+   }
+
+   ActiveCompanionOf(who = $)
+   "Its owner's companion when it is with them in the game, else $."
+   {
+      local oComp;
+
+      oComp = Send(who,@GetCompanion);
+      if oComp <> $ AND Send(oComp,@GetCompanionState) = COMP_ACTIVE
+      {
+         return oComp;
+      }
+
+      return $;
+   }
+
+   BotsOf(who = $)
+   "The companion bots of a player."
+   {
+      local i, j, lBots;
+
+      lBots = $;
+      foreach i in plBots
+      {
+         if First(i) = who
+         {
+            foreach j in i
+            {
+               if j <> who
+               {
+                  lBots = Cons(j,lBots);
+               }
+            }
+         }
+      }
+
+      return lBots;
+   }
+
+   CompanionsOf(who = $)
+   "Everything that follows a player and shares their group: their faction companion (in the game) and their bots."
+   {
+      local oComp, lAll;
+
+      lAll = Send(self,@BotsOf,#who=who);
+      oComp = Send(self,@ActiveCompanionOf,#who=who);
+      if oComp <> $
+      {
+         lAll = Cons(oComp,lAll);
+      }
+
+      return lAll;
+   }
+
+   WeightOf(who = $)
+   "Seats a player takes: themselves, their companion and their bots."
+   {
+      return 1 + Length(Send(self,@CompanionsOf,#who=who));
+   }
+
+   SeatsUsed(party = $)
+   {
+      local i, n;
+
+      n = 0;
+      foreach i in party
+      {
+         n = n + Send(self,@WeightOf,#who=i);
+      }
+
+      return n;
+   }
+
+   AreGrouped(who = $, what = $)
+   "Hook (Room.AreGroupedHere): are they in one group? A companion counts with its owner's group."
+   {
+      local oA, oB, party;
+
+      if who = $ OR what = $
+      {
+         return FALSE;
+      }
+
+      oA = who;
+      oB = what;
+      if IsClass(oA,&Companion)
+      {
+         oA = Send(oA,@GetSworn);
+      }
+
+      if IsClass(oB,&Companion)
+      {
+         oB = Send(oB,@GetSworn);
+      }
+
+      if oA = $ OR oB = $ OR NOT IsClass(oA,&User) OR NOT IsClass(oB,&User)
+      {
+         return FALSE;
+      }
+
+      if oA = oB
+      {
+         return who <> what;
+      }
+
+      party = Send(self,@PartyOf,#who=oA);
+
+      return party <> $ AND FindListElem(party,oB) <> 0;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Commands
+
+   GroupCommand(who = $, words = $)
+   "The client's group commands (UC_SHARDS): group invite <name> | accept | decline | leave | kick <name> | status"
+   {
+      local sVerb, oOther, sName;
+
+      if who = $ OR NOT IsClass(who,&User)
+      {
+         return;
+      }
+
+      if Length(words) < 2
+      {
+         Send(self,@SendState,#who=who);
+
+         return;
+      }
+
+      sVerb = Nth(words,2);
+      if StringEqual(sVerb,"status")
+      {
+         Send(self,@SendState,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"rating")
+      {
+         Send(self,@ShowRating,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"accept")
+      {
+         Send(self,@Accept,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"decline")
+      {
+         Send(self,@Decline,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"leave")
+      {
+         Send(self,@Leave,#who=who);
+
+         return;
+      }
+
+      if StringEqual(sVerb,"invite") OR StringEqual(sVerb,"kick")
+      {
+         sName = Send(self,@JoinWords,#words=words,#from=3);
+         if sName = $
+         {
+            return;
+         }
+
+         oOther = Send(SYS,@FindUserByString,#string=sName);
+         if oOther = $ OR NOT IsClass(oOther,&User)
+         {
+            Send(who,@MsgSendUser,#message_rsc=pg_no_such,#parm1=sName);
+
+            return;
+         }
+
+         if StringEqual(sVerb,"invite")
+         {
+            Send(self,@Invite,#who=who,#other=oOther);
+         }
+         else
+         {
+            Send(self,@KickMember,#who=who,#other=oOther);
+         }
+
+         return;
+      }
+
+      return;
+   }
+
+   BotRating(health = 20)
+   "A playerbot's rating: its health (20 and up) on the 1-50 scale of EffectiveLevel; a bot's skills and stats grow with its health."
+   {
+      return Bound(((health - 20) * 50) / 110,1,50);
+   }
+
+   ShowRating(who = $)
+   "Tells a player their own rating, and the rating of every bot or groupmate with them."
+   {
+      local oRoom, i, oBot;
+
+      Send(who,@MsgSendUser,#message_rsc=pg_rating,#parm1=Send(self,@EffectiveLevel,#who=who));
+      oRoom = Send(who,@GetOwner);
+      if oRoom = $
+      {
+         return;
+      }
+
+      foreach i in Send(oRoom,@GetHolderActive)
+      {
+         oBot = First(i);
+         if IsClass(oBot,&PlayerBot) OR (IsClass(oBot,&Companion) AND Send(oBot,@IsBot))
+         {
+            Send(who,@MsgSendUser,#message_rsc=pg_rating_other,#parm1=Send(oBot,@GetName),#parm2=Send(self,@BotRating,#health=Send(oBot,@GetMaxHealth)));
+         }
+      }
+
+      return;
+   }
+
+   JoinWords(words = $, from = 1)
+   {
+      local i, n;
+
+      if Length(words) < from
+      {
+         return $;
+      }
+
+      n = 0;
+      ClearTempString();
+      foreach i in words
+      {
+         n = n + 1;
+         if n > from
+         {
+            AppendTempString(" ");
+         }
+
+         if n >= from
+         {
+            AppendTempString(i);
+         }
+      }
+
+      return SetString($,GetTempString());
+   }
+
+   Invite(who = $, other = $)
+   {
+      local party, i, lKeep;
+
+      if other = who
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_self);
+
+         return;
+      }
+
+      party = Send(self,@PartyOf,#who=who);
+      if party <> $ AND First(party) <> who
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_not_leader);
+
+         return;
+      }
+
+      if Send(self,@PartyOf,#who=other) <> $
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_in_group,#parm1=Send(other,@GetTrueName));
+
+         return;
+      }
+
+      if party = $
+      {
+         i = Send(self,@WeightOf,#who=who);
+      }
+      else
+      {
+         i = Send(self,@SeatsUsed,#party=party);
+      }
+
+      if i + Send(self,@WeightOf,#who=other) > piMaxGroupSize
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_full,#parm1=piMaxGroupSize);
+
+         return;
+      }
+
+      // One invitation per invitee: the newest
+      lKeep = $;
+      foreach i in plInvites
+      {
+         if First(i) <> other
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plInvites = Cons([other,who,GetTime()],lKeep);
+      Send(who,@MsgSendUser,#message_rsc=pg_invited,#parm1=Send(other,@GetTrueName));
+      Send(other,@MsgSendUser,#message_rsc=pg_invite_got,#parm1=Send(who,@GetTrueName));
+      Send(self,@SendInvite,#to=other,#from=who);
+
+      return;
+   }
+
+   FindInvite(who = $)
+   {
+      local i;
+
+      foreach i in plInvites
+      {
+         if First(i) = who
+         {
+            return i;
+         }
+      }
+
+      return $;
+   }
+
+   DropInvite(who = $)
+   {
+      local i, lKeep;
+
+      lKeep = $;
+      foreach i in plInvites
+      {
+         if First(i) <> who
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plInvites = lKeep;
+
+      return;
+   }
+
+   Accept(who = $)
+   {
+      local lInvite, oInviter, party, oMember, i;
+
+      lInvite = Send(self,@FindInvite,#who=who);
+      Send(self,@DropInvite,#who=who);
+      if lInvite = $ OR GetTime() - Nth(lInvite,3) > GRP_INVITE_SECONDS
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_no_invite);
+
+         return;
+      }
+
+      oInviter = Nth(lInvite,2);
+      if Send(self,@PartyOf,#who=who) <> $ OR NOT Send(oInviter,@IsLoggedOn)
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_no_invite);
+
+         return;
+      }
+
+      party = Send(self,@PartyOf,#who=oInviter);
+      if party = $
+      {
+         if Send(self,@WeightOf,#who=oInviter) + Send(self,@WeightOf,#who=who) > piMaxGroupSize
+         {
+            Send(who,@MsgSendUser,#message_rsc=pg_full,#parm1=piMaxGroupSize);
+
+            return;
+         }
+
+         party = Send(self,@Reversed,#lIn=[who,oInviter]);
+         plParties = Cons(party,plParties);
+      }
+      else
+      {
+         if Send(self,@SeatsUsed,#party=party) + Send(self,@WeightOf,#who=who) > piMaxGroupSize
+         {
+            Send(who,@MsgSendUser,#message_rsc=pg_full,#parm1=piMaxGroupSize);
+
+            return;
+         }
+
+         // Lists are never changed in place: a new one takes the old one's place
+         i = Send(self,@Reversed,#lIn=Cons(who,Send(self,@Reversed,#lIn=party)));
+         Send(self,@ReplaceParty,#old=party,#new=i);
+         party = i;
+      }
+
+      foreach oMember in party
+      {
+         if oMember = who
+         {
+            Send(oMember,@MsgSendUser,#message_rsc=pg_you_joined);
+         }
+         else
+         {
+            Send(oMember,@MsgSendUser,#message_rsc=pg_joined,#parm1=Send(who,@GetTrueName));
+         }
+      }
+
+      Send(self,@PushParty,#party=party);
+
+      return;
+   }
+
+   Decline(who = $)
+   {
+      local lInvite;
+
+      lInvite = Send(self,@FindInvite,#who=who);
+      Send(self,@DropInvite,#who=who);
+      if lInvite <> $
+      {
+         Send(Nth(lInvite,2),@MsgSendUser,#message_rsc=pg_declined,#parm1=Send(who,@GetTrueName));
+      }
+
+      return;
+   }
+
+   Leave(who = $)
+   {
+      local party;
+
+      party = Send(self,@PartyOf,#who=who);
+      if party = $
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_not_in);
+
+         return;
+      }
+
+      Send(who,@MsgSendUser,#message_rsc=pg_you_left);
+      Send(self,@Remove,#who=who,#bTell=TRUE);
+
+      return;
+   }
+
+   KickMember(who = $, other = $)
+   {
+      local party;
+
+      party = Send(self,@PartyOf,#who=who);
+      if party = $
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_not_in);
+
+         return;
+      }
+
+      if First(party) <> who
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_not_leader);
+
+         return;
+      }
+
+      if other = who
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_self);
+
+         return;
+      }
+
+      if FindListElem(party,other) = 0
+      {
+         Send(who,@MsgSendUser,#message_rsc=pg_not_member,#parm1=Send(other,@GetTrueName));
+
+         return;
+      }
+
+      Send(other,@MsgSendUser,#message_rsc=pg_you_kicked);
+      Send(self,@Remove,#who=other,#bTell=TRUE);
+
+      return;
+   }
+
+   Reversed(lIn = $)
+   {
+      local i, lOut;
+
+      lOut = $;
+      foreach i in lIn
+      {
+         lOut = Cons(i,lOut);
+      }
+
+      return lOut;
+   }
+
+   ReplaceParty(old = $, new = $)
+   "plParties with the party old replaced by new, or without it when new is $."
+   {
+      local i, lOut;
+
+      lOut = $;
+      foreach i in plParties
+      {
+         if i = old
+         {
+            if new <> $
+            {
+               lOut = Cons(new,lOut);
+            }
+         }
+         else
+         {
+            lOut = Cons(i,lOut);
+         }
+      }
+
+      plParties = lOut;
+
+      return;
+   }
+
+   Remove(who = $, bTell = FALSE)
+   "Takes who out of their group; the rest go on (a group of one is no group); the leader's place passes to the next."
+   {
+      local party, oMember, lNew;
+
+      party = Send(self,@PartyOf,#who=who);
+      if party = $
+      {
+         return;
+      }
+
+      lNew = $;
+      foreach oMember in party
+      {
+         if oMember <> who
+         {
+            lNew = Cons(oMember,lNew);
+         }
+      }
+
+      lNew = Send(self,@Reversed,#lIn=lNew);
+      if Length(lNew) < 2
+      {
+         Send(self,@ReplaceParty,#old=party,#new=$);
+         foreach oMember in lNew
+         {
+            Send(oMember,@MsgSendUser,#message_rsc=pg_disbanded);
+            Send(self,@SendState,#who=oMember);
+         }
+      }
+      else
+      {
+         Send(self,@ReplaceParty,#old=party,#new=lNew);
+         if bTell
+         {
+            foreach oMember in lNew
+            {
+               Send(oMember,@MsgSendUser,#message_rsc=pg_left,#parm1=Send(who,@GetTrueName));
+            }
+         }
+
+         Send(self,@PushParty,#party=lNew);
+      }
+
+      Send(self,@SendState,#who=who);
+
+      return;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // What our client hears
+
+   PushParty(party = $)
+   {
+      local oMember;
+
+      foreach oMember in party
+      {
+         Send(self,@SendState,#who=oMember);
+      }
+
+      return;
+   }
+
+   SendInvite(to = $, from = $)
+   "UC_PRIME_GROUP GRP_PKT_INVITE: who invites us."
+   {
+      local oSession;
+
+      oSession = Send(to,@GetShardsSession);
+      if oSession = $
+      {
+         return;
+      }
+
+      AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_INVITE, STRING_RESOURCE,Send(from,@GetTrueName));
+      SendPacket(oSession);
+
+      return;
+   }
+
+   AddRow(who = $, viewer = $, iFlags = 0)
+   "One row of the group window: who, flags, name, health, mana."
+   {
+      local bComp, iHealth, iMax, iMana, iManaMax, oRoom;
+
+      bComp = IsClass(who,&Companion);
+      oRoom = Send(who,@GetOwner);
+      if oRoom = $ OR oRoom <> Send(viewer,@GetOwner)
+      {
+         iFlags = iFlags | GRP_OFF_ROOM;
+      }
+
+      iHealth = Send(who,@GetHealth);
+      iMax = Send(who,@GetMaxHealth);
+      if iHealth <= 0
+      {
+         iFlags = iFlags | GRP_DEAD;
+      }
+
+      // a companion has a mana pool of its own too (its spells cost real mana)
+      iMana = Send(who,@GetMana);
+      iManaMax = Send(who,@GetMaxMana);
+
+      if bComp
+      {
+         iFlags = iFlags | GRP_COMPANION;
+      }
+
+      AddPacket(4,who, 1,iFlags);
+      if bComp
+      {
+         AddPacket(STRING_RESOURCE,Send(who,@GetName));
+      }
+      else
+      {
+         AddPacket(STRING_RESOURCE,Send(who,@GetTrueName));
+      }
+
+      AddPacket(2,Bound(iHealth,0,65535), 2,Bound(iMax,0,65535), 2,Bound(iMana,0,65535), 2,Bound(iManaMax,0,65535));
+
+      return;
+   }
+
+   SendState(who = $)
+   "UC_PRIME_GROUP GRP_PKT_STATE: you first, then the others of your group, each followed by their companion; just you and your companion when you are in no group."
+   {
+      local oSession, party, i, oComp, n, iLeader;
+
+      oSession = Send(who,@GetShardsSession);
+      if oSession = $
+      {
+         return;
+      }
+
+      party = Send(self,@PartyOf,#who=who);
+      n = Send(self,@WeightOf,#who=who);
+      foreach i in party
+      {
+         if i <> who
+         {
+            n = n + Send(self,@WeightOf,#who=i);
+         }
+      }
+
+      iLeader = 0;
+      if party <> $ AND First(party) = who
+      {
+         iLeader = 1;
+      }
+
+      AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_STATE);
+      if party = $
+      {
+         AddPacket(1,0);
+      }
+      else
+      {
+         AddPacket(1,1);
+      }
+
+      AddPacket(1,iLeader, 1,piMaxGroupSize, 1,n);
+
+      // you first, then the rest in order
+      Send(self,@AddRow,#who=who,#viewer=who,#iFlags=GRP_SELF + (iLeader * GRP_LEADER));
+      foreach oComp in Send(self,@CompanionsOf,#who=who)
+      {
+         Send(self,@AddRow,#who=oComp,#viewer=who);
+      }
+
+      foreach i in party
+      {
+         if i <> who
+         {
+            iLeader = 0;
+            if First(party) = i
+            {
+               iLeader = GRP_LEADER;
+            }
+
+            Send(self,@AddRow,#who=i,#viewer=who,#iFlags=iLeader);
+            foreach oComp in Send(self,@CompanionsOf,#who=i)
+            {
+               Send(self,@AddRow,#who=oComp,#viewer=who);
+            }
+         }
+      }
+
+      SendPacket(oSession);
+
+      return;
+   }
+
+   GroupsTick()
+   "Every second (PrimeClasses.Tick): drop whoever left the game, ran-out invitations; every member hears the group's numbers; a lone player with a companion hears theirs too."
+   {
+      local i, oUser, party, lKeep, bRescale;
+
+      // members that logged off leave their group
+      foreach party in plParties
+      {
+         foreach i in party
+         {
+            if NOT Send(i,@IsLoggedOn)
+            {
+               Send(self,@Remove,#who=i,#bTell=TRUE);
+            }
+         }
+      }
+
+      lKeep = $;
+      foreach i in plInvites
+      {
+         if GetTime() - Nth(i,3) <= GRP_INVITE_SECONDS
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plInvites = lKeep;
+
+      Send(self,@BotsTick);
+
+      // the ECL moves with skills and stats: the warrior companions follow it every half minute
+      piRescaleTicks = piRescaleTicks + 1;
+      bRescale = FALSE;
+      if piRescaleTicks >= 30
+      {
+         piRescaleTicks = 0;
+         bRescale = TRUE;
+      }
+
+      foreach oUser in Send(SYS,@GetUsersLoggedOn)
+      {
+         if IsClass(oUser,&User)
+         {
+            if Send(self,@PartyOf,#who=oUser) <> $
+               OR Send(self,@CompanionsOf,#who=oUser) <> $
+            {
+               Send(self,@SendState,#who=oUser);
+            }
+
+            // the bots follow the owner's ECL like the warrior does; and the owner is told how they are
+            if Send(self,@BotsOf,#who=oUser) <> $
+            {
+               if bRescale
+               {
+                  Send(self,@BotsRescale,#who=oUser);
+               }
+
+               Send(self,@BotStatus,#who=oUser);
+            }
+
+            if bRescale AND Send(oUser,@GetCompanion) <> $
+               AND Send(Send(oUser,@GetCompanion),@GetKind) >= COMPANION_WARRIOR
+            {
+               Send(Send(SYS,@GetCompanionBook),@Rescale,#who=oUser);
+            }
+
+            Send(self,@SendMobHealth,#who=oUser);
+         }
+      }
+
+      return;
+   }
+
+   CombatNumber(victim = $, amount = 0, bHeal = FALSE)
+   "Hook (Player / Monster damage and healing): a floating number over the victim for everybody in the room. UC_PRIME_GROUP GRP_PKT_COMBAT."
+   {
+      local oRoom, i, oUser, oSession, iNumber;
+
+      iNumber = (amount + 50) / 100;
+      if iNumber < 1 AND amount > 0
+      {
+         iNumber = 1;
+      }
+
+      if victim = $ OR iNumber < 1
+      {
+         return;
+      }
+
+      oRoom = Send(victim,@GetOwner);
+      if oRoom = $
+      {
+         return;
+      }
+
+      // a playerbot cries out when hit, like a player (a monster's hit sounds only for a Player)
+      if NOT bHeal AND IsClass(victim,&PlayerBot)
+      {
+         Send(victim,@Ouch);
+      }
+
+      foreach i in Send(oRoom,@GetHolderActive)
+      {
+         oUser = First(i);
+         if IsClass(oUser,&User)
+         {
+            oSession = Send(oUser,@GetShardsSession);
+            if oSession <> $
+            {
+               AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_COMBAT, 4,victim, 2,Bound(iNumber,0,65535), 1,bHeal);
+               SendPacket(oSession);
+            }
+         }
+      }
+
+      return;
+   }
+
+   SendMobHealth(who = $)
+   "UC_PRIME_GROUP GRP_PKT_HEALTH: the health (percent) of every attackable monster, player and playerbot in our room, for the bars over them and in the target frame."
+   {
+      local oSession, oRoom, i, oObj, n, iMax, lMobs;
+
+      oSession = Send(who,@GetShardsSession);
+      oRoom = Send(who,@GetOwner);
+      if oSession = $ OR oRoom = $
+      {
+         return;
+      }
+
+      n = 0;
+      lMobs = $;
+      foreach i in Send(oRoom,@GetHolderActive)
+      {
+         oObj = First(i);
+         // monsters that can be attacked, and everybody with a character: players and playerbots (not our own companions, whose bar the group shows)
+         if n < 80 AND ((IsClass(oObj,&Monster) AND NOT IsClass(oObj,&Companion) AND (Send(oObj,@GetObjectFlags,#what=who) & OF_ATTACKABLE))
+            OR IsClass(oObj,&PlayerBot) OR (IsClass(oObj,&User) AND oObj <> who))
+         {
+            iMax = Send(oObj,@GetMaxHealth);
+            if iMax > 0
+            {
+               lMobs = Cons(oObj,lMobs);
+               n = n + 1;
+            }
+         }
+      }
+
+      AddPacket(1,BP_USERCOMMAND, 1,UC_PRIME_GROUP, 1,GRP_PKT_HEALTH, 1,n);
+      foreach oObj in lMobs
+      {
+         AddPacket(4,oObj, 1,Bound((Send(oObj,@GetHealth) * 100) / Send(oObj,@GetMaxHealth),0,100));
+      }
+
+      SendPacket(oSession);
+
+      return;
+   }
+
+end

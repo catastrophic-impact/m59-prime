@@ -1,0 +1,45 @@
+--- a/apps/client/src/game/settings.ts
++++ b/apps/client/src/game/settings.ts
+@@ -356,6 +356,8 @@
+   alwaysRun: boolean;
+   /** Attack On Target: selecting a target attacks it */
+   attackOnTarget: boolean;
++  /** Ours (Prime): a health bar under every monster, player and bot name (off: only a hurt one and the one targeted) */
++  allHealthBars: boolean;
+   /** Dynamic Lighting: the light maps around torches and lamps */
+   dynamicLighting: boolean;
+   /** Damage Numbers (ours): the damage we deal floats up over what we hit */
+@@ -535,6 +537,7 @@
+   typeToChat: false,
+   alwaysRun: false,
+   attackOnTarget: false,
++  allHealthBars: true,
+   dynamicLighting: true,
+   damageNumbers: true,
+   touchControls: "auto",
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -2615,7 +2615,7 @@
+       el.className = `name-label${l.id === this.hovered ? " hovered" : ""}${l.id === this.target ? " target" : ""}${friend ? " friend" : ""}${friendly ? " friendly" : ""}`;
+       // Ours: our companion's health under its name, as a friend's
+       // and an arena bout's fighters'
+-      const arenaPct = this.arenaHp.get(l.id) ?? primeMobBar(l.id, this.target); // Prime: and monsters' health
++      const arenaPct = this.arenaHp.get(l.id) ?? primeMobBar(l.id, this.target, this.settings.allHealthBars); // Prime: and monsters', players' and bots' health
+       const comp = this.companion && this.companion.id === l.id ? this.companion : arenaPct !== undefined ? { id: l.id, hpPct: arenaPct } : null;
+       if (comp && !friend) {
+         const width = Math.max(FRIEND_BAR_MIN, Math.min(FRIEND_BAR_WIDTH, FRIEND_BAR_WIDTH / Math.max(1, l.position.distanceTo(eye))));
+--- a/apps/client/src/game/ui/OptionsDialogs.tsx
++++ b/apps/client/src/game/ui/OptionsDialogs.tsx
+@@ -635,6 +635,12 @@
+                   <Check label="Always Run" checked={d.alwaysRun} onChange={(v) => set({ alwaysRun: v })} />
+                   <Check label="Attack On Target" checked={d.attackOnTarget} onChange={(v) => set({ attackOnTarget: v })} />
+                   <Check
++                    label="Health Bars Over Everyone"
++                    title="A small health bar under the name of every monster, player and bot in view (off: only hurt ones and your target)"
++                    checked={d.allHealthBars}
++                    onChange={(v) => set({ allHealthBars: v })}
++                  />
++                  <Check
+                     label="Original Command Typing"
+                     title="Every typed line is a command, as in the original: speech needs say, and the start of a command's name will do"
+                     checked={d.originalCommands}

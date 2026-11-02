@@ -1,0 +1,131 @@
+// Shield Slam: active Warrior skill (used from the hotbar through our EXT_CMD_USE_SKILL).  Needs a shield; stuns the target.
+
+ShieldSlam is Skill
+
+constants:
+
+   include blakston.khd
+   include prime.khd
+
+resources:
+
+   ShieldSlam_name_rsc = "shield slam"
+   ShieldSlam_icon_rsc = iblock.bgf
+   ShieldSlam_desc_rsc = "Slam your shield into an enemy next to you, stunning it.  Needs a shield.  The stun lasts up to "
+                         "five seconds, longer the better your skill, might and stamina.  A target cannot be stunned again "
+                         "until twice the stun time has passed after it ends."
+
+   ShieldSlam_skill_intro = "Warrior Lv. 4: Stun an enemy with your shield."
+
+   ShieldSlam_no_shield = "You need a shield to slam."
+   ShieldSlam_bad_target = "You cannot slam that."
+   ShieldSlam_immune = "%s%s cannot be stunned again yet."
+   ShieldSlam_too_far = "%s%s is too far away to slam."
+
+classvars:
+
+   vrName = ShieldSlam_name_rsc
+   vrIcon = ShieldSlam_icon_rsc
+   vrDesc = ShieldSlam_desc_rsc
+
+   vrSkill_intro = ShieldSlam_skill_intro
+
+   viIndefinite = ARTICLE_NONE
+   viDefinite = ARTICLE_NONE
+
+   viSkill_num = SKID_SHIELD_SLAM
+   viSchool = SKS_FENCING
+   viSkill_Level = 4
+   viChance_to_Increase = 50
+   viThreshold = 25
+
+   viSkillExertion = 100
+   vbCheck_exertion = FALSE
+
+   vbAutomatic = FALSE
+
+properties:
+
+messages:
+
+   GetRequisiteStat(who=$)
+   {
+      return Send(who,@GetMight);
+   }
+
+   GetStunTime(who=$)
+   "Milliseconds: 5 seconds at 100% skill with 100 combined Might and Stamina, scaled down by both."
+   {
+      local iAbility, iStats, iTime;
+
+      iAbility = Send(self,@GetAbility,#who=who);
+      iStats = Send(who,@GetMight) + Send(who,@GetStamina);
+      iTime = (5000 * iAbility * iStats) / (100 * 100);
+
+      return bound(iTime,1000,5000);
+   }
+
+   DoSkill(who = $, oTarget = $)
+   {
+      local oStun;
+
+      if Send(self,@GetAbility,#who=who) < 1
+      {
+         return;
+      }
+
+      if NOT Send(who,@IsUsingA,#class=&Shield)
+      {
+         Send(who,@MsgSendUser,#message_rsc=ShieldSlam_no_shield);
+
+         return;
+      }
+
+      if oTarget = $ OR oTarget = who OR NOT IsClass(oTarget,&Battler) OR IsClass(oTarget,&Revenant)
+         OR Send(oTarget,@GetOwner) <> Send(who,@GetOwner)
+      {
+         Send(who,@MsgSendUser,#message_rsc=ShieldSlam_bad_target);
+
+         return;
+      }
+
+      if NOT Send(who,@TargetWithinSightAndRange,#oTarget=oTarget,#iRange=3*FINENESS)
+      {
+         Send(who,@MsgSendUser,#message_rsc=ShieldSlam_too_far,
+              #parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName));
+
+         return;
+      }
+
+      // The same attack rules as a normal hit: no slamming of safe NPCs, no illegal PvP.
+      if IsClass(oTarget,&Monster)
+      {
+         if NOT Send(oTarget,@CanMonsterFight,#who=who)
+         {
+            return;
+         }
+
+         Send(oTarget,@ValidAttack,#who=who);
+      }
+
+      if NOT Send(who,@AllowBattlerAttack,#victim=oTarget)
+      {
+         return;
+      }
+
+      oStun = Send(SYS,@FindSpellByNum,#num=SID_STUN);
+      if Send(Send(SYS,@GetPrime),@CCImmuneTo,#who=oTarget,#cc=CC_STUN)
+      {
+         Send(who,@MsgSendUser,#message_rsc=ShieldSlam_immune,
+              #parm1=Send(oTarget,@GetCapDef),#parm2=Send(oTarget,@GetName));
+
+         return;
+      }
+
+      Send(who,@AddExertion,#amount=1000*viSkillExertion);
+      Send(oStun,@DoStun,#what=who,#oTarget=oTarget,#iDuration=Send(self,@GetStunTime,#who=who));
+
+      propagate;
+   }
+
+end

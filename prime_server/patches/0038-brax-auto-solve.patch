@@ -1,0 +1,89 @@
+--- a/kod/object/active/holder/room/monsroom/g9.kod
++++ b/kod/object/active/holder/room/monsroom/g9.kod
+@@ -165,6 +165,10 @@
+ 
+    ptResetLightningPuzzle = $
+ 
++   // Prime: solves the puzzle by itself every piBraxAutoSolveSec seconds (rule in PrimeRules, 0 = off)
++   ptBraxAuto = $
++   piBraxElapsed = 0
++
+    poCenterLever = $
+    plOuterLevers1 = $
+    plLeverEffects1 = $
+@@ -262,6 +266,7 @@
+ 
+       Post(self,@ResetLightningPuzzle);
+       Post(self,@RandomizeLeverEffects);
++      Post(self,@BraxAutoStart);
+ 
+       propagate;
+    }
+@@ -414,6 +419,12 @@
+ 
+    NewHold(what=$, new_row=$, new_col=$)
+    {
++      // rooms loaded from a saved game are not constructed again
++      if ptBraxAuto = $
++      {
++         Post(self,@BraxAutoStart);
++      }
++
+       if NOT (Send(SYS,@AreRoomIllusionsEnabled))
+          OR ((what=$) OR (new_row=$) OR (new_col=$))
+          OR Send(poPlatform,@GetState) = SECTOR_UP
+@@ -995,6 +1006,41 @@
+       return;
+    }
+ 
++   BraxAutoStart()
++   {
++      if ptBraxAuto = $
++      {
++         ptBraxAuto = CreateTimer(self,@BraxAutoTick,30000);
++      }
++
++      return;
++   }
++
++   BraxAutoTick()
++   "Every 30 seconds: solves the puzzle once the rule's time has passed, if nobody is in the middle of it."
++   {
++      local iInterval;
++
++      ptBraxAuto = CreateTimer(self,@BraxAutoTick,30000);
++
++      iInterval = Send(Send(SYS,@GetPrime),@GetBraxAutoSolveSec);
++      if iInterval <= 0
++      {
++         piBraxElapsed = 0;
++
++         return;
++      }
++
++      piBraxElapsed = piBraxElapsed + 30;
++      if piBraxElapsed >= iInterval AND ptResetLightningPuzzle = $
++      {
++         piBraxElapsed = 0;
++         Send(self,@LightningPuzzleSolved);
++      }
++
++      return;
++   }
++
+    AdminResetPuzzle()
+    {
+       if ptResetLightningPuzzle <> $
+@@ -1010,6 +1056,12 @@
+ 
+    Delete()
+    {
++      if ptBraxAuto <> $
++      {
++         DeleteTimer(ptBraxAuto);
++         ptBraxAuto = $;
++      }
++
+       if ptReactivateLevers <> $
+       {
+          DeleteTimer(ptReactivateLevers);

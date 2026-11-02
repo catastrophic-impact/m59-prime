@@ -1,0 +1,222 @@
+--- a/apps/client/src/game/quickSlots.ts
++++ b/apps/client/src/game/quickSlots.ts
+@@ -26,7 +26,7 @@
+ export const DRAG_SLOT = "application/x-shards-slot";
+ 
+ export interface QuickSlot {
+-  kind: "spell" | "item" | "skill";
++  kind: "spell" | "item" | "skill" | "command";
+   nameRes: number;
+   name: string;
+   /** The object's iconRes, for a slot that matches nothing now */
+@@ -47,7 +47,7 @@
+ 
+ function isSlot(s: unknown): s is QuickSlot {
+   const q = s as QuickSlot | null;
+-  return !!q && (q.kind === "spell" || q.kind === "item" || q.kind === "skill") && typeof q.nameRes === "number" && typeof q.name === "string" && typeof q.icon === "number";
++  return !!q && (q.kind === "spell" || q.kind === "item" || q.kind === "skill" || q.kind === "command") && typeof q.nameRes === "number" && typeof q.name === "string" && typeof q.icon === "number";
+ }
+ 
+ export function loadQuickSlots(store: SlotStore, server: string, character: string): QuickSlots {
+@@ -69,6 +69,11 @@
+   }
+ }
+ 
++/** Prime: the command slots (a line for the server): what they say and do. Their name is the command. */
++export const COMMAND_SLOTS: readonly { name: string; label: string }[] = [
++  { name: "Companions attack", label: "Companions attack" },
++];
++
+ /** A slot for a spell or an inventory item, named with `name`. */
+ export function slotFor(kind: QuickSlot["kind"], o: ObjectInfo, name: string): QuickSlot {
+   return { kind, nameRes: o.nameRes, name, icon: o.iconRes };
+--- a/apps/client/src/game/ui/QuickSlots.tsx
++++ b/apps/client/src/game/ui/QuickSlots.tsx
+@@ -10,7 +10,7 @@
+ import { isNumberItem, type GameSession } from "@shards/world";
+ import type { ObjectInfo } from "@shards/protocol";
+ import { bareIcon, type Drawable, type IconRenderer } from "../icons.ts";
+-import { DRAG_ITEM, DRAG_SKILL, DRAG_SLOT, DRAG_SPELL, QUICK_SLOTS, slotFor, slotItem, slotSkill, slotSpell, type QuickSlot, type QuickSlots } from "../quickSlots.ts";
++import { COMMAND_SLOTS, DRAG_ITEM, DRAG_SKILL, DRAG_SLOT, DRAG_SPELL, QUICK_SLOTS, slotFor, slotItem, slotSkill, slotSpell, type QuickSlot, type QuickSlots } from "../quickSlots.ts";
+ import { bindingLabel, type Action, type Settings } from "../settings.ts";
+ import { useWorld } from "./hooks.ts";
+ import type { Cooldown } from "../cooldowns.ts";
+@@ -39,6 +39,9 @@
+       const s = slotSpell(slot, world.spells, rs);
+       return { slot, object: s?.object ?? bareIcon(slot.icon), available: !!s, inUse: false, count: 0 };
+     }
++    if (slot.kind === "command") {     // Prime
++      return { slot, object: bareIcon(slot.icon), available: true, inUse: false, count: 0 };
++    }
+     if (slot.kind === "skill") {     // Prime
+       const k = slotSkill(slot, world.skills, rs);
+       return { slot, object: k ?? bareIcon(slot.icon), available: !!k, inUse: false, count: 0 };
+@@ -53,7 +56,11 @@
+   if (!view) return null;
+   return (
+     <>
+-      <ObjIcon icons={icons} object={view.object} className={view.available ? "qs-icon" : "qs-icon unavailable"} />
++      {view.slot.kind === "command" ? (
++        <span className="qs-icon" style={{ display: "grid", placeItems: "center", fontSize: 20 }} aria-hidden>⚔</span>
++      ) : (
++        <ObjIcon icons={icons} object={view.object} className={view.available ? "qs-icon" : "qs-icon unavailable"} />
++      )}
+       {view.count > 1 && <span className="qs-count">{view.count}</span>}
+       {cooldown && view.slot.kind === "spell" && view.available && <CooldownMask cooldown={cooldown} />}
+     </>
+@@ -227,6 +234,21 @@
+         <div className="mk-text">Choose what this slot casts or uses:</div>
+         <span className="mk-edit list">
+           <ul className="mk-list look-list" role="listbox" aria-label="Spells and items">
++            <li className="quick-slot-heading">Companions</li>
++            {COMMAND_SLOTS.map((c) => (
++              <li
++                key={c.name}
++                role="option"
++                aria-selected={current?.kind === "command" && current.name === c.name}
++                className={current?.kind === "command" && current.name === c.name ? "selected" : ""}
++                onClick={() => {
++                  onPick({ kind: "command", nameRes: 0, name: c.name, icon: 0 });
++                  onClose();
++                }}
++              >
++                <span className="look-list-name">⚔ {c.label}</span>
++              </li>
++            ))}
+             {spells.length > 0 && <li className="quick-slot-heading">Spells</li>}
+             {spells.map((s) => row("spell", s.object))}
+             {items.length > 0 && <li className="quick-slot-heading">Items</li>}
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -1525,6 +1525,13 @@
+       if (!s) return session.localMessage(`You don't know the spell ${slot.name}.`);
+       return castSpell(s.object.id, s.numTargets);
+     }
++    // Prime: a command for the server ("companion attack": our companions go for the selected target, or the next object clicked)
++    if (slot.kind === "command") {
++      const verb = slot.name.split(" ").slice(-1)[0] ?? "attack";
++      const scene = sceneRef.current;
++      if (scene?.target != null) return session.shardsObject(scene.target, verb);
++      return scene?.beginSelect((t) => session.shardsObject(t, verb));
++    }
+     // Prime: an active skill (Shield Slam ...) goes to the selected target, or the next object clicked
+     if (slot.kind === "skill") {
+       const k = slotSkill(slot, session.world.skills, rs);
+@@ -2405,6 +2412,7 @@
+             })()}
+             onSelect={pick}
+             inRoom={(id) => id === session.world.self?.id || session.world.objects.has(id)}
++            onAttack={() => (target !== null ? session.shardsObject(target, "attack") : sceneRef.current?.beginSelect((t) => session.shardsObject(t, "attack")))}
+           />
+         )}
+         {!touch && !modern && (
+--- a/tools/headless/client.ts
++++ b/tools/headless/client.ts
+@@ -20,8 +20,8 @@
+ import { formatServerMessage } from "../../packages/world/src/text.ts";
+ import {
+   AP, BP, ByteReader, Connection, GENDER, KOD_FINENESS, SPEED_WALK, apName, bpName,
+-  buildLogin, buildShardsCommand, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSimple, buildUseCharacter,
+-  passwordDigest, readCharacters, readMove, readPlayer, readRoomContents, readRoomObject,
++  buildLogin, buildShardsCommand, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSayGroup, buildSimple, buildUseCharacter,
++  passwordDigest, readPlayWave, readCharacters, readMove, readPlayer, readRoomContents, readRoomObject,
+   type PlayerInfo, type RoomObject,
+ } from "../../packages/protocol/src/index.ts";
+ 
+@@ -43,6 +43,10 @@
+     castevery: { type: "string", default: "4" },
+     cmd: { type: "string", multiple: true }, // Prime: "seconds:line" sends a UC_SHARDS command (e.g. "5:group invite Bob") after that many seconds
+     skill: { type: "string" },        // Prime: "skillNum[:target]" used every --castevery s from --castat (UC_SHARDS_OBJECT "skill N")
++    objcmd: { type: "string", multiple: true }, // Prime: "seconds:line" sends a UC_SHARDS_OBJECT command about the nearest attackable (e.g. "9:attack")
++    tell: { type: "string", multiple: true },   // Prime: "seconds:name:text" tells a player or bot from the who list
++    reqgo: { type: "string" },   // Prime: send BP_REQ_GO (a door / exit) this many seconds after entering
++    female: { type: "boolean", default: false },   // Prime: create the character as a woman
+     attack: { type: "boolean", default: false },     // Prime: melee the nearest attackable every 2 s
+     class: { type: "string" },       // Prime: class to pick at creation (1 warrior, 2 priest); sent as pseudo skill 1000+class
+     verbose: { type: "boolean", default: false },
+@@ -55,6 +59,10 @@
+ const dynamicRsc = new Map<number, string>();
+ const rs = (id: number) => (id ? (dynamicRsc.get(id) ?? rsb.get(id) ?? `#${id}`) : "-");
+ const t0 = Date.now();
++/** Prime: our own object id */
++let myId = 0;
++/** Prime: names in the who list -> object ids */
++const who = new Map<string, number>();
+ const log = (...a: unknown[]) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1).padStart(6)}s]`, ...a);
+ 
+ function readSecretKey(): string {
+@@ -182,7 +190,7 @@
+       log(`creating character ${wanted} in slot #${slot.id}`);
+       conn.sendGame(
+         buildNewCharInfo({
+-          id: slot.id, name: wanted, description: "A visitor from another shard.", gender: GENDER.MALE,
++          id: slot.id, name: wanted, description: "A visitor from another shard.", gender: opt.female ? GENDER.FEMALE : GENDER.MALE,
+           faceParts: [], hairTranslation: 0, skinTranslation: 3,
+           stats: [35, 35, 35, 35, 35, 35], spells: [], skills: opt.class ? [1000 + Number(opt.class)] : [],
+         }),
+@@ -205,6 +213,7 @@
+       const name = rs(player.roomNameRes);
+       if (prev !== undefined && prev !== player.roomId) roomChanges++;
+       roomsVisited.push(name);
++      myId = player.id;
+       log(`BP_PLAYER: I am ${rs(player.nameRes)} #${player.id}; room "${name}" (roo ${rs(player.roomRes)}, room obj #${player.roomId}, security ${player.roomSecurity}, ambient ${player.ambientLight}, player light ${player.playerLight}, bg ${rs(player.backgroundRes)})`);
+       break;
+     }
+@@ -219,11 +228,37 @@
+       afterRoomLoaded();
+       break;
+     }
++    case BP.PLAY_WAVE: {     // Prime: which sound the server plays
++      const w = readPlayWave(r);
++      log(`wave ${rs(w.resource)} (object ${w.object})`);
++      break;
++    }
+     case BP.MESSAGE:
+     case BP.SYS_MESSAGE: {      // Prime: game messages, for tests
+       log(`MSG: ${formatServerMessage(r.u32(), r, (id) => (id ? rs(id) : undefined))}`);
+       break;
+     }
++    case BP.PLAYERS: {      // Prime: the who list (id, name), for tests
++      const n = r.u16();
++      const names: string[] = [];
++      for (let i = 0; i < n; i++) {
++        const id = r.u32(); r.u32(); const nm = r.string(); r.u32(); r.u8(); r.u32(); r.u32(); r.u8(); r.u8();
++        names.push(`${nm}#${id}`);
++        who.set(nm.toLowerCase(), id);
++      }
++      log(`WHO (${n}): ${names.join(", ")}`);
++      break;
++    }
++    case BP.PLAYER_ADD: {      // Prime: a player or bot logs in
++      const id = r.u32(); r.u32(); const nm = r.string();
++      who.set(nm.toLowerCase(), id);
++      log(`LOGON ${nm}#${id}`);
++      break;
++    }
++    case BP.PLAYER_REMOVE: {
++      log(`LOGOFF #${r.u32()}`);
++      break;
++    }
+     case BP.SAID: {      // Prime: show what is said (NPC answers), for tests
+       const sender = r.u32(), nameRsc = r.u32(), sayType = r.u8();
+       log(`SAID type ${sayType} ${rs(nameRsc)}: ${formatServerMessage(r.u32(), r, (id) => (id ? rs(id) : undefined))}`);
+@@ -310,6 +345,19 @@
+     const i = c.indexOf(":");
+     setTimeout(() => { log(`command ${c.slice(i + 1)}`); conn.sendGame(buildShardsCommand(c.slice(i + 1))); }, Number(c.slice(0, i)) * 1000);
+   }
++  for (const c of opt.tell ?? []) {
++    const [sec, nm, ...rest] = c.split(":");
++    setTimeout(() => {
++      const id = nm === "*" ? [...who.values()].filter((x) => x !== myId).pop() : who.get(nm.toLowerCase());
++      log(`tell ${nm} (#${id}): ${rest.join(":")}`);
++      if (id !== undefined) conn.sendGame(buildSayGroup([id], rest.join(":")));
++    }, Number(sec) * 1000);
++  }
++  if (opt.reqgo) setTimeout(() => { log("-> BP_REQ_GO (timed)"); conn.sendGame(buildSimple(BP.REQ_GO)); }, Number(opt.reqgo) * 1000);
++  for (const c of opt.objcmd ?? []) {
++    const i = c.indexOf(":");
++    setTimeout(() => { const t = pickTarget("nearest"); log(`object command ${c.slice(i + 1)} at ${t}`); if (t !== undefined) conn.sendGame(buildShardsObjectCommand(t, c.slice(i + 1))); }, Number(c.slice(0, i)) * 1000);
++  }
+   if (opt.skill) {
+     const [num, tgt = "nearest"] = opt.skill.split(":");
+     setTimeout(() => {

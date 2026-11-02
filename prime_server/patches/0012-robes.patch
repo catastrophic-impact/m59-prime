@@ -1,0 +1,47 @@
+--- a/kod/object/item/passitem/defmod/armor/robebase/robedisc.kod
++++ b/kod/object/item/passitem/defmod/armor/robebase/robedisc.kod
+@@ -159,14 +159,21 @@
+          return;
+       }
+ 
+-      foreach i in Send(poOwner,@GetSpellList)
++      // Prime: a classed player's robe shows his class level (up to 5) with the robe's god
++      iHigh_level = Send(Send(SYS,@GetPrime),@RobeLevel,#who=poOwner,#iSchool=piSchool);
++      if iHigh_level < 0
+       {
+-         oSpell = Send(SYS,@FindSpellByNum,#num=Send(poOwner,@DecodespellNum,#compound=i));
+-         if piSchool = Send(oSpell,@GetSchool)
++         iHigh_level = 0;
++
++         foreach i in Send(poOwner,@GetSpellList)
+          {
+-            if Send(oSpell,@GetLevel) > iHigh_level
++            oSpell = Send(SYS,@FindSpellByNum,#num=Send(poOwner,@DecodespellNum,#compound=i));
++            if piSchool = Send(oSpell,@GetSchool)
+             {
+-               iHigh_Level = Send(oSpell,@GetLevel);
++               if Send(oSpell,@GetLevel) > iHigh_level
++               {
++                  iHigh_Level = Send(oSpell,@GetLevel);
++               }
+             }
+          }
+       }
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -8456,6 +8456,7 @@
+ 
+       lEncode = Send(self,@EncodeSpell,#num=num,#iability=iBoundAbility);
+       plSpells = Cons(lEncode,plSpells);
++      Send(Send(SYS,@GetPrime),@RobeRefresh,#who=self);     // Prime: robe colour follows the class level
+ 
+       if Send(self,@CheckLog)
+       {
+@@ -8935,6 +8936,7 @@
+ 
+       plSkills = Cons(Send(self,@EncodeSkill,#num=num,
+                      #iability=iBoundAbility),plSkills);
++      Send(Send(SYS,@GetPrime),@RobeRefresh,#who=self);     // Prime: robe colour follows the class level
+ 
+       if Send(self,@CheckLog)
+       {

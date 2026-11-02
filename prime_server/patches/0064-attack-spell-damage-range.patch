@@ -1,0 +1,15 @@
+--- a/kod/object/passive/spell/atakspel.kod
++++ b/kod/object/passive/spell/atakspel.kod
+@@ -63,6 +63,12 @@
+ 
+ messages:
+ 
++   GetDamageRange()
++   "[minimum, maximum] unscaled base damage of this attack spell."
++   {
++      return [piDamageMin,piDamageMax];
++   }
++
+    CanPayCosts(who=$,lTargets=$,bItemCast=FALSE)
+    {
+       local target, i, iTotalRange;

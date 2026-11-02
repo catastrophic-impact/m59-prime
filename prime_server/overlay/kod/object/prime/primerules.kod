@@ -1,0 +1,240 @@
+// Meridian 59 Prime: the game rules we can switch (settings), as properties of the Prime singleton.
+//
+// PrimeClasses is a PrimeRules (the singleton System.GetPrime creates), so upstream files reach every rule with
+// Send(Send(SYS,@GetPrime),@Message,...). Change one live from the admin console: `set object <id> piReagentMode int 1`
+// (find <id> with `show exactinstances PrimeClasses`), then `save game`. Defaults are our server's design.
+
+PrimeRules is PrimeRoot
+
+constants:
+
+   include blakston.khd
+   include prime.khd
+
+resources:
+
+   prime_weak_cast = "You have no reagents for %s%s: the spell will be weaker."
+
+classvars:
+
+properties:
+
+   // Death: whose kills cost the dead player their belongings (piDeathItemDrop) and max health / skill percents
+   // (piDeathStatLoss): 0 never, 1 only killed by a player, 2 only killed by a monster, 3 always. No cost by default:
+   // dying only sends you to the underworld (where you wake with 1 health and 1 mana).
+   piDeathItemDrop = 0
+   piDeathStatLoss = 0
+
+   // Reagents: 0 mandatory (original), 1 not needed at all, 2 optional: a spell cast without its reagents has
+   // piNoReagentPercent percent of its power (damage, healing, duration).
+   piReagentMode = 2
+   piNoReagentPercent = 50
+   // casters whose current spell is cast without reagents
+   plWeakCasters = $
+
+   // Eating: always possible, however full the player is (food still matters: it fills the vigor beyond what rest gives)
+   pbUnlimitedEating = TRUE
+
+   // Bows may shoot without arrows, doing piBowNoAmmoPercent percent of a plain arrow's damage
+   pbBowNoAmmo = TRUE
+   piBowNoAmmoPercent = 50
+
+   // Daggers: the chance (percent) that a hit that lands strikes twice, for double damage
+   piDaggerDoublePercent = 25
+
+   // Brax arena (room G9): the puzzle solves itself every this many seconds when nobody is working on it. 0 = off (the original game)
+   piBraxAutoSolveSec = 300
+
+   // The class system: TRUE = characters have a class (chosen at creation); FALSE = original Meridian characters. A character plays only in the mode it was made in
+   pbClassSystem = TRUE
+
+   // Spirit weapons (Spiritual Sword / Hammer): a paladin gets this much mana back for each hit that lands; and the weapons treat every monster as at least
+   // neutral to holy (a monster's resistance to holy does not reduce their damage; weaknesses still count)
+   // Companion bots: temporary class companions (warrior, monk, paladin, elementalist), beside the faction companion. Off: none can be summoned.
+   pbCompanionBots = TRUE
+   // The old faction companion (bond, pack, vault, hall; util/companionbook.kod): DISABLED. FALSE = no way to get one (the leaders offer none, no commands);
+   // the code stays for the playerbots and a possible return. Only the stance words and status still work.
+   pbFactionCompanions = FALSE
+   // Town life: 0 = the wandering townsfolk (the crowds our client draws; the original ambience), 1 = playerbots instead (persistent characters in who that
+   // walk about, speak and answer tells; the townsfolk crowds are not drawn), 2 = both. piPlayerBotCount is how many playerbots are in the game at once.
+   piTownLife = 1
+   piPlayerBotCount = 100
+   // Playerbot activity lengths in percent of real time (their 5 to 30 minute activities): 100 as the game plays, 10 ten times as fast (for testing)
+   piBotTimeScale = 100
+   // Playerbots: 1 = the info window of a bot (look at it) also says what it is doing ("Currently: heading to the bank in Marion."), a debugging aid; 0 = only its description
+   piBotShowDoing = 1
+   // Monsters (leash): a monster that cannot get closer to its target (not within reach, not a square nearer, nobody hurt) for this many seconds gives it up: it ignores
+   // that target for 30 s, drops its aggro and walks back to where it stood. 0 = off (the original behaviour: it chases for ever).
+   piMobLeashSecs = 0
+   // Monsters (leash): TRUE = a monster that gave a chase up is healed to full (so a target cannot be worn down from out of reach)
+   pbMobLeashHeal = TRUE
+   // Monsters (aggro): TRUE = a monster notices someone only when it has a clear line of sight to them, not through walls (someone who attacks it is always noticed)
+   pbMobAggroLOS = FALSE
+   // Monsters (aggro): TRUE = a monster with nothing on it looks about once a second for someone in sight (a player, playerbot or companion), so a person who stands still
+   // is noticed too; FALSE = a monster notices someone only when that one moves or comes in (the original behaviour)
+   pbMobAggroScan = FALSE
+   // Monsters (aggro): TRUE = a monster does not notice someone it has no route to (the room's walking graph has no way from it to them), unless it attacks from afar (casters);
+   // rooms without a graph are judged by sight alone
+   pbMobAggroPath = FALSE
+   // Playerbots: how many failed attempts in a row to find or reach a foe (a foe it cannot walk to, cannot get closer to, or that will not come) make a hunter give
+   // its hunt up and choose another activity; a kill starts the count again. 0 would give up at once, a big number never.
+   piBotHuntFailLimit = 3
+   // Murder is not permanent: TRUE = a murderer (red) who dies becomes an outlaw (orange), and an outlaw who dies is clean (white, as before).
+   // FALSE = a murderer stays red until pardoned (the original rule).
+   pbMurderNotPermanent = TRUE
+   // TEST ONLY: TRUE = a line a second per companion bot in the server's debug log (channel/debug.txt, lines starting BOTMOVE): where it and its owner
+   // are, the distance, its state, target and stance, and how many seconds it has not moved. Turn on when testing movement and pathing, then off.
+   pbBotMoveLog = FALSE
+   // Most bots at once (the group is 5 with its players, a faction companion takes one seat, so the real limit is lower then)
+   piMaxBots = 4
+   // Seconds before an owner may summon another bot after one fell: 0 none, 30, 60 or 300
+   piBotResummonSec = 30
+   // On: with bots in the group, the XP of a kill is divided by the group's seats (players, companions and bots); off: the XP is not shared
+   pbBotSplitXP = FALSE
+
+   piSpiritManaPerHit = 2
+   pbSpiritNeutral = TRUE
+
+messages:
+
+   ClassSystemOn()
+   {
+      return pbClassSystem;
+   }
+
+   GetBraxAutoSolveSec()
+   {
+      return piBraxAutoSolveSec;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Death
+
+   DeathRuleApplies(iRule = 0, killer = $)
+   {
+      if iRule = 3
+      {
+         return TRUE;
+      }
+
+      if iRule = 1
+      {
+         return killer <> $ AND IsClass(killer,&User);
+      }
+
+      if iRule = 2
+      {
+         return killer = $ OR NOT IsClass(killer,&User);
+      }
+
+      return FALSE;
+   }
+
+   DeathDrops(who = $, killer = $)
+   "Hook (Player.Killed): does this death drop the player's belongings?"
+   {
+      return Send(self,@DeathRuleApplies,#iRule=piDeathItemDrop,#killer=killer);
+   }
+
+   DeathStatLoss(who = $, killer = $)
+   "Hook (Player.Killed): does this death cost max health and skill / spell percents?"
+   {
+      return Send(self,@DeathRuleApplies,#iRule=piDeathStatLoss,#killer=killer);
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Eating and bows
+
+   UnlimitedEating()
+   {
+      return pbUnlimitedEating;
+   }
+
+   BowNoAmmoOk()
+   {
+      return pbBowNoAmmo;
+   }
+
+   BowNoAmmoDamage()
+   {
+      return Bound((Random(1,5) * piBowNoAmmoPercent) / 100,1,$);
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // Reagents
+
+   ReagentsNotNeeded(who = $)
+   "Hook (Spell.CanPayReagents): mode 1, the spell needs no reagents at all."
+   {
+      Send(self,@ClearWeak,#who=who);
+
+      return piReagentMode = 1;
+   }
+
+   ClearWeak(who = $)
+   {
+      plWeakCasters = DelListElem(plWeakCasters,who);
+
+      return;
+   }
+
+   WeakCast(who = $, oSpell = $)
+   "Hook (Spell.CanPayReagents): the caster lacks the reagents. Mode 2: let the spell go ahead, weaker."
+   {
+      if piReagentMode <> 2
+      {
+         return FALSE;
+      }
+
+      if FindListElem(plWeakCasters,who) = 0
+      {
+         plWeakCasters = Cons(who,plWeakCasters);
+      }
+
+      Send(who,@MsgSendUser,#message_rsc=prime_weak_cast,#parm1=Send(oSpell,@GetName));
+
+      return TRUE;
+   }
+
+   ReagentsSkipped(who = $)
+   "Hook (Spell.PayCosts): use up no reagents (mode 1, or the spell was cast without them)."
+   {
+      return piReagentMode = 1 OR FindListElem(plWeakCasters,who) <> 0;
+   }
+
+   IsWeakCaster(who = $)
+   "Is the caster's current cast one without reagents (optional reagent mode)?"
+   {
+      return piReagentMode = 2 AND who <> $ AND FindListElem(plWeakCasters,who) <> 0;
+   }
+
+   TouchWeakDamage(who = $, oSpell = $, damage = 0)
+   "Hook (TouchAttackSpell.FindDamage): the damage of a touch cast without reagents, piNoReagentPercent percent (the enchantment's state is "
+   "the spell power, negative for a weak cast)."
+   {
+      local iState;
+
+      if piReagentMode = 2 AND who <> $
+      {
+         iState = Send(who,@GetEnchantedState,#what=oSpell);
+         if iState <> $ AND iState < 0
+         {
+            return (damage * piNoReagentPercent) / 100;
+         }
+      }
+
+      return damage;
+   }
+
+   WeakPower(who = $, iSpellPower = 0)
+   "Hook (Spell.GetSpellPower): a spell cast without reagents has only piNoReagentPercent percent of its power."
+   {
+      if piReagentMode = 2 AND FindListElem(plWeakCasters,who) <> 0
+      {
+         return Bound((iSpellPower * piNoReagentPercent) / 100,SPELLPOWER_MINIMUM,SPELLPOWER_MAXIMUM);
+      }
+
+      return iSpellPower;
+   }
+
+end

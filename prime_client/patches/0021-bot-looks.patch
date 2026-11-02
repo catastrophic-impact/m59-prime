@@ -1,0 +1,116 @@
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -10,6 +10,7 @@
+ import { useCompanion, type CompanionStore } from "./companion.ts";
+ import { PrimeGroupWindow } from "./ui/PrimeGroupWindow.tsx";
+ import { primeGroup, primeSafety } from "./primeGroup.ts";
++import type { BotInfo, CompanionStatus } from "@shards/world";     // Prime: the companion bots
+ import { useArena, type ArenaStore } from "./arenaBouts.ts";
+ import { ArenaDialog } from "./ui/ArenaDialog.tsx";
+ import { CompanionPanel } from "./ui/CompanionPanel.tsx";
+@@ -195,6 +196,8 @@
+   | { type: "give"; kind: "offer" | "deposit"; target: { id: number; name: string } }
+   // Ours (docs/adr/0010-followers.md 9.3): our companion's looks
+   | { type: "companionLooks" }
++  // Prime: the appearance of one of our companion bots
++  | { type: "botLooks"; bot: BotInfo; number: number }
+   // Ours (docs/adr/0019-arena-bouts.md): the Arena window
+   | { type: "arena" }
+   | { type: "amount"; object: ObjectInfo }
+@@ -844,6 +847,10 @@
+         if (!companion.charInfo) session.requestCharInfo();
+         setModal({ type: "companionLooks" });
+       }}
++      onBotLooks={(bot, number) => {
++        if (!companion.charInfo) session.requestCharInfo();
++        setModal({ type: "botLooks", bot, number });
++      }}
+     />
+   );
+   const petsPanel = (
+@@ -2656,6 +2663,16 @@
+             onCommand={(line) => session.shardsCommand(line)}
+             onClose={() => setModal(null)}
+           />
++        )}
++        {modal?.type === "botLooks" && (
++          <CompanionLooksDialog
++            status={{ name: modal.bot.name, look: modal.bot.look, palette: modal.bot.palette } as unknown as CompanionStatus}
++            info={companion.charInfo}
++            icons={icons}
++            botNumber={modal.number}
++            onCommand={(line) => session.shardsCommand(line)}
++            onClose={() => setModal(null)}
++          />
+         )}
+         {modal?.type === "give" && (
+           <GiveDialog
+--- a/apps/client/src/game/ui/CompanionPanel.tsx
++++ b/apps/client/src/game/ui/CompanionPanel.tsx
+@@ -9,11 +9,14 @@
+ import { Button } from "./kit.tsx";
+ import { PanelSection } from "./FriendsPanel.tsx";
+ import { ObjIcon } from "./Sidebar.tsx";
+-import { PrimeBots } from "./PrimeBots.tsx";     // Prime: the companion bots, beside the faction companion
++import { PrimeBots } from "./PrimeBots.tsx";
++import type { BotInfo } from "@shards/world";     // Prime: the companion bots, beside the faction companion
+ 
+ export function CompanionPanel({
+-  status, icons, object, onCommand, onGive, onTake, onLooks,
++  status, icons, object, onCommand, onGive, onTake, onLooks, onBotLooks,
+ }: {
++  /** Prime: open the appearance window of a companion bot */
++  onBotLooks: (bot: BotInfo, number: number) => void;
+   /** Our companion, or null for none */
+   status: CompanionStatus | null;
+   icons: IconRenderer;
+@@ -39,7 +42,7 @@
+             <Button onClick={() => onCommand("companion ask")}>Ask a faction leader</Button>
+           </div>
+         </PanelSection>
+-        <PrimeBots command={onCommand} />
++        <PrimeBots command={onCommand} onLooks={onBotLooks} />
+       </div>
+     );
+   }
+@@ -152,7 +155,7 @@
+           </div>
+         )}
+       </PanelSection>
+-      <PrimeBots command={onCommand} />
++      <PrimeBots command={onCommand} onLooks={onBotLooks} />
+     </div>
+   );
+ }
+--- a/apps/client/src/game/ui/CompanionLooksDialog.tsx
++++ b/apps/client/src/game/ui/CompanionLooksDialog.tsx
+@@ -16,8 +16,10 @@
+ };
+ 
+ export function CompanionLooksDialog({
+-  status, info, icons, onCommand, onClose,
++  status, info, icons, onCommand, onClose, botNumber,
+ }: {
++  /** Prime: the number of a companion bot (the command is `bot look <number> ...`); none for the faction companion */
++  botNumber?: number;
+   status: CompanionStatus;
+   /** The creator's lists (BP_CHARINFO), null until they arrive */
+   info: CharInfo | null;
+@@ -34,12 +36,11 @@
+   const ok = () => {
+     if (!info) return;
+     const p = facePicks(info, face);
+-    onCommand(
+-      buildLookCommand({
+-        gender: face.gender, hair: p.at.hair, eyes: p.at.eyes, nose: p.at.nose, mouth: p.at.mouth, beard: p.at.beard,
+-        hairColour: p.at.hairT, skin: p.at.faceT, colour1: colours[0], colour2: colours[1],
+-      }),
+-    );
++    const line = buildLookCommand({
++      gender: face.gender, hair: p.at.hair, eyes: p.at.eyes, nose: p.at.nose, mouth: p.at.mouth, beard: p.at.beard,
++      hairColour: p.at.hairT, skin: p.at.faceT, colour1: colours[0], colour2: colours[1],
++    });
++    onCommand(botNumber ? line.replace("companion look", `bot look ${botNumber}`) : line);
+     onClose();
+   };
+ 

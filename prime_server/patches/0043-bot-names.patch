@@ -1,0 +1,12 @@
+--- a/kod/util/companionkinds.kod
++++ b/kod/util/companionkinds.kod
+@@ -363,7 +363,8 @@
+ 
+    GetNames(kind = 0,gender = GENDER_MALE)
+    {
+-      if kind >= COMPANION_MONK
++      // Prime: every bot (the warrior's too) draws its name from the old server's pool
++      if kind >= COMPANION_WARRIOR
+       {
+          return Send(Send(SYS,@GetPrime),@CompNames,#kind=kind,#gender=gender);
+       }

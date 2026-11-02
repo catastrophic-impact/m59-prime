@@ -1,0 +1,19 @@
+--- a/blakserv/builtin.c
++++ b/blakserv/builtin.c
+@@ -27,12 +27,14 @@
+ 
+ bi_account bi_accounts[] =
+ {
+-	{ "Daenks",  "somethingnew", "None", ACCOUNT_ADMIN, "Daenks"},
++	/* Prime: no built-in accounts. Upstream created the admin account "Daenks" (known password) on every new game;
++	   admin accounts come from scripts/ensure_admin.sh instead. */
++	{ NULL, NULL, NULL, ACCOUNT_GUEST, NULL },
+ };
+ 
+ enum
+ {
+-	NUM_BUILTIN = sizeof(bi_accounts)/sizeof(bi_account)
++	NUM_BUILTIN = 0   /* Prime: was sizeof(bi_accounts)/sizeof(bi_account) */
+ };
+ 
+ void CreateBuiltInAccounts(void)

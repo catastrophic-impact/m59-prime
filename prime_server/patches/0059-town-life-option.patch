@@ -1,0 +1,15 @@
+--- a/kod/util/shardssocial.kod
++++ b/kod/util/shardssocial.kod
+@@ -243,6 +243,12 @@
+       }
+ 
+       lCrowd = Send(oRoom,@GetAmbientCrowd,#who=who);
++      // Prime: the rule piTownLife = 1 (playerbots instead of townsfolk) tells our client to draw no crowd: the hour byte 254
++      if Send(Send(SYS,@GetPrime),@TownCrowdOff)
++      {
++         lCrowd = [ Nth(lCrowd,1), Nth(lCrowd,2), 254 ];
++      }
++
+       AddPacket(1,BP_USERCOMMAND,1,UC_AMBIENT,4,Nth(lCrowd,1),4,Nth(lCrowd,2),1,Nth(lCrowd,3));
+       SendPacket(oSession);
+ 

@@ -1,0 +1,78 @@
+--- a/kod/object/passive/spell/atakspel.kod
++++ b/kod/object/passive/spell/atakspel.kod
+@@ -289,6 +289,7 @@
+ 
+          Send(oRoom,@SomethingAttacked,#what=who,#victim=i,#use_weapon=self);
+ 
++         Send(Send(SYS,@GetPrime),@NoteSpellPower,#iSpellPower=iSpellPower);     // Prime: the side effects scale with the power
+          Send(self,@DoSideEffect,#who=who,#victim=i,#damage=iDamage);
+       }
+ 
+--- a/kod/object/passive/spell/atakspel/boltspel/iceshard.kod
++++ b/kod/object/passive/spell/atakspel/boltspel/iceshard.kod
+@@ -74,6 +74,14 @@
+       return;
+    }
+ 
++   DoSideEffect(who=$,victim=$,damage=0)
++   {
++      // Prime: a hit may snare the target (kod/object/prime/primeclasses.kod)
++      Send(Send(SYS,@GetPrime),@IceShardHit,#who=who,#victim=victim);
++
++      return;
++   }
++
+    GetProjectileSpeed()
+    {
+       return 10;
+--- a/kod/object/passive/spell/atakspel/radproj/icenova.kod
++++ b/kod/object/passive/spell/atakspel/radproj/icenova.kod
+@@ -118,6 +118,14 @@
+       propagate;
+    }
+ 
++   DoSideEffect(who=$,victim=$,damage=0)
++   {
++      // Prime: the nova freezes everything it hits, like Hold (kod/object/prime/primeclasses.kod)
++      Send(Send(SYS,@GetPrime),@IceNovaHit,#who=who,#victim=victim);
++
++      return;
++   }
++
+    DoIceNova(who=$,bItemCast=FALSE)
+    {
+       local i, oRoom, each_obj;
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -5798,7 +5798,8 @@
+    "Ours: how fast we move now, squares per 10 seconds (viSpeed; a companion keeps up with its "
+    "running master)."
+    {
+-      return viSpeed;
++      // Prime: a snared monster moves slower
++      return Bound((viSpeed * Send(Send(SYS,@GetPrime),@SnarePercent,#what=self)) / 100,1,$);
+    }
+ 
+    GetMoveTime()
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -4155,7 +4155,7 @@
+    UserMove(new_row = 1, new_col = 1,
+             fine_row = FINENESS/2, fine_col = FINENESS/2, speed = 0)
+    {
+-      local iCurrentTime, iDelta, iDeltaVigor, iExertion, iHasteLevel,
++      local iCurrentTime, iDelta, iDeltaVigor, iExertion, iHasteLevel, iSnare,
+          iAngle, iRow, iCol, iFineRow, iFineCol, iRoomNum,
+          iDx, iDy, iMoveLength, iMaxMoveRun, 
+          iQflags, iRflags, iHeightF, iHeightFWD, iHeightC, iServerID;
+@@ -4227,6 +4227,10 @@
+       iMaxMoveRun = (Bound(speed,0,USER_RUNNING_SPEED) * FINENESS * 16 * iDelta) / 10000;
+       iMaxMoveRun = (iMaxMoveRun * iMaxMoveRun);
+ 
++      // Prime: a snared player may only cover part of the distance (the squared bucket scales with the square of the percent)
++      iSnare = Send(Send(SYS,@GetPrime),@SnarePercent,#what=self);
++      iMaxMoveRun = (iMaxMoveRun * iSnare * iSnare) / 10000;
++
+       //
+       // 4.2 Fill up the movement bucket with tokens
+       //   for the squared distance one could have travelled at maximum.

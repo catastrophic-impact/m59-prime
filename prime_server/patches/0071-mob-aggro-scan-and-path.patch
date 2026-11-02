@@ -1,0 +1,95 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -446,6 +446,8 @@
+    piLeashMyHp = 0
+    poLeashIgnore = $
+    piLeashIgnoreUntil = 0
++   // Prime aggro scan (rule pbMobAggroScan): the second of its last look about
++   piScanAt = 0
+    // chance to move to next patrol node (1 to 10000)
+    piChanceToPatrol = 125
+ 
+@@ -1740,6 +1742,12 @@
+          Send(self,@HealHitPoint);
+       }
+ 
++      // Prime: with nothing on it, a monster looks about for someone in sight (rule pbMobAggroScan)
++      if poTarget = $ AND Send(self,@AggroScan)
++      {
++         return;
++      }
++
+       // Okay, ask our brain how to move
+       Send(poBrain,@GetMoveBehavior,#behavior=piBehavior,#mob=self);
+ 
+@@ -7550,6 +7558,54 @@
+       return TRUE;
+    }
+ 
++   AggroScan()
++   "Prime (rule pbMobAggroScan): a monster that is moving about with no target looks for one once a second, as it does when someone moves: a player, playerbot or companion that stands still in its sight is noticed too. TRUE when it took a target."
++   {
++      local iNow, i, oWho, iVision, iDist;
++
++      if NOT Send(Send(SYS,@GetPrime),@MobAggroScan)
++         OR poOwner = $ OR poBrain = $ OR NOT (piState & STATE_MOVE)
++      {
++         return FALSE;
++      }
++
++      iNow = GetTime();
++      if iNow = piScanAt
++      {
++         return FALSE;
++      }
++
++      piScanAt = iNow;
++      iVision = Send(self,@GetVisionDistance);
++      iVision = iVision * iVision;
++      foreach i in Send(poOwner,@GetHolderActive)
++      {
++         oWho = First(i);
++         if oWho <> self AND (IsClass(oWho,&User) OR (IsClass(oWho,&Monster) AND Send(oWho,@IsCompanion)))
++         {
++            iDist = Send(self,@SqFineDistToVision,#what=oWho) / FINENESS_SQUARED;
++            if iDist <= iVision
++            {
++               Send(poBrain,@SomethingMoved,#mob=self,#state=piState,#what=oWho,
++                     #new_row=Send(oWho,@GetRow),#new_col=Send(oWho,@GetCol),
++                     #fine_row=Send(oWho,@GetFineRow),#fine_col=Send(oWho,@GetFineCol));
++               if poTarget <> $
++               {
++                  return TRUE;
++               }
++            }
++         }
++      }
++
++      return FALSE;
++   }
++
++   HasRangedAttack()
++   "Prime: does it cast spells at a target out of its melee reach (a caster, an archer-like monster)?"
++   {
++      return plSpellBook <> $ AND piSpellRange > piAttackRange;
++   }
++
+    IsLeashIgnoring(what = $)
+    "Prime leash: is this the target it gave up on a moment ago?"
+    {
+--- a/kod/object/passive/brain.kod
++++ b/kod/object/passive/brain.kod
+@@ -1224,6 +1224,13 @@
+             return 0;
+          }
+          
++         // Prime: with the rule pbMobAggroPath a monster that cannot walk to someone (no route in the room's graph) does not notice them, unless it attacks from afar
++         if Send(Send(SYS,@GetPrime),@MobAggroPath)
++            AND NOT Send(Send(SYS,@GetPrime),@MobHasPath,#mob=mob,#what=what)
++         {
++            return 0;
++         }
++
+          iAdd = Sqrt(iSquaredVision - iSquaredDistance) * 2;
+       }
+       iHatred = iHatred + iAdd;

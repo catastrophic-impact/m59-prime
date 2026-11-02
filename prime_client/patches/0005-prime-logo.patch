@@ -1,0 +1,20 @@
+--- a/apps/client/src/game/LoginScreen.tsx
++++ b/apps/client/src/game/LoginScreen.tsx
+@@ -12,7 +12,7 @@
+ 
+ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+ import type { AssetStore } from "../assets.ts";
+-import logoUrl from "../icons/logo.webp";
++import logoUrl from "../icons/prime-logo.png";
+ import { desktop, devPagesEnabled, isAndroid, type DesktopBridge, type DesktopUpdate, type RequiredUpdate } from "../host.ts";
+ import { Backdrop, Button, GroupBox, MessageBox, Select, Text, TextField, Window, at, type Rect } from "./ui/kit.tsx";
+ 
+@@ -126,7 +126,7 @@
+   return (
+     <Backdrop behind={behind} className="login">
+       <h1 className="mk-shard-title">
+-        <img src={logoUrl} alt="Meridian 59: Shards" />
++        <img src={logoUrl} alt="Meridian 59 Prime" />
+       </h1>
+       {open && (
+         <div className="mk-modal login-modal">

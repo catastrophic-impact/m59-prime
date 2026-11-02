@@ -1,0 +1,19 @@
+--- a/kod/object/active/holder/room.kod
++++ b/kod/object/active/holder/room.kod
+@@ -3542,7 +3542,15 @@
+                   Send(what,@MsgSendUser,#message_rsc=room_door_is_locked);
+                }
+ 
+-               Send(what,@WaveSendUser,#wave_rsc=room_sound_locked);
++               // Prime: the door's "oof" is a man's; a woman gets her own hurt cry
++               if IsClass(what,&Player) AND Send(what,@GetGender) = GENDER_FEMALE
++               {
++                  Send(what,@WaveSendUser,#wave_rsc=Send(what,@GetOuchSound));
++               }
++               else
++               {
++                  Send(what,@WaveSendUser,#wave_rsc=room_sound_locked);
++               }
+ 
+                return TRUE;
+             }

@@ -1,0 +1,32 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -4584,6 +4584,14 @@
+          return;
+       }
+ 
++      if StringEqual(sVerb,"group")
++      {
++         // Prime (kod/object/prime/primegroups.kod): our groups
++         Send(Send(SYS,@GetPrime),@GroupCommand,#who=self,#words=lWords);
++
++         return;
++      }
++
+       if StringEqual(sVerb,"tailor") OR StringEqual(sVerb,"barber")
+       {
+          Send(Send(SYS,@GetCosmeticsBook),@CosmeticsCommand,#who=self,#words=lWords);
+--- a/kod/object/active/holder/room.kod
++++ b/kod/object/active/holder/room.kod
+@@ -5422,6 +5422,12 @@
+ 
+    AreGroupedHere(who=$,what=$)
+    {
++      // Prime: our groups (kod/object/prime/primegroups.kod)
++      if Send(Send(SYS,@GetPrime),@AreGrouped,#who=who,#what=what)
++      {
++         return TRUE;
++      }
++
+       if who <> $
+          AND what <> $
+          AND IsClass(who,&User)

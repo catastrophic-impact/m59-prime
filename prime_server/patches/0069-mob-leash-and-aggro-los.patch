@@ -1,0 +1,165 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -434,6 +434,18 @@
+    piPatrolAttempts = 0
+    plPatrolPath = $
+    piPatrolNode = 0
++   // Prime leash (rule piMobLeashSecs): where it stood when it took its target (the spot it walks back to), the closest it has been to that target
++   // (squared fine units) and since when, the health both had at the last look, and the target it ignores for a while after giving up on it
++   piHomeRow = 0
++   piHomeCol = 0
++   piHomeFineRow = 0
++   piHomeFineCol = 0
++   piLeashDist = 0
++   piLeashAt = 0
++   piLeashFoeHp = 0
++   piLeashMyHp = 0
++   poLeashIgnore = $
++   piLeashIgnoreUntil = 0
+    // chance to move to next patrol node (1 to 10000)
+    piChanceToPatrol = 125
+ 
+@@ -1659,6 +1671,12 @@
+          return;
+       }
+ 
++      // Prime leash: a chase that gets nowhere is given up (rule piMobLeashSecs)
++      if Send(self,@LeashTick)
++      {
++         return;
++      }
++
+       // If we moved into range last cycle, we will switch to attack mode
+       if Send(poBrain,@PreChaseTimer,#mob=self)
+       {
+@@ -7456,6 +7474,88 @@
+       return vbIsAreaEffect;
+    }
+ 
++   LeashHome()
++   "Prime leash: the spot it walks back to after giving up a chase. Taken when it takes a target; an older spot is kept unless the mob stands within 8 squares of it."
++   {
++      local iDr, iDc;
++
++      if piHomeRow <> 0
++      {
++         iDr = piRow - piHomeRow;
++         iDc = piCol - piHomeCol;
++         if iDr * iDr + iDc * iDc > 64
++         {
++            return;
++         }
++      }
++
++      piHomeRow = piRow;
++      piHomeCol = piCol;
++      piHomeFineRow = piFine_row;
++      piHomeFineCol = piFine_col;
++
++      return;
++   }
++
++   LeashTick()
++   "Prime leash, once per chase tick: TRUE when the mob gave its target up (it made no progress towards it for piMobLeashSecs seconds: not in reach, not closer by a square, nobody hurt). It ignores that target for 30 seconds, heals if the rule says so, drops its aggro and walks back to where it stood."
++   {
++      local oPrime, iSecs, iDist, oTarget, iFoeHp, iMyHp;
++
++      oPrime = Send(SYS,@GetPrime);
++      iSecs = Send(oPrime,@MobLeashSecs);
++      if iSecs <= 0 OR poTarget = $ OR poOwner = $
++      {
++         return FALSE;
++      }
++
++      oTarget = poTarget;
++      iDist = Send(self,@SquaredFineDistanceTo3D,#what=oTarget);
++      iFoeHp = Send(oTarget,@GetHealth);
++      iMyHp = Send(self,@GetHealth);
++      if piLeashAt = 0 OR Send(self,@CanReach,#what=oTarget) OR iDist + FINENESS_SQUARED < piLeashDist
++         OR iFoeHp < piLeashFoeHp OR iMyHp < piLeashMyHp
++      {
++         piLeashDist = iDist;
++         piLeashAt = GetTime();
++         piLeashFoeHp = iFoeHp;
++         piLeashMyHp = iMyHp;
++
++         return FALSE;
++      }
++
++      piLeashFoeHp = iFoeHp;
++      piLeashMyHp = iMyHp;
++      if GetTime() - piLeashAt < iSecs
++      {
++         return FALSE;
++      }
++
++      // it gives up
++      poLeashIgnore = oTarget;
++      piLeashIgnoreUntil = GetTime() + 30;
++      piLeashAt = 0;
++      Debug("LEASH: ",self," gives up on ",oTarget," after ",iSecs," s, back to ",piHomeRow,piHomeCol);
++      if Send(oPrime,@MobLeashHeal)
++      {
++         piHit_points = piMax_hit_points * 100;
++      }
++
++      Send(self,@EnterStateMove);
++      if piHomeRow <> 0
++      {
++         Send(self,@GotoCoords,#iRow=piHomeRow,#iCol=piHomeCol,#iFineRow=piHomeFineRow,#iFineCol=piHomeFineCol);
++      }
++
++      return TRUE;
++   }
++
++   IsLeashIgnoring(what = $)
++   "Prime leash: is this the target it gave up on a moment ago?"
++   {
++      return what <> $ AND what = poLeashIgnore AND GetTime() < piLeashIgnoreUntil;
++   }
++
+    GetHatred()
+    {
+       return piHatred;
+@@ -7480,6 +7580,12 @@
+ 
+       piHatred = iHatred;
+ 
++      // Prime leash: a mob that had no target remembers where it stood (it keeps an older spot when it has been drawn far from it)
++      if poTarget = $
++      {
++         Send(self,@LeashHome);
++      }
++
+       if poTarget <> $
+          AND IsClass(poTarget,&User)
+          AND Send(poTarget,@GetOwner) = poOwner
+--- a/kod/object/passive/brain.kod
++++ b/kod/object/passive/brain.kod
+@@ -1216,6 +1216,13 @@
+          {
+             return 0;
+          }
++
++         // Prime: with the rule pbMobAggroLOS a monster notices someone only with a clear line of sight to them (not through walls)
++         if Send(Send(SYS,@GetPrime),@MobAggroLOS)
++            AND NOT Send(Send(mob,@GetOwner),@LineOfSight,#obj1=mob,#obj2=what)
++         {
++            return 0;
++         }
+          
+          iAdd = Sqrt(iSquaredVision - iSquaredDistance) * 2;
+       }
+@@ -1274,6 +1281,12 @@
+       {
+          return FALSE;
+       }
++
++      // Prime leash: a mob that gave up on a target ignores it for a while (unless it is attacked by it)
++      if event <> TS_FIGHT_ME_VICTIM AND Send(mob,@IsLeashIgnoring,#what=what)
++      {
++         return FALSE;
++      }
+ 
+       if NOT IsClass(what,&Battler)
+       {

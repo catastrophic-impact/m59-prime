@@ -1,0 +1,168 @@
+﻿School,Level,Spell,Mana,Description
+SHAL'ILLE (HOLY),1,Breath Of Life,3,The great power of Shal'ille takes part of the caster's life force and gives it to another person. Requires herbs to cast.
+SHAL'ILLE (HOLY),1,Detect Evil,10,Allows you to see the vile defilers of her name. Reveals all evil people and monsters that are more foul than you are pure.
+SHAL'ILLE (HOLY),1,Holy Symbol,8,This spell involves weaving your hands in a holy tracery which frightens nearby unholy beings. Requires two elderberries to be crushed onto the skin of your hands to ritually cleanse them.
+SHAL'ILLE (HOLY),1,Minor Heal,9,The compassionate power of Shal'ille heals the wounds of the caster or another person. Is particularly potent on those protected by guardian angels.
+SHAL'ILLE (HOLY),1,Seance,12,Shal'ille's magic allows communication with the spirit world to reveal the location of the last person to slay an innocent. Requires herbs to cast.
+SHAL'ILLE (HOLY),2,Cure Poison,10,"Pure, healing energy fights the effects of poison in the target. Requires two herbs and one elderberry to cast."
+SHAL'ILLE (HOLY),2,Holy Touch,4,Pure energy from Shal'ille sears your target. More effective on evil and undead targets.
+SHAL'ILLE (HOLY),2,Holy Weapon,17,"Dedicates your weapon to Shal'ille, enhancing its effectiveness against the unholy. Requires two fairy wings and an orc tooth to cast."
+SHAL'ILLE (HOLY),2,Resist Acid,9,Coats your body in a magical goo which absorbs damage from acid attacks for several minutes. Requires one entroot berry to cast.
+SHAL'ILLE (HOLY),2,Reveal,15,"Strips away all hidden properties of an item, allowing anyone to see its special abilities. This spell can only improve if cast on an item with unrevealed properties."
+SHAL'ILLE (HOLY),3,Cure Disease,9,"Pure, healing energy purges disease from the target. Requires two herbs and two elderberries to cast."
+SHAL'ILLE (HOLY),3,Holy Resolve,3,Shal'ille is summoned to fortify the soul against unholy damage. Requires a single fairy wing to cast.
+SHAL'ILLE (HOLY),3,Hospice,15,Rejuvenates the target of the spell with Shal'ille's healing energy. Shal'ille gives a small reward toward the karma of the mage who heals another good soul.
+SHAL'ILLE (HOLY),3,Rescue,16,Calls upon Shal'ille to transport you back to safety. Ability determines how fast you are rescued.
+SHAL'ILLE (HOLY),3,Spiritual Hammer,15,Materializes a spiritual hammer. Requires 2 emeralds and 1 orc teeth to cast.
+SHAL'ILLE (HOLY),4,Dazzle,12,Dazzles the target with the blinding light of Shal'ille's goodness. Requires an emerald and a purple mushroom to cast.
+SHAL'ILLE (HOLY),4,Forces Of Light,12,"Summons Shal'ille to infuse her power into all good players in the room, making their attacks more accurate and her spells more potent. Requires elderberries and emeralds to cast."
+SHAL'ILLE (HOLY),4,Holy Blaze,8,"Bathes a target at short range in a blaze of holy energy, healing it or harming it, depending on its karma. Requires emeralds and elderberries to cast."
+SHAL'ILLE (HOLY),4,Mark Of Dishonor,12,Allows caster to cast Shal'ille's displeasure upon a target. Will prevent target's life force from exceeding the body's maximum.
+SHAL'ILLE (HOLY),4,Purify,10,Removes harmful personal enchantments on the target. Requires two emeralds and an elderberry to cast.
+SHAL'ILLE (HOLY),4,Qorbane,15,"Permeates an area with the holy essence of Shal'ille, harming any who attempt to call on the evil energy of Qor. Requires one vial of yrxl sap and one fairy wing to cast."
+SHAL'ILLE (HOLY),4,Restore Companion,15,"Calls a fallen companion back from the edge of death, to stand where its body lies with half its strength. Requires two emeralds and two elderberries to cast."
+SHAL'ILLE (HOLY),4,Truce,20,"The spirit of Shal'ille descends upon the area and calms the minds of all present, preventing combat for several minutes. Requires two emeralds and two vials of yrxl sap to cast."
+SHAL'ILLE (HOLY),5,Final Rites,20,This is the lengthy formal ceremony performed at funerals to help the recently departed soul pass smoothly on to the Underworld. It may also be used to force nearby undead back in their graves where they belong.
+SHAL'ILLE (HOLY),5,Major Heal,20,The compassionate power of Shal'ille heals severe wounds in the caster or another player. Shal'ille gives a small reward toward the karma of the mage who heals another good soul.
+SHAL'ILLE (HOLY),5,Purge,15,"Reduces the effectiveness of the target's helpful personal enchantments. With enough power, it can even remove the enchantment completely."
+SHAL'ILLE (HOLY),5,Umbrella,15,Creates a dome of magical energy that protects those near the caster for several minutes. Requires two emeralds to cast.
+SHAL'ILLE (HOLY),6,Bond,50,"Infuses an item with a soft white light. However, the bond requires terrific amounts of energy to form."
+SHAL'ILLE (HOLY),6,Martyr'S Grace,0,"In a display of limitless compassion and empathy, the caster shares in the visible suffering of his allies, compelling Shal'ille to come to their aid and heal their injuries. The experience of martyrdom may free and rejuvenate the caster's"
+SHAL'ILLE (HOLY),6,Portal Of Life,30,Creates a portal for your fallen comrades to enter and return from the underworld back to their physical body. If formed in time the portal can lessen the shock of death.
+SHAL'ILLE (HOLY),6,Spiritual Sword,15,Materializes a spiritual sword. Requires 20 emeralds and 30 orc teeth to cast.
+QOR (DARK),1,Cloak,5,"Qor shrouds your astral body in shifting shadows, allowing you to elude magical tracking. .Requires two entroot berries to cast."
+QOR (DARK),1,Darkness,8,"Draws a curtain of darkness over a room, making it more amenable to followers of the Vile One. Requires nothing but a sinister intent"
+QOR (DARK),1,Detect Good,10,Allows you to see the disgustingly pure of heart. This spell will reveal all good people and monsters that are more good than you are corrupted.
+QOR (DARK),1,Poison,10,"Like fire under your skin, the poison burns with dangerous strength, slowly sapping away at your strength, your health, and your will to live."
+QOR (DARK),1,Unholy Touch,4,Dark energy from Qor sears your target and drains a small amount of health. More effective on good targets.
+QOR (DARK),2,Acid Touch,4,"Burns the target with the force of a powerful acid, penetrating armor, clothing, and flesh. Requires a single entroot berry to cast."
+QOR (DARK),2,Fade,12,Temporarily dissolves your physical form leaving you invisible. The spell lasts as long as your trance is maintained.
+QOR (DARK),2,Kara'Hol'S Curse,9,"Your body is possessed by the spirit of the warrior Kara'hol for a brief period, enhancing the ferocity of your attacks. When the spirit departs, your body is temporarily paralyzed from shock."
+QOR (DARK),2,Unholy Weapon,17,"Dedicates your weapon to Qor, enhancing its effectiveness against the holy. Requires two fairy wings and an orc tooth to cast."
+QOR (DARK),3,Defile,0,"In this darkest of rituals, the very spirit of Qor is summoned to defile the corpse of a monster or player, transforming flesh and blood into magical energy for the caster. Requires a fairy wing and the slain."
+QOR (DARK),3,Enfeeble,5,Drains physical strength from the target. The effect lasts a few minutes.
+QOR (DARK),3,Poison Gas,20,Creates a pungent cloud of poisonous fog. Requires entroot berries to cast.
+QOR (DARK),3,Silence,10,Muffles all speech preventing spell casting and communication as long as caster concentrates. Requires dark angel feathers and purple mushrooms.
+QOR (DARK),3,Unholy Resolve,3,Summons the vile force of Qor to protect the user from holy damage. Requires a single fairy wing to cast.
+QOR (DARK),3,Vampiric Drain,10,Draws out the very life force of the target and converts the energy into life for the caster. Requires one vial of shaman blood to cast.
+QOR (DARK),4,Animate,20,"Animates the corpse of a monster or player, that it may do your bidding. Requires the blood of a shaman to cast."
+QOR (DARK),4,Hold,15,"Surrounds the target with magical energy, causing paralysis for several seconds. Requires two purple mushrooms to cast."
+QOR (DARK),4,Shadow Rift,30,Summons the darkest of magics to warp the fabric of space. Forms a magical bond between a prism and the area in which it is cast.
+QOR (DARK),4,Shal'Ille Bane,15,"Permeates an area with the unholy essence of Qor, harming any who attempt to call on the holy energy of Shal'ille. Requires one vial of yrxl sap and one fairy wing to cast."
+QOR (DARK),4,Splash Of Acid,10,Splashes Qor's unholy corrosive acid on a target at short range. Requires entroot berries to cast.
+QOR (DARK),5,Blind,15,"The magical force of Qor burns the target's eyes, taking away all sight for a brief period. Requires two entroot berries and a purple mushroom to cast."
+QOR (DARK),5,Blood Inheritance,50,"Infuses a weapon with the malevolent power of Qor. It is impossible to predict exactly what form this dark benediction will take, but it will always be deadly."
+QOR (DARK),5,Death Link,20,This dark spell feeds off the souls of any poor creature that should happen to fall in your vicinity. Any lives you take are merely transfers of energy - good and evil mean nothing.
+QOR (DARK),5,Invisibility,12,Qor cloaks your body with a shimmering field leaving you invisible for a brief period. Requires one dark angel feather to cast.
+QOR (DARK),5,Nodeburst,1,"You tap all of your mana nodes to the maximum, giving you an instant burst of mana and health, but destroying your bonds. May only be cast once per day."
+QOR (DARK),5,Swap,9,"The darker gods grant you the power to swap places with your target. Requires a dark angel feather, one vial of yrxl sap, and a purple mushroom to cast."
+QOR (DARK),6,Death Rift,20,"By calling upon a pact with the most ancient of dark forces, the truest disciples of Qor may traverse the fiery pits of the Underworld while still retaining life. The interdimensional pathways can lead Qor's favored to many locations, inclu"
+QOR (DARK),6,Gaze Of The Basilisk,15,Grants the caster the ability to paralyze any who meet his gaze. Requires one yrxl sap and one purple mushroom to cast.
+KRAANAN (WARRIOR / BATTLE),1,Appraise,0,Appraise a item to asign it your desired price to be sold at the citizen's market. Cast again on a item to remove any appraisal.
+KRAANAN (WARRIOR / BATTLE),1,Conveyance,0,Sends a stack of items to your closest personal vault. Requires only the fee for depositing items.
+KRAANAN (WARRIOR / BATTLE),1,Create Food,10,The power of Kraanan is summoned to materialize various nourishing foods. Requires nothing but free will to cast.
+KRAANAN (WARRIOR / BATTLE),1,Create Weapon,15,Materializes a weapon. Requires nothing but a violent will.
+KRAANAN (WARRIOR / BATTLE),1,Glow,10,Enchants a weapon or an instrument to glow like a torch. Requires an elderberry and a mushroom to cast.
+KRAANAN (WARRIOR / BATTLE),1,Loadout,0,"Attempts to translocate gear and reagents from your guild hall's storage, according to preferences previously registered with Frular's office."
+KRAANAN (WARRIOR / BATTLE),1,Relay,5,The might of Kraanan allows you to give part of your vigor to another person. Requires an edible mushroom to cast.
+KRAANAN (WARRIOR / BATTLE),1,Set,0,Registers your personal battle gear preferences with Frular's office. Requires nothing but a will to fight.
+KRAANAN (WARRIOR / BATTLE),1,Transference,0,Sends any item to your guild hall chest. Requires only a moment of your precious time.
+KRAANAN (WARRIOR / BATTLE),1,Vault Load Out,0,"Attempts to translocate gear and reagents from your mainland vault storage, according to preferences previously registered with the spell 'set.'"
+KRAANAN (WARRIOR / BATTLE),2,Bless,6,"Invokes Kraanan's blessing, increasing the accuracy and damage of attacks. Requires two mushrooms and two sapphires to cast."
+KRAANAN (WARRIOR / BATTLE),2,Enchant Weapon,17,"Dedicates your weapon to Kraanan. Requires two elderberries, an orc tooth, and time."
+KRAANAN (WARRIOR / BATTLE),2,Haste,10,Reduces the fatigue of running at full clip. Requires five edible mushrooms to cast.
+KRAANAN (WARRIOR / BATTLE),2,Resist Poison,10,"Stabilizes your immune system, protecting you from some poisons. Requires two herbs and a red mushroom."
+KRAANAN (WARRIOR / BATTLE),2,Super Strength,10,Infuses your body with superhuman strength. Requires two mushrooms and an orc tooth to cast.
+KRAANAN (WARRIOR / BATTLE),3,Detect Invisible,15,Allows you to see those whom others cannot. Requires two vials of solagh.
+KRAANAN (WARRIOR / BATTLE),3,Free Action,10,"Kraanan's love of battle helps repel magic which might hinder your movements, and thus the liberal dispensation of lusty blows. Requires one red mushroom and one purple mushroom to cast."
+KRAANAN (WARRIOR / BATTLE),3,Magic Shield,9,Summons a shield of powerful magical energy that will deflect some of the blows aimed at you for several minutes. Requires two mushrooms and one red mushroom to cast.
+KRAANAN (WARRIOR / BATTLE),3,Martyr'S Battleground,10,"Calls the attention of the gods to the area, increasing the likelihood they will give those who die here a chance at vengeance with a revenant. Requires elderberry and mushroom to cast."
+KRAANAN (WARRIOR / BATTLE),3,Night Vision,6,Magically enhances the vision of the target. Requires three elderberries to cast.
+KRAANAN (WARRIOR / BATTLE),4,Deflect,20,"Calls upon Kraanan's will to form a protective barrier around the target which protects them from direct damaging attack magics, but not from other magics, such as enchantments. Requires a vial of solagh and one kriipa claw to cast."
+KRAANAN (WARRIOR / BATTLE),4,Discordance,8,Magical energy is unleashed which tries to destroy magical enchantments on the room. Requires two sapphires to cast.
+KRAANAN (WARRIOR / BATTLE),4,Dispel Illusion,20,"Attempts to dispel any illusions in your vicinity. This powerful spell is the bane of the Riija school of magic, but at a significant cost in reagents."
+KRAANAN (WARRIOR / BATTLE),4,Eagle Eyes,5,"Bestows a supernatural acuity of vision on the caster, protecting against spells that attack sight and improving accuracy at long range. Requires three mushrooms and one purple mushroom."
+KRAANAN (WARRIOR / BATTLE),4,Mana Bomb,0,Initiates a white hot explosion which burns all of the caster's mana and consumes half of that amount from all others in the room. Requires two sapphires to cast.
+KRAANAN (WARRIOR / BATTLE),4,Mend,9,"Erases the wear of battle from a piece of equipment, restoring it to new condition, even if it's broken. Requires an orc tooth and a sapphire to cast."
+KRAANAN (WARRIOR / BATTLE),5,Armor Of Gort,10,Surrounds the caster with a powerful field which deflects damage from extreme blows. Requires two blue dragon scales to cast.
+KRAANAN (WARRIOR / BATTLE),5,Hunt,50,Allows the casters to use a prism to focus on a player's trail and track him or her for a limited time. The hunted player's name must be spoken during the initial trance.
+KRAANAN (WARRIOR / BATTLE),5,Killing Fields,9,"Induces magical blood-lust, increasing the damage of all attacks in the area. Requires elderberries and orc teeth to cast."
+KRAANAN (WARRIOR / BATTLE),5,Resist Magic,15,The war god fortifies you against magic attacks. Requires a blue dragon scale to cast.
+KRAANAN (WARRIOR / BATTLE),6,Anti-Magic Aura,15,Sends a shock wave of magical energy coursing through the room which reduces the spellpower of other spells cast for several minutes. More powerful mages are more effective at casting this spell.
+KRAANAN (WARRIOR / BATTLE),6,Greater Detect Invisible,0,Allows you to see those whom others cannot. This powerful spell lasts far longer than regular detect invisible.
+KRAANAN (WARRIOR / BATTLE),6,Shatterlock,50,"Penetrates the locks of a guild hall (note that it won't open other kinds of doors elsewhere). Requires four Kriipa Claws to cast, and the casters' energies must be focused through a prism."
+FAREN (NATURE),1,Fog,6,Creates a cloud of fog that is often mistaken for poisonous fog. Requires elderberries to cast.
+FAREN (NATURE),1,Illuminate,5,Magical illumination fills the area where the spell is cast. Requires nothing but a free spirit.
+FAREN (NATURE),1,Meditate,0,"Allows you to channel your experience in meditation in order to open your mind and improve your abilities. To do so, speak the name of the ability you wish to improve while in trance."
+FAREN (NATURE),1,Mystic Touch,3,Draws upon the magic of Faren to transfer magical energy from caster to target. Requires mushrooms to cast.
+FAREN (NATURE),1,Sweep,8,The wild winds of Faren sweep through the area gathering loose items for you. Requires mushrooms to cast.
+FAREN (NATURE),1,Zap,4,Channels natural electrical energy into a powerful charge transmitted with a touch. Requires a blue mushroom to cast.
+FAREN (NATURE),2,Bramble Wall,10,"Creates a thicket of thorny, twisted bramble. Such a wall would be painful to pass, though it might not harm one who remained motionless."
+FAREN (NATURE),2,Icy Fingers,4,"Coats your fingers with ice which can freeze a patch of flesh on your target, painfully destroying the outer layer of tissue. Requires a blue mushroom."
+FAREN (NATURE),2,Resist Cold,9,"Infuses the target with the magical fire of Faren, reducing damage from cold attacks for several minutes. Requires one blue mushroom to cast."
+FAREN (NATURE),2,Touch Of Flame,4,Boils the innards of the target with a white hot flame. Requires a red mushroom to cast.
+FAREN (NATURE),2,Withstand Fire,4,Infuses your body with cool magical energy which reduces damage from fire attacks for several minutes. Requires one red mushroom.
+FAREN (NATURE),3,Freezing,8,"Fills the room with the earth magic of Faren, freezing all armor causing frostbite."
+FAREN (NATURE),3,Heat,8,"Fills the room with the earth magic of Faren, heating all armor to a primordial molten state and searing the flesh of those who wear it. Requires red mushroom and firesand to cast."
+FAREN (NATURE),3,Mana Focus,1,
+FAREN (NATURE),3,Resist Shock,6,The grizzled nature god gives the target some relief from shock attacks. Requires one blue mushroom to cast.
+FAREN (NATURE),3,Shocking Fury,8,Releases Faren's fury as a large amount of electricity directed at a target at short range. Requires blue mushrooms and elderberries to cast.
+FAREN (NATURE),3,Spider Web,15,The spider webs created by this spell may hamper the ability of those who stumble upon them to move. Requires web moss to cast.
+FAREN (NATURE),3,Winds,10,Summons powerful winds which render ranged attacks more difficult for several minutes. Requires three elderberries and a purple mushroom to cast.
+FAREN (NATURE),4,Blast Of Fire,8,Releases Faren's anger as a blast of flame directed at a target at short range. Requires red mushrooms and elderberries to cast.
+FAREN (NATURE),4,Brittle,8,"Ages the target's weapon by many years, making it frail and prone to breaking. Requires three magic mushrooms and two purple mushrooms to cast."
+FAREN (NATURE),4,Explosive Frost,8,Creates a small explosion of frost which damages a target at short range. Requires blue mushrooms and elderberries to cast.
+FAREN (NATURE),4,Fireball,7,Sends a ball of flames at the target. Requires two red mushrooms and orc teeth to cast.
+FAREN (NATURE),4,Firewall,15,Creates a wall of fire in front of the caster. Requires red mushrooms and firesand to cast.
+FAREN (NATURE),4,Ice Shard,7,Sends a ice shard at the target. Requires two blue mushrooms and orc teeth to cast.
+FAREN (NATURE),4,Icewall,15,Creates a wall of ice in front of the caster. Requires blue mushrooms and firesand to cast.
+FAREN (NATURE),5,Earthquake,12,"Moves the earth violently causing damage to all beings in the room. The more experienced the caster, the better damage is directed to the target and away from the caster."
+FAREN (NATURE),5,Ice Nova,15,"Call upon the magic of Faren and propel forth a blast of ice, chilling and blistering the skin of those around you. Requires four ice dragon scales, four blue mushrooms and two purple mushrooms to cast."
+FAREN (NATURE),5,Lightning Bolt,10,
+FAREN (NATURE),5,Mana Shield,20,"Surrounds the caster with a powerful field which mitigates damage as long as you have mana. Requires five blue dragon scales to cast, five kriipa claws and five vials of solagh."
+FAREN (NATURE),5,Ring Of Flames,15,Creates a ring of flames around target. Requires red mushrooms and firesand to cast.
+FAREN (NATURE),5,Sandstorm,14,"All the dust in the room is swept up into a swirling storm, making it harder and more strenuous to move and fight. Also has a small chance to knock arrows out of the air."
+FAREN (NATURE),5,Shatter,12,The icy magic of Faren shatters one or more items in the inventory of the target. Requires three red and three purple mushrooms to cast.
+FAREN (NATURE),6,Fire Storm,30,"Call upon the magic of Faren and propel forth a devastating barrage of fireballs, searing the flesh of those around you. Requires four orc teeth, four red mushrooms and two firesand."
+FAREN (NATURE),6,Lightning Wall,20,Creates a crackling barrier of electricity. One who entered such a field would certainly feel more than thunder.
+FAREN (NATURE),6,Spore Burst,20,Summons forth noxious clouds that paralyze any within it's bounds. Requires two purple mushrooms and one shaman blood.
+RIIJA (ILLUSION / MIND),1,Anonymity,15,"Makes you indistinct, and unrecognizable to all but those who you'd like to know its you. Note that Shal'ille can not punish transgressors against you when you are anonymous."
+RIIJA (ILLUSION / MIND),1,Blink,8,Teleports you to a central location in the room. Requires nothing but a will to move.
+RIIJA (ILLUSION / MIND),1,Feign Death,5,"Makes you appear to be deceased, that hopefully someone won't really make you as such. Requires nothing but a devious mind."
+RIIJA (ILLUSION / MIND),1,Flash,15,"Causes a bright flash, likely to interrupt the concentration of any spellcasters in the area or confuse monsters temporarily. Requires a set of eyes from a dragonfly to cast."
+RIIJA (ILLUSION / MIND),1,Phase,0,"By phasing partially out of existence, one may become temporarily immune to danger... but, adventurers be warned: staying out of phase too long will result in physical and mental damage, as well as potential loss of carried items."
+RIIJA (ILLUSION / MIND),1,Shadow Form,5,"Transforms the target into a silhouette of their former self, perfect for skulking in darker locales and making them more difficult to hit. Requires three rainbow ferns to cast."
+RIIJA (ILLUSION / MIND),2,Bait,8,"Makes you mighty appetizing to nearby monsters. The more powerful you are, the more likely you are to get the monster's attention."
+RIIJA (ILLUSION / MIND),2,Eavesdrop,8,"Riija grants the ability to hear distant conversations, allowing you to spy on others. Requires two dragonfly eyes."
+RIIJA (ILLUSION / MIND),2,Foresight,5,"Reveals knowledge of the victim, informing you of their abilities. Requires two uncut seraphym to cast."
+RIIJA (ILLUSION / MIND),2,Forget,20,Causes the victim to forget his or her own abilities. Requires one firesand and two uncut seraphym to cast.
+RIIJA (ILLUSION / MIND),3,Illusionary Fire Wall,15,"Creates an illusionary wall of fire. This wall will cause illusionary wounds, which are never lethal, to victims walking through it."
+RIIJA (ILLUSION / MIND),3,Illusionary Form,15,The touch of Riija shifts your appearance to another at random. Requires web moss and rainbow fern to cast.
+RIIJA (ILLUSION / MIND),3,Illusionary Wounds,7,"Causes the victim to see imagined wounds, but imagination always gives in to one's right mind, assuming one lives so long. Requires solagh and firesand."
+RIIJA (ILLUSION / MIND),3,Vertigo,12,"This spell causes the victim to become so ill that they can hardly stand, much less fight. Requires two dragonfly eyes and a vial of solagh to cast."
+RIIJA (ILLUSION / MIND),4,Apparition,15,"Summons an illusory creature to attack your enemies. The creature does good damage, but is easily banished."
+RIIJA (ILLUSION / MIND),4,Denial,15,"Causes the caster to unrealize their wounds, but beware when you realize its a hoax, because the wounds are still just as deep! Requires two firesand and a vial of solagh to cast."
+RIIJA (ILLUSION / MIND),5,Evil Twin,10,"Summons the darker side of an adventurer to attack them. Note that you are responsible for any of your evil twins' actions, and that they are notoriously hard to control."
+RIIJA (ILLUSION / MIND),5,Morph,20,The touch of Riija shifts you into another beast! Requires web moss and dragonfly eyes to cast.
+RIIJA (ILLUSION / MIND),5,Summon Reflection,15,"Summons a creature which mirrors your own appearance. Note that you are responsible for any of your reflections actions, and that they are notoriously hard to control."
+RIIJA (ILLUSION / MIND),5,Transmogrify Monster,20,Twists a creature into another monster. Requires web moss and rainbow fern to cast.
+RIIJA (ILLUSION / MIND),6,Elusion,20,"Allows the caster to elude trouble and escape off to another location. A number of destinations may be available, and the caster must call out the name of the location he wishes to travel to."
+RIIJA (ILLUSION / MIND),6,Seduce,18,"You worm your way into the mind of a weak-willed creature, in the hope that it will follow you and fight for you if you are attacked. Requires one web moss and two kriipa claws."
+RIIJA (ILLUSION / MIND),6,Summon Bovine,5,"Summons a pygmy cow for the amusement of all nearby. Requires 5 perfectly polished seraphym, and the casters' mystical energies must be focused through a prism."
+JALA (BARD / SONG),1,Invigorate,5,This song allows all listeners to regain vigor at an accelerated rate. Requires nothing but a strong voice.
+JALA (BARD / SONG),1,Melancholy,2,"This is a sad song, invoking feelings of loss and sorrow. It causes most people hearing it to experience overwhemling sadness, often leading to foul moods."
+JALA (BARD / SONG),1,Mirth,2,"This song makes people happy! It is a lively tune, which makes people feel as if they have a new start on life."
+JALA (BARD / SONG),2,Civility,5,"This song hinders the casting of the spells of the master of the elements, Faren. A ruby and a mushroom are required to begin performing this song."
+JALA (BARD / SONG),2,Conciliation,5,This song hinders the casting of the spells the warrior god Kraanan the Fist. A ruby and some elderberries are required to begin performing this song.
+JALA (BARD / SONG),2,Warp Time,5,The words of this song form an enchantment which increases the time that a spellcaster must hold trance to cast a spell. Requires two diamonds to cast.
+JALA (BARD / SONG),3,Distill,20,"Allows the caster to distill their knowledge of a spell into liquid form. After casting, simply say the name of the spell you wish to turn into a potion."
+JALA (BARD / SONG),3,Profane Resonance,5,The foreboding sound of this song hinders the casting the holy spells of Shal'ille. A ruby and some herbs are required to begin performing this song.
+JALA (BARD / SONG),3,Restorate,5,This song allows all listeners to regain health at an accelerated rate. Requires one diamond and several herbs to cast.
+JALA (BARD / SONG),3,Sacred Resonance,5,The music of this song hinders the casting of the dark spells of Qor. A ruby and an entroot berry are required to begin performing this song.
+JALA (BARD / SONG),4,Disharmony,5,This words of this song hinder the performance of other Jala songs. A single ruby is required to begin performing this song.
+JALA (BARD / SONG),4,Jig,10,This spell causes everyone in the room to break out into dance and is lots of fun at parties. Requires one diamond to cast.
+JALA (BARD / SONG),4,Truth,5,"This song hinders the spells of the master of the illusionary arts, Riija. A ruby and some rainbow ferns are required to begin performing this song."
+JALA (BARD / SONG),5,Mana Convergence,10,The words of this song form an enchantment which increases the effectiveness of magical attack spells. Requires one perfect polished seraphym.
+JALA (BARD / SONG),5,Rejuvenate,5,"This song allows all listeners to regain mana at an accelerated rate. Requires one diamond and a raw, uncut seraphym to cast."
+JALA (BARD / SONG),5,Spellbane,12,The words of this song form an enchantment which hinders the casting of any other spells. Requires one perfect polished seraphym.
+JALA (BARD / SONG),6,Crystalize Mana,20,"This spell taps directly into the energies of sound and vibration itself, harnessing the laws of the universe themselves to summon a surge of magical energy. The surge is exhausting, but experienced bards will recover from their spiritual f"

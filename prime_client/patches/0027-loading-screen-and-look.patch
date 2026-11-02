@@ -1,0 +1,218 @@
+--- a/packages/render/src/objectsView.ts
++++ b/packages/render/src/objectsView.ts
+@@ -317,6 +317,8 @@
+   private readonly composites = new Map<string, CachedComposite>();
+   /** Until when this frame may make smoothed copies (SMOOTH_BUDGET_MS), and the sprites waiting for theirs */
+   private smoothUntil = 0;
++  /** Prime: how long a frame may spend on smoothed copies (the scene raises it while a room is settling behind the loading screen) */
++  smoothBudgetMs = SMOOTH_BUDGET_MS;
+   private readonly unsmoothed = new Set<Entry>();
+   private readonly palette: THREE.Texture;
+   private readonly xlats: XlatTable;
+@@ -413,6 +415,11 @@
+     return floorHeightAt(s, x, y) - depth;
+   }
+ 
++  /** Prime: how many figures there are and how many still wait for their smoothed copy (the loading screen waits for none) */
++  settling(): { total: number; waiting: number } {
++    return { total: this.entries.size, waiting: this.unsmoothed.size };
++  }
++
+   /** Prime: the figures drawn now, with what each was made of (see FigureDebug) */
+   figureReport(): FigureDebug[] {
+     return [...this.entries.keys()].map((id) => this.debug.get(id)).filter((d): d is FigureDebug => !!d);
+@@ -420,7 +427,7 @@
+ 
+   /** Sync meshes with the objects and update their frame, placement and light. */
+   update(objects: Iterable<ViewObject>, ctx: ObjectViewContext, lights: LightSource[], selfId: number): NameLabel[] {
+-    this.smoothUntil = performance.now() + SMOOTH_BUDGET_MS;
++    this.smoothUntil = performance.now() + this.smoothBudgetMs;
+     const seen = new Set<number>();
+     const labels: NameLabel[] = [];
+     for (const o of objects) {
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -220,10 +220,14 @@
+   objects: number;
+   lights: number;
+   loading: boolean;
++  /** Prime: how far the loading screen is, 0 to 1 */
++  progress: number;
+ }
+ 
+ /** The longest the view waits for a new room's sprites and sky before showing it anyway. */
+ const ENTER_TIMEOUT_MS = 4000;
++/** Prime: the frame budget for smoothed copies in play (objectsView.ts SMOOTH_BUDGET_MS) */
++const SMOOTH_BUDGET_NORMAL_MS = 4;
+ 
+ /** Ours: each idle slice that readies a room next door (prepareRoom) takes this long, ms: what the browser says is free, within these */
+ const PREPARE_MIN_MS = 2;
+@@ -362,6 +366,12 @@
+    * objects in a half-loaded room.
+    */
+   private entering = false;
++  /** Prime: after the room is in, its figures are made behind the loading screen (until this time, ms, or sooner when none waits) */
++  private settleUntil = 0;
++  private settlePeak = 0;
++  private settleFrames = 0;
++  /** Prime: the settle cover is only shown for the first room after login. */
++  private didInitialSettle = false;
+   /** Resolves when the server has sent the current room's contents (BP_ROOM_CONTENTS). */
+   private contentsArrived: Promise<void> = Promise.resolve();
+   private contentsResolve: (() => void) | null = null;
+@@ -830,7 +840,40 @@
+     if (this.disposed || this.roomRes !== p.roomRes) return;
+     this.entering = false;
+     this.applyRoomChanges();
+-    this.status(false);
++    this.beginSettle();
++  }
++
++  /**
++   * Prime: the picture is not shown until its figures are made. The frames run behind the loading screen with a big budget for the smoothed
++   * copies (they took the first seconds after "Entering" to pop in), until none waits (or a few seconds pass).
++   */
++  private beginSettle(): void {
++    if (this.didInitialSettle) {
++      if (this.objects) this.objects.smoothBudgetMs = SMOOTH_BUDGET_NORMAL_MS;
++      this.status(false);
++      return;
++    }
++    if (!this.objects) return void this.status(false);
++    this.settleUntil = performance.now() + 5000;
++    this.settlePeak = 0;
++    this.settleFrames = 0;
++    this.objects.smoothBudgetMs = 40;
++    this.status(true);
++  }
++
++  private checkSettle(now: number): void {
++    if (!this.settleUntil || !this.objects) return;
++    const { waiting } = this.objects.settling();
++    this.settlePeak = Math.max(this.settlePeak, waiting);
++    this.settleFrames++;
++    if ((waiting === 0 && this.settleFrames >= 8) || now > this.settleUntil) {
++      this.settleUntil = 0;
++      this.didInitialSettle = true;
++      this.objects.smoothBudgetMs = SMOOTH_BUDGET_NORMAL_MS;
++      this.status(false);
++      return;
++    }
++    if (this.settleFrames % 4 === 0) this.status(true);
+   }
+ 
+   /**
+@@ -998,6 +1041,7 @@
+     const room = this.room;
+     // Entering a room: keep the last picture until the new room is ready
+     if (this.entering) return;
++    this.checkSettle(now);
+     if (!(room && this.roomView && this.objects && self && this.mover.room === room)) {
+       this.renderer.render(this.scene, this.camera);
+       return;
+@@ -2715,7 +2759,8 @@
+       roomFile: this.roomFile,
+       objects: w.objects.size,
+       lights: this.lights.length,
+-      loading,
++      loading: loading || this.settleUntil > 0,
++      progress: this.entering ? 0.3 : this.settleUntil ? 0.6 + (0.4 * (this.settlePeak - (this.objects?.settling().waiting ?? 0))) / Math.max(1, this.settlePeak) : 1,
+     });
+   }
+ 
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -2536,7 +2536,16 @@
+           </div>
+         )}
+         {selecting && !touch && <div className="select-hint">Choose a target, or your face or bars for yourself (Esc or right click cancels)</div>}
+-        {(phase === "entering" || status?.loading) && <div className="loading">Entering…</div>}
++        {phase === "entering" && (
++          <div className="loading">
++            <div className="loading-box" role="status">
++              <div className="loading-label">Loading…</div>
++              <div className="stat-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((status?.progress ?? 0.1) * 100)}>
++                <div className="fill" style={{ width: `${Math.round((status?.progress ?? 0.1) * 100)}%` }} />
++              </div>
++            </div>
++          </div>
++        )}
+         {desc && (
+           <DescriptionDialog
+             key={desc.look.object.id}
+--- a/apps/client/src/styles.css
++++ b/apps/client/src/styles.css
+@@ -305,6 +305,21 @@
+   color: var(--muted);
+ }
+ 
++/* Prime: the loading screen's small bar, in the middle (the green-on-dark-red bar of the game's stat bars) */
++.loading-box {
++  width: min(260px, 60vw);
++  text-align: center;
++}
++
++.loading-box .loading-label {
++  margin-bottom: 6px;
++}
++
++.loading-box .stat-bar {
++  position: relative;
++  height: 10px;
++}
++
+ /* ---- milestone 4: chat, look, menus ---- */
+ .name-label.hovered {
+   text-decoration: underline;
+--- a/tools/headless/client.ts
++++ b/tools/headless/client.ts
+@@ -20,7 +20,7 @@
+ import { formatServerMessage } from "../../packages/world/src/text.ts";
+ import {
+   AP, BP, ByteReader, Connection, GENDER, KOD_FINENESS, SPEED_WALK, apName, bpName,
+-  buildLogin, buildShardsCommand, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSayGroup, buildSimple, buildUseCharacter,
++  buildLogin, buildShardsCommand, buildShardsObjectCommand, buildReqCast, buildReqAttack, buildReqLook, readObject, buildNewCharInfo, buildReqGame, buildReqMove, buildSay, buildSayGroup, buildSimple, buildUseCharacter,
+   passwordDigest, readPlayWave, readCharacters, readMove, readPlayer, readRoomContents, readRoomObject,
+   type PlayerInfo, type RoomObject,
+ } from "../../packages/protocol/src/index.ts";
+@@ -47,6 +47,7 @@
+     tell: { type: "string", multiple: true },   // Prime: "seconds:name:text" tells a player or bot from the who list
+     reqgo: { type: "string" },   // Prime: send BP_REQ_GO (a door / exit) this many seconds after entering
+     female: { type: "boolean", default: false },   // Prime: create the character as a woman
++    look: { type: "string", multiple: true },   // Prime: "seconds" looks at the nearest player or bot in the room and prints its description (what the info window shows)
+     attack: { type: "boolean", default: false },     // Prime: melee the nearest attackable every 2 s
+     class: { type: "string" },       // Prime: class to pick at creation (1 warrior, 2 priest); sent as pseudo skill 1000+class
+     verbose: { type: "boolean", default: false },
+@@ -228,6 +229,12 @@
+       afterRoomLoaded();
+       break;
+     }
++    case BP.LOOK: {      // Prime: an object's description (--look)
++      const obj = readObject(r);
++      r.u8();
++      log(`LOOK ${rs(obj.nameRes)}: ${JSON.stringify(formatServerMessage(r.u32(), r, (id) => (id ? rs(id) : undefined)))}`);
++      break;
++    }
+     case BP.PLAY_WAVE: {     // Prime: which sound the server plays
+       const w = readPlayWave(r);
+       log(`wave ${rs(w.resource)} (object ${w.object})`);
+@@ -374,6 +381,19 @@
+       setInterval(fire, Number(opt.castevery) * 1000);
+     }, Number(opt.castat) * 1000);
+   }
++  for (const sec of opt.look ?? []) {
++    setTimeout(() => {
++      const ids = new Set(who.values());
++      let best: number | undefined, bestD = Infinity;
++      for (const o of room.values()) {
++        if (!ids.has(o.id) || o.id === player?.id) continue;
++        const d = (o.kodRow - me.row) ** 2 + (o.kodCol - me.col) ** 2;
++        if (d < bestD) { bestD = d; best = o.id; }
++      }
++      log(`look at ${best} (${best === undefined ? "nobody here" : rs(room.get(best)!.nameRes)})`);
++      if (best !== undefined) conn.sendGame(buildReqLook(best));
++    }, Number(sec) * 1000);
++  }
+   if (opt.attack) setInterval(() => { const t = pickTarget("nearest"); if (t !== undefined) conn.sendGame(buildReqAttack(t)); }, 2000);
+   if (path.length) startWalking();
+   const stayMs = Number(opt.stay) * 1000;

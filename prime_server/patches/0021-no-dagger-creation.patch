@@ -1,0 +1,32 @@
+--- a/kod/object/passive/spell/creaweap.kod
++++ b/kod/object/passive/spell/creaweap.kod
+@@ -25,7 +25,7 @@
+    createweapon_icon_rsc = icremace.bgf
+    createweapon_desc_rsc = \
+       "Materializes a weapon. Requires nothing but a violent will. You may say the name of the weapon you want to create. "
+-      "The choices are mace, dagger, hammer, axe, long sword, scimitar, mystic sword, and practice bow. "
++      "The choices are mace, hammer, axe, long sword, scimitar, mystic sword, and practice bow. "
+       "Choosing a weapon will remove you chance to improve, you will need to complete the conentration to imp. "
+ 
+    createweapon_spell_intro = \
+@@ -147,10 +147,6 @@
+       {
+          return true;
+       }
+-      if((StringEqual("Dagger",sWeapon) OR StringEqual("Short Sword",sWeapon)) AND iSpellPercent >= 30)
+-      {
+-         return true;
+-      }
+       if(StringEqual("Hammer",sWeapon) AND iSpellPercent >= 45)
+       {
+          return true;
+@@ -193,7 +189,8 @@
+       {
+          if iNum < 30
+          {
+-            oWeapon = Create(&ShortSword);
++            // Prime: no daggers from Create Weapon (warriors cannot use them)
++            oWeapon = Create(&Mace);
+          }
+          else
+          {

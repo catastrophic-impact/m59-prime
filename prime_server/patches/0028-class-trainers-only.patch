@@ -1,0 +1,32 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -3521,6 +3521,14 @@
+ 
+       lAvailable = $;
+ 
++      // Prime: a classed player learns only from the priestess of the god of his class
++      if NOT Send(Send(SYS,@GetPrime),@TrainerAllowed,#who=who,#trainer=self)
++      {
++         Send(Send(SYS,@GetPrime),@SayElsewhere,#trainer=self);
++
++         return;
++      }
++
+       iNum = 0;
+       foreach i in nth(plFor_Sale,2)
+       {         
+@@ -5978,6 +5986,14 @@
+          return FALSE; 
+       }
+ 
++      // Prime: a classed player learns only from the priestess of the god of his class
++      if NOT Send(Send(SYS,@GetPrime),@TrainerAllowed,#who=who,#trainer=self)
++      {
++         Send(Send(SYS,@GetPrime),@SayElsewhere,#trainer=self);
++
++         return FALSE;
++      }
++
+       if bSkill
+       {
+          oAbility = Send(SYS,@FindSkillByNum,#num=sid);

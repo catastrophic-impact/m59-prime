@@ -1,0 +1,26 @@
+--- a/kod/object/passive/brain.kod
++++ b/kod/object/passive/brain.kod
+@@ -1185,6 +1185,12 @@
+       iHatred = iHatred + iAdd;
+       iAdd = 0;
+ 
++      // Prime: a warrior who hits the monster draws its attention (6x the warrior's threat bonus)
++      if event = TS_FIGHT_ME_VICTIM
++      {
++         iHatred = iHatred + 6 * Send(Send(SYS,@GetPrime),@ThreatBonus,#what=what);
++      }
++
+       if iHatred <= 0 AND NOT (behavior & AI_FIGHT_AGGRESSIVE)
+       {
+          return 0;
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -2462,7 +2462,7 @@
+       if what = poTarget
+       {
+          // Should scale based on damage?
+-         piHatred = piHatred + 1;
++         piHatred = piHatred + 1 + Send(Send(SYS,@GetPrime),@ThreatBonus,#what=what);     // Prime: warriors build more threat
+       }
+ 
+       piHit_points = piHit_points - iDamage;

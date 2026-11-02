@@ -1,0 +1,28 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -4638,6 +4638,12 @@
+          return;
+       }
+ 
++      // Prime: our own verbs about an object (skill <number>)
++      if Send(Send(SYS,@GetPrime),@ObjectVerb,#who=self,#what=what,#words=lWords)
++      {
++         return;
++      }
++
+       Send(Send(SYS,@GetShardsAbilities),@ObjectCommand,#who=self,#what=what,#words=lWords);
+ 
+       return;
+@@ -7274,6 +7280,12 @@
+       // Get use_weapon
+       use_weapon = Send(self,@GetWeapon);
+ 
++      // Prime: priests do not punch (their attack is a touch spell)
++      if use_weapon = $ AND Send(Send(SYS,@GetPrime),@NoFists,#who=self)
++      {
++         return FALSE;
++      }
++
+       // Convert type over to a stroke here.
+       if type = STROKE_NORMAL
+       {

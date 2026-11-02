@@ -1,0 +1,86 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -26,6 +26,8 @@
+    // Ours (2026-10-18 play test): within this of its master (sixty-fourths of a square), standing
+    // still, it strolls a quarter as often as other followers (MoveToMaster)
+    COMPANION_NEAR = 80
++   // Prime: how long an elementalist companion's Touch of Flame burns, seconds
++   COMPANION_TOUCH_SECONDS = 60
+    // A master moving faster than walking (user.kod USER_WALKING_SPEED) is running: so does it,
+    // as fast as them, up to this (squares per 10 seconds)
+    COMPANION_MASTER_WALKS = 25
+@@ -101,6 +103,8 @@
+    piCastChance = 0
+    // Prime: a class companion's abilities, [ is skill, number, percent, class level ] (PrimeCompanions.CompProfile)
+    plProfile = $
++   // Prime: GetTime() until an elementalist companion's Touch of Flame burns (its blows are fire)
++   piTouchUntil = 0
+    plSupport = $
+    ptSupport = $
+    // GetTime when its enchantments on its owner, its next heal and its next reflection are due;
+@@ -729,6 +733,57 @@
+       return TRUE;
+    }
+ 
++   GetSpellType(what = $)
++   {
++      // Prime: a lit Touch of Flame makes its blows fire
++      if piTouchUntil > GetTime()
++      {
++         return ATCK_SPELL_FIRE;
++      }
++
++      propagate;
++   }
++
++   FlameHands()
++   "Prime: an elementalist companion that has the spell lays Touch of Flame on its hands as a player does (the real mana cost); while it burns each blow raises its hands in the cast animation."
++   {
++      local oSpell, iPower, iCost;
++
++      if piKind <> COMPANION_ELEMENTALIST OR plProfile = $ OR poOwner = $
++      {
++         return;
++      }
++
++      iPower = Send(self,@AbilityPct,#bSkill=FALSE,#num=SID_TOUCH_OF_FLAME);
++      if iPower = 0
++      {
++         return;
++      }
++
++      if piTouchUntil <= GetTime()
++      {
++         oSpell = Send(SYS,@FindSpellByNum,#num=SID_TOUCH_OF_FLAME);
++         if oSpell = $
++         {
++            return;
++         }
++
++         iCost = Send(oSpell,@GetManaCost,#who=self,#iSpellPower=iPower);
++         if piMana < iCost
++         {
++            return;
++         }
++
++         piMana = piMana - iCost;
++         piTouchUntil = GetTime() + COMPANION_TOUCH_SECONDS;
++         Send(self,@NewMana);
++      }
++
++      Send(self,@MonsterCastAnimation,#iSpellNum=SID_TOUCH_OF_FLAME);
++
++      return;
++   }
++
+    ApplyKit(lSpells = $,support = $,chance = 0,maxmana = 0,lAbil = $,power = 30)
+    "Prime: a class companion's spells, support, chance to cast, mana and abilities (PrimeCompanions.CompApply). It keeps the share of its mana it had."
+    {
+@@ -847,6 +902,7 @@
+    "It tries a spell before its weapon."
+    {
+       Send(self,@MarkFight);
++      Send(self,@FlameHands);
+       // Prime: a class companion first heals, buffs or gives mana if it can (PrimeCompanions)
+       if piKind >= COMPANION_MONK AND NOT (piBehavior & AI_NOFIGHT)
+          AND Send(Send(SYS,@GetPrime),@CompBeforeAttack,#comp=self)

@@ -1,0 +1,58 @@
+--- a/common.mak.linux
++++ b/common.mak.linux
+@@ -12,7 +12,7 @@
+ endif
+ 
+ ifdef RELEASE
+-undef DEBUG
++undefine DEBUG
+ OUTDIR=release
+ NODPRINTFS = 1
+ else
+@@ -22,7 +22,7 @@
+ 
+ # set to get debugging info in executable
+ ifdef NODEBUG
+-undef DEBUGINFO
++undefine DEBUGINFO
+ else
+ DEBUGINFO = 1
+ endif
+--- a/blakcomp/makefile.linux
++++ b/blakcomp/makefile.linux
+@@ -11,8 +11,8 @@
+ 
+ BLAKINCLUDEDIR += -I .
+ 
+-CFLAGS = -m32 -I $(BLAKINCLUDEDIR) -DBLAK_PLATFORM_LINUX  -Wno-write-strings
+-LINKFLAGS = -m32
++CFLAGS = -I $(BLAKINCLUDEDIR) -fpermissive -DBLAK_PLATFORM_LINUX  -Wno-write-strings
++LINKFLAGS =
+ LIBS =
+ 
+ OBJS = \
+--- a/blakserv/makefile.linux
++++ b/blakserv/makefile.linux
+@@ -19,10 +19,10 @@
+ # -m32 compile as 32-bit
+ # -Wno-write-strings: turns off deprecated warning for const char*
+ #   strings passed as char* (Should be properly fixed)
+-CFLAGS = -m32 -I $(BLAKINCLUDEDIR) -g -x c++ -DBLAK_PLATFORM_LINUX -Wno-write-strings
++CFLAGS = -I $(BLAKINCLUDEDIR) -g -x c++ -D__forceinline=inline -fpermissive -DBLAK_PLATFORM_LINUX -Wno-write-strings
+ 
+ 
+-BLAKSERVLINKFLAGS = -m32 -lpthread -lrt
++BLAKSERVLINKFLAGS = -lpthread -lrt
+ 
+ SOURCEDIR = .
+ 
+--- a/blakserv/thdmsgqueue_linux.c
++++ b/blakserv/thdmsgqueue_linux.c
+@@ -17,6 +17,7 @@
+    Msgs.count = 0;
+    pthread_mutex_init(&Msgs.mux, NULL);
+    pthread_cond_init(&Msgs.msgEvent, NULL);
++   return TRUE;   /* prime: the upstream fell off the end (undefined behaviour on 64-bit) */
+ }
+                
+ bool WaitForAnyMessageWithTimeout(INT64 ms)

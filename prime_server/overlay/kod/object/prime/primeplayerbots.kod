@@ -1,0 +1,2674 @@
+// Meridian 59 Prime: the playerbots' registry (PrimePlayerBots, a layer of the Prime singleton). A playerbot is a persistent identity (name, gender, class,
+// health, ability percent, home town) with, while it is "logged in", a body (PlayerBot, the Companion body with no owner). They appear in "who" and answer
+// tells like players. Phase 1: a few bots log in, stand and walk about town squares, speak now and then, and come and go. Rules (PrimeRules):
+// piTownLife (0 townsfolk crowds, 1 playerbots, 2 both), piPlayerBotCount (how many are logged in at once).
+
+PrimePlayerBots is PrimeNavData
+
+constants:
+
+   include blakston.khd
+   include protocol.khd
+   include prime.khd
+
+   // What a playerbot is doing (identity field 8)
+   PBA_NONE = 0
+   PBA_TOWN = 1
+   PBA_INN = 2
+   PBA_HUNT = 3
+   PB_MAX_HUNTERS = 3
+   PBA_SHOP = 4
+   PBA_DEAD = 5
+
+resources:
+
+   // Info window of a bot that is away (the first four %s are the description parts and the class of its body, see PlayerBot.ShowDesc)
+   pbr_hunt = "%s %s %s\n\nClass: %s.\nCurrently: farming %s in %s."
+   pbr_shop = "%s %s %s\n\nClass: %s.\nCurrently: out shopping around %s."
+   pbr_dead = "%s %s %s\n\nClass: %s.\nCurrently: in the underworld, waiting to come back to %s."
+
+   pbn_m1 = "Silvan Blackwood"
+   pbn_m2 = "Zachary Crowley"
+   pbn_m3 = "Edmund Greenleaf"
+   pbn_m4 = "Roderick Ironside"
+   pbn_m5 = "Warin Stonebridge"
+   pbn_m6 = "Josiah Barlow"
+   pbn_m7 = "Anselm Underhill"
+   pbn_m8 = "Dunstan Kingsley"
+   pbn_m9 = "Alaric Vance"
+   pbn_m10 = "Jasper Whitlock"
+   pbn_m11 = "Clement Sinclair"
+   pbn_m12 = "Darius Carver"
+   pbn_m13 = "Armand Fairbank"
+   pbn_m14 = "Hugh Stonebridge"
+   pbn_m15 = "Conrad Dunmere"
+   pbn_m16 = "Norbert Tanner"
+   pbn_m17 = "Orlando Greenleaf"
+   pbn_m18 = "Ivor Carver"
+   pbn_m19 = "Stefan Barlow"
+   pbn_m20 = "Rupert Eastwick"
+   pbn_m21 = "Godfrey Hawthorne"
+   pbn_m22 = "Gregor Kestrel"
+   pbn_m23 = "Marcus Oakhurst"
+   pbn_m24 = "Mortimer Oakhurst"
+   pbn_m25 = "Hadrian Fletcher"
+   pbn_m26 = "Bruno Orwell"
+   pbn_m27 = "Thaddeus Grimsby"
+   pbn_m28 = "Ignatius Fairbank"
+   pbn_m29 = "Reynard Carver"
+   pbn_m30 = "Ezekiel Underhill"
+   pbn_m31 = "Viktor Crowley"
+   pbn_m32 = "Cedric Aldous"
+   pbn_m33 = "Yorick Yarrow"
+   pbn_m34 = "Matthias Thorne"
+   pbn_m35 = "Felix Oakhurst"
+   pbn_m36 = "Konrad Grimsby"
+   pbn_m37 = "Gideon Whitlock"
+   pbn_m38 = "Bertram Blackwood"
+   pbn_m39 = "Egbert Oakhurst"
+   pbn_m40 = "Nathaniel Pritchard"
+   pbn_m41 = "Theron Blackwood"
+   pbn_m42 = "Sebastian Vance"
+   pbn_m43 = "Xavier Wexford"
+   pbn_m44 = "Ambrose Quillfeather"
+   pbn_m45 = "Tobias Crowley"
+   pbn_m46 = "Quentin Vance"
+   pbn_m47 = "Edric Crowley"
+   pbn_m48 = "Piers Thorne"
+   pbn_m49 = "Boris Barlow"
+   pbn_m50 = "Isidore Merrick"
+   pbn_m51 = "Lambert Aldous"
+   pbn_m52 = "Fenwick Dacre"
+   pbn_m53 = "Caspar Aldous"
+   pbn_m54 = "Tobiah Oakhurst"
+   pbn_m55 = "Kasimir Ashford"
+   pbn_m56 = "Garrick Pemberton"
+   pbn_m57 = "Amadeus Thorne"
+   pbn_m58 = "Dietrich Ashford"
+   pbn_m59 = "Urban Stonebridge"
+   pbn_m60 = "Valentin Hollis"
+   pbn_m61 = "Aldric Quillfeather"
+   pbn_m62 = "Wulfric Pritchard"
+   pbn_m63 = "Oswin Longfellow"
+   pbn_m64 = "Barnabas Oakhurst"
+   pbn_m65 = "Gawain Ironside"
+   pbn_m66 = "Giles Fairbank"
+   pbn_m67 = "Raymond Everly"
+   pbn_m68 = "Joachim Dunmere"
+   pbn_m69 = "Emeric Sinclair"
+   pbn_m70 = "Vincent Kestrel"
+   pbn_m71 = "Corwin Pritchard"
+   pbn_m72 = "Osric Upton"
+   pbn_m73 = "Alfred Kingsley"
+   pbn_m74 = "Benedict Orwell"
+   pbn_m75 = "Leofric Lockwood"
+   pbn_m76 = "Magnus Tanner"
+   pbn_m77 = "Silas Corwin"
+   pbn_m78 = "Tristan Carver"
+   pbn_m79 = "Hartmann Dacre"
+   pbn_m80 = "Lucian Pemberton"
+   pbn_m81 = "Otto Kestrel"
+   pbn_m82 = "Jeremiah Aldous"
+   pbn_m83 = "Percival Greenleaf"
+   pbn_m84 = "Walter Radcliffe"
+   pbn_m85 = "Everard Barlow"
+   pbn_m86 = "Uther Barlow"
+   pbn_m87 = "Peregrine Fairbank"
+   pbn_m88 = "Nicolas Netherby"
+   pbn_m89 = "Ulric Ironside"
+   pbn_m90 = "Julian Tanner"
+   pbn_m91 = "Gerhard Upton"
+   pbn_m92 = "Dorian Thackeray"
+   pbn_m93 = "Leopold Hawthorne"
+   pbn_m94 = "Willem Carver"
+   pbn_m95 = "Pascal Thorne"
+   pbn_m96 = "Kendrick Fletcher"
+   pbn_m97 = "Elias Hawthorne"
+   pbn_m98 = "Lorenzo Ironside"
+   pbn_m99 = "Florian Oakhurst"
+   pbn_m100 = "Harold Ashford"
+   pbn_m101 = "Cosimo Northcott"
+   pbn_m102 = "Baldwin Thackeray"
+   pbn_m103 = "Silvan Draycott"
+   pbn_m104 = "Zachary Longfellow"
+   pbn_m105 = "Edmund Aldous"
+   pbn_m106 = "Roderick Longfellow"
+   pbn_m107 = "Warin Whitlock"
+   pbn_m108 = "Josiah Crowley"
+   pbn_m109 = "Anselm Ingram"
+   pbn_m110 = "Dunstan Everly"
+   pbn_m111 = "Alaric Jessop"
+   pbn_m112 = "Jasper Greenleaf"
+   pbn_m113 = "Clement Tanner"
+   pbn_m114 = "Darius Kestrel"
+   pbn_m115 = "Armand Carver"
+   pbn_m116 = "Hugh Kestrel"
+   pbn_m117 = "Conrad Jessop"
+   pbn_m118 = "Norbert Merrick"
+   pbn_m119 = "Orlando Kingsley"
+   pbn_m120 = "Ivor Sinclair"
+   pbn_m121 = "Stefan Oakhurst"
+   pbn_m122 = "Rupert Thorne"
+   pbn_m123 = "Godfrey Wexford"
+   pbn_m124 = "Gregor Quillfeather"
+   pbn_m125 = "Marcus Thorne"
+   pbn_m126 = "Mortimer Wexford"
+   pbn_m127 = "Hadrian Hawthorne"
+   pbn_m128 = "Bruno Stonebridge"
+   pbn_m129 = "Thaddeus Northcott"
+   pbn_m130 = "Ignatius Whitlock"
+   pbn_m131 = "Reynard Merrick"
+   pbn_m132 = "Ezekiel Fairbank"
+   pbn_m133 = "Viktor Sinclair"
+   pbn_m134 = "Cedric Oakhurst"
+   pbn_m135 = "Yorick Ainsley"
+   pbn_m136 = "Matthias Thackeray"
+   pbn_m137 = "Felix Kestrel"
+   pbn_m138 = "Konrad Brightwater"
+   pbn_m139 = "Gideon Orwell"
+   pbn_m140 = "Bertram Ashford"
+   pbn_m141 = "Egbert Lockwood"
+   pbn_m142 = "Nathaniel Brightwater"
+   pbn_m143 = "Theron Pemberton"
+   pbn_m144 = "Sebastian Ainsley"
+   pbn_m145 = "Xavier Everly"
+   pbn_m146 = "Ambrose Thackeray"
+   pbn_m147 = "Tobias Greenleaf"
+   pbn_m148 = "Quentin Kestrel"
+   pbn_m149 = "Edric Ashford"
+   pbn_m150 = "Piers Quillfeather"
+   pbn_f1 = "Elspeth Eastwick"
+   pbn_f2 = "Petronella Merrick"
+   pbn_f3 = "Olwen Carver"
+   pbn_f4 = "Patience Netherby"
+   pbn_f5 = "Britta Brightwater"
+   pbn_f6 = "Fenella Quillfeather"
+   pbn_f7 = "Kunigunde Draycott"
+   pbn_f8 = "Ilse Ashford"
+   pbn_f9 = "Agnes Ashford"
+   pbn_f10 = "Ysolde Kestrel"
+   pbn_f11 = "Ingrid Jessop"
+   pbn_f12 = "Rhiannon Quillfeather"
+   pbn_f13 = "Una Longfellow"
+   pbn_f14 = "Sabine Longfellow"
+   pbn_f15 = "Blanche Tanner"
+   pbn_f16 = "Ursula Marlowe"
+   pbn_f17 = "Delphine Oakhurst"
+   pbn_f18 = "Perpetua Yarrow"
+   pbn_f19 = "Tabitha Radcliffe"
+   pbn_f20 = "Nerissa Emberley"
+   pbn_f21 = "Thessaly Ashford"
+   pbn_f22 = "Mathilde Yarrow"
+   pbn_f23 = "Griselda Oakhurst"
+   pbn_f24 = "Leonora Kingsley"
+   pbn_f25 = "Eirene Quillfeather"
+   pbn_f26 = "Nesta Merrick"
+   pbn_f27 = "Henrietta Northcott"
+   pbn_f28 = "Fiona Brightwater"
+   pbn_f29 = "Rosalind Tanner"
+   pbn_f30 = "Eleanor Ironside"
+   pbn_f31 = "Seraphina Draycott"
+   pbn_f32 = "Frideswide Upton"
+   pbn_f33 = "Wynne Orwell"
+   pbn_f34 = "Constance Hawthorne"
+   pbn_f35 = "Isolde Lockwood"
+   pbn_f36 = "Verena Orwell"
+   pbn_f37 = "Beatrix Ingram"
+   pbn_f38 = "Prudence Lockwood"
+   pbn_f39 = "Verity Jessop"
+   pbn_f40 = "Adelheid Lockwood"
+   pbn_f41 = "Freya Grimsby"
+   pbn_f42 = "Rowena Marlowe"
+   pbn_f43 = "Genevieve Ingram"
+   pbn_f44 = "Clemence Ashford"
+   pbn_f45 = "Elowen Upton"
+   pbn_f46 = "Edith Radcliffe"
+   pbn_f47 = "Bernadette Dunmere"
+   pbn_f48 = "Sybil Upton"
+   pbn_f49 = "Juliana Underhill"
+   pbn_f50 = "Marguerite Stonebridge"
+   pbn_f51 = "Ulrike Ravenscroft"
+   pbn_f52 = "Dagmar Radcliffe"
+   pbn_f53 = "Dorothea Carver"
+   pbn_f54 = "Xenia Northcott"
+   pbn_f55 = "Yvette Ingram"
+   pbn_f56 = "Calista Grimsby"
+   pbn_f57 = "Winifred Vance"
+   pbn_f58 = "Octavia Wexford"
+   pbn_f59 = "Cordelia Marlowe"
+   pbn_f60 = "Valeska Radcliffe"
+   pbn_f61 = "Temperance Corwin"
+   pbn_f62 = "Lysandra Hawthorne"
+   pbn_f63 = "Brangwen Netherby"
+   pbn_f64 = "Wilhelmina Radcliffe"
+   pbn_f65 = "Svea Merrick"
+   pbn_f66 = "Millicent Marlowe"
+   pbn_f67 = "Tamsin Yarrow"
+   pbn_f68 = "Rosamund Stonebridge"
+   pbn_f69 = "Catrin Corwin"
+   pbn_f70 = "Abigail Fairbank"
+   pbn_f71 = "Imogen Oakhurst"
+   pbn_f72 = "Natalia Thorne"
+   pbn_f73 = "Philippa Quillfeather"
+   pbn_f74 = "Alys Carver"
+   pbn_f75 = "Clarice Quillfeather"
+   pbn_f76 = "Theodora Oakhurst"
+   pbn_f77 = "Hester Stonebridge"
+   pbn_f78 = "Kristina Draycott"
+   pbn_f79 = "Odette Greenleaf"
+   pbn_f80 = "Philomena Tanner"
+   pbn_f81 = "Zenobia Dunmere"
+   pbn_f82 = "Aveline Merrick"
+   pbn_f83 = "Gwendolyn Lockwood"
+   pbn_f84 = "Vivienne Greenleaf"
+   pbn_f85 = "Maud Lockwood"
+   pbn_f86 = "Adela Brightwater"
+   pbn_f87 = "Mercy Longfellow"
+   pbn_f88 = "Ophelia Everly"
+   pbn_f89 = "Cecily Greenleaf"
+   pbn_f90 = "Hildegard Upton"
+   pbn_f91 = "Joanna Vance"
+   pbn_f92 = "Gisela Underhill"
+   pbn_f93 = "Lucrezia Thackeray"
+   pbn_f94 = "Helena Kestrel"
+   pbn_f95 = "Lavinia Netherby"
+   pbn_f96 = "Pernille Thackeray"
+   pbn_f97 = "Jocasta Eastwick"
+   pbn_f98 = "Katarina Hollis"
+   pbn_f99 = "Elspeth Kestrel"
+   pbn_f100 = "Petronella Whitlock"
+   pbn_f101 = "Olwen Quillfeather"
+   pbn_f102 = "Patience Crowley"
+   pbn_f103 = "Britta Fletcher"
+   pbn_f104 = "Fenella Ainsley"
+   pbn_f105 = "Kunigunde Hawthorne"
+   pbn_f106 = "Ilse Everly"
+   pbn_f107 = "Agnes Fairbank"
+   pbn_f108 = "Ysolde Thackeray"
+   pbn_f109 = "Ingrid Netherby"
+   pbn_f110 = "Rhiannon Fairbank"
+   pbn_f111 = "Una Thorne"
+   pbn_f112 = "Sabine Brightwater"
+   pbn_f113 = "Blanche Orwell"
+   pbn_f114 = "Ursula Lockwood"
+   pbn_f115 = "Delphine Yarrow"
+   pbn_f116 = "Perpetua Kestrel"
+   pbn_f117 = "Nerissa Yarrow"
+   pbn_f118 = "Thessaly Grimsby"
+   pbn_f119 = "Mathilde Underhill"
+   pbn_f120 = "Leonora Tanner"
+   pbn_f121 = "Eirene Greenleaf"
+   pbn_f122 = "Nesta Blackwood"
+   pbn_f123 = "Henrietta Ironside"
+   pbn_f124 = "Fiona Crowley"
+   pbn_f125 = "Rosalind Brightwater"
+   pbn_f126 = "Eleanor Quillfeather"
+   pbn_f127 = "Seraphina Blackwood"
+   pbn_f128 = "Frideswide Hollis"
+   pbn_f129 = "Wynne Lockwood"
+   pbn_f130 = "Constance Thorne"
+   pbn_f131 = "Isolde Pritchard"
+   pbn_f132 = "Verena Thorne"
+   pbn_f133 = "Beatrix Fairbank"
+   pbn_f134 = "Prudence Ironside"
+   pbn_f135 = "Verity Brightwater"
+   pbn_f136 = "Adelheid Ainsley"
+   pbn_f137 = "Freya Merrick"
+   pbn_f138 = "Rowena Hollis"
+   pbn_f139 = "Genevieve Marlowe"
+   pbn_f140 = "Clemence Ironside"
+   pbn_f141 = "Elowen Yarrow"
+   pbn_f142 = "Edith Ingram"
+   pbn_f143 = "Bernadette Pritchard"
+   pbn_f144 = "Sybil Dunmere"
+   pbn_f145 = "Juliana Lockwood"
+   pbn_f146 = "Marguerite Quillfeather"
+   pbn_f147 = "Ulrike Fairbank"
+   pbn_f148 = "Dagmar Ravenscroft"
+   pbn_f149 = "Dorothea Pemberton"
+   pbn_f150 = "Xenia Marlowe"
+
+properties:
+
+   // [ id, name resource, gender, kind (4 warrior .. 7 elementalist), base health, ability percent, home town room number, activity (PBA_*), GetTime() when it ends,
+   //   room it hunts in, shillings (picked up from real kills), GetTime() when a dead one is back, reagents carried (a count, from real kills) ]
+   plPBotIdentities = $
+   // [ id, body ] of the bots that are logged in
+   plPBotBodies = $
+   piPBotNextId = 1
+   piPBotTicks = 0
+   // [ room number, average level of its monsters, how many ] of the rooms with monsters worth hunting, made once after a start (PBotSurvey)
+   plPBotRooms = $
+   piPBotUp = 0
+   // GetTime() of the last PBotsTick: a gap of more than 30 s means the server was down (a restart): every bot is then taken home like a Rescue and chooses a new activity (PBotRestartReset)
+   piPBotSeen = 0
+   piPBotNoRisk = 0
+   // [ room number, [ its doors, nav squares, its nodes ] or $ ] for the route search, made once per bake (PBotDoorsOf)
+   plPBotDoorCache = $
+   piPBotNavStamp = 0
+   // Bot trace (debug): the bot id whose walk is written to the debug log as PBOT-TRACE lines (-1 = every bot, 0 = off). It switches itself off after piPBotTraceMax lines
+   // or piPBotTraceMins minutes, whichever comes first. scripts/bot_trace.sh reads and removes the lines.
+   piPBotTrace = 0
+   piPBotTraceLines = 0
+   piPBotTraceEnd = 0
+   piPBotTraceMax = 3000
+   piPBotTraceMins = 15
+
+messages:
+
+   PBotMaleNames(part = 1)
+   "150 men's names in four parts of up to 38 (a list literal may hold only 40); only men have them."
+   {
+      if part = 1
+      {
+         return [
+            pbn_m1, pbn_m2, pbn_m3, pbn_m4, pbn_m5, pbn_m6, pbn_m7, pbn_m8, pbn_m9, pbn_m10,
+            pbn_m11, pbn_m12, pbn_m13, pbn_m14, pbn_m15, pbn_m16, pbn_m17, pbn_m18, pbn_m19, pbn_m20,
+            pbn_m21, pbn_m22, pbn_m23, pbn_m24, pbn_m25, pbn_m26, pbn_m27, pbn_m28, pbn_m29, pbn_m30,
+            pbn_m31, pbn_m32, pbn_m33, pbn_m34, pbn_m35, pbn_m36, pbn_m37, pbn_m38
+         ];
+      }
+
+      else if part = 2
+      {
+         return [
+            pbn_m39, pbn_m40, pbn_m41, pbn_m42, pbn_m43, pbn_m44, pbn_m45, pbn_m46, pbn_m47, pbn_m48,
+            pbn_m49, pbn_m50, pbn_m51, pbn_m52, pbn_m53, pbn_m54, pbn_m55, pbn_m56, pbn_m57, pbn_m58,
+            pbn_m59, pbn_m60, pbn_m61, pbn_m62, pbn_m63, pbn_m64, pbn_m65, pbn_m66, pbn_m67, pbn_m68,
+            pbn_m69, pbn_m70, pbn_m71, pbn_m72, pbn_m73, pbn_m74, pbn_m75, pbn_m76
+         ];
+      }
+
+      else if part = 3
+      {
+         return [
+            pbn_m77, pbn_m78, pbn_m79, pbn_m80, pbn_m81, pbn_m82, pbn_m83, pbn_m84, pbn_m85, pbn_m86,
+            pbn_m87, pbn_m88, pbn_m89, pbn_m90, pbn_m91, pbn_m92, pbn_m93, pbn_m94, pbn_m95, pbn_m96,
+            pbn_m97, pbn_m98, pbn_m99, pbn_m100, pbn_m101, pbn_m102, pbn_m103, pbn_m104, pbn_m105, pbn_m106,
+            pbn_m107, pbn_m108, pbn_m109, pbn_m110, pbn_m111, pbn_m112, pbn_m113, pbn_m114
+         ];
+      }
+
+      else if part = 4
+      {
+         return [
+            pbn_m115, pbn_m116, pbn_m117, pbn_m118, pbn_m119, pbn_m120, pbn_m121, pbn_m122, pbn_m123, pbn_m124,
+            pbn_m125, pbn_m126, pbn_m127, pbn_m128, pbn_m129, pbn_m130, pbn_m131, pbn_m132, pbn_m133, pbn_m134,
+            pbn_m135, pbn_m136, pbn_m137, pbn_m138, pbn_m139, pbn_m140, pbn_m141, pbn_m142, pbn_m143, pbn_m144,
+            pbn_m145, pbn_m146, pbn_m147, pbn_m148, pbn_m149, pbn_m150
+         ];
+      }
+
+      return $;
+   }
+
+   PBotFemaleNames(part = 1)
+   "150 women's names in four parts of up to 38 (a list literal may hold only 40); only women have them."
+   {
+      if part = 1
+      {
+         return [
+            pbn_f1, pbn_f2, pbn_f3, pbn_f4, pbn_f5, pbn_f6, pbn_f7, pbn_f8, pbn_f9, pbn_f10,
+            pbn_f11, pbn_f12, pbn_f13, pbn_f14, pbn_f15, pbn_f16, pbn_f17, pbn_f18, pbn_f19, pbn_f20,
+            pbn_f21, pbn_f22, pbn_f23, pbn_f24, pbn_f25, pbn_f26, pbn_f27, pbn_f28, pbn_f29, pbn_f30,
+            pbn_f31, pbn_f32, pbn_f33, pbn_f34, pbn_f35, pbn_f36, pbn_f37, pbn_f38
+         ];
+      }
+
+      else if part = 2
+      {
+         return [
+            pbn_f39, pbn_f40, pbn_f41, pbn_f42, pbn_f43, pbn_f44, pbn_f45, pbn_f46, pbn_f47, pbn_f48,
+            pbn_f49, pbn_f50, pbn_f51, pbn_f52, pbn_f53, pbn_f54, pbn_f55, pbn_f56, pbn_f57, pbn_f58,
+            pbn_f59, pbn_f60, pbn_f61, pbn_f62, pbn_f63, pbn_f64, pbn_f65, pbn_f66, pbn_f67, pbn_f68,
+            pbn_f69, pbn_f70, pbn_f71, pbn_f72, pbn_f73, pbn_f74, pbn_f75, pbn_f76
+         ];
+      }
+
+      else if part = 3
+      {
+         return [
+            pbn_f77, pbn_f78, pbn_f79, pbn_f80, pbn_f81, pbn_f82, pbn_f83, pbn_f84, pbn_f85, pbn_f86,
+            pbn_f87, pbn_f88, pbn_f89, pbn_f90, pbn_f91, pbn_f92, pbn_f93, pbn_f94, pbn_f95, pbn_f96,
+            pbn_f97, pbn_f98, pbn_f99, pbn_f100, pbn_f101, pbn_f102, pbn_f103, pbn_f104, pbn_f105, pbn_f106,
+            pbn_f107, pbn_f108, pbn_f109, pbn_f110, pbn_f111, pbn_f112, pbn_f113, pbn_f114
+         ];
+      }
+
+      else if part = 4
+      {
+         return [
+            pbn_f115, pbn_f116, pbn_f117, pbn_f118, pbn_f119, pbn_f120, pbn_f121, pbn_f122, pbn_f123, pbn_f124,
+            pbn_f125, pbn_f126, pbn_f127, pbn_f128, pbn_f129, pbn_f130, pbn_f131, pbn_f132, pbn_f133, pbn_f134,
+            pbn_f135, pbn_f136, pbn_f137, pbn_f138, pbn_f139, pbn_f140, pbn_f141, pbn_f142, pbn_f143, pbn_f144,
+            pbn_f145, pbn_f146, pbn_f147, pbn_f148, pbn_f149, pbn_f150
+         ];
+      }
+
+      return $;
+   }
+
+   PBotTowns()
+   "The room numbers of the towns a bot may live in (its home): Tos, Barloque, Cor Noth, Marion, Raza, Jasper, Ko'catan, Bergensdorf, Jixa. Each is a region of PrimeNavData (NavTowns)."
+   {
+      return [ 50, 102, 150, 200, 300, 350, 2000, 2800, 2903 ];
+   }
+
+   PBotRegion(home = 0)
+   "[ home, [ street rooms ], [ inns ] ] of a home town (the first town if it is not known)."
+   {
+      local i;
+
+      foreach i in Send(self,@NavTowns)
+      {
+         if First(i) = home
+         {
+            return i;
+         }
+      }
+
+      return First(Send(self,@NavTowns));
+   }
+
+   PBotShopRoom(home = 0)
+   "A reachable merchant room in this bot's home town, or $ when the baked street links contain none."
+   {
+      local lRegion, lStreets, lNav, lDoor, oRoom, iCount, i, oMerchant, lShops;
+
+      lRegion = Send(self,@PBotRegion,#home=home);
+      lStreets = Nth(lRegion,2);
+      lShops = $;
+      foreach i in lStreets
+      {
+         lNav = Send(self,@NavRoom,#rid=i);
+         if lNav = $
+         {
+            continue;
+         }
+
+         foreach lDoor in Nth(lNav,3)
+         {
+            if Nth(lDoor,4) = 1 AND NOT Send(self,@NavIsInn,#rid=Nth(lDoor,6))
+            {
+               oRoom = Send(SYS,@FindRoomByNum,#num=Nth(lDoor,6));
+               if oRoom <> $
+               {
+                  iCount = Send(oRoom,@CountHoldingHowMany,#class=&Monster);
+                  i = 0;
+                  while i < iCount
+                  {
+                     ++i;
+                     oMerchant = Send(oRoom,@FindHoldingActive,#class=&Monster,#sequence=i);
+                     if oMerchant <> $ AND (Send(oMerchant,@GetAttributes) & MOB_SELLER)
+                     {
+                        lShops = Cons(Nth(lDoor,6),lShops);
+                        break;
+                     }
+                  }
+               }
+            }
+         }
+      }
+
+      if lShops = $
+      {
+         return $;
+      }
+
+      return Nth(lShops,Random(1,Length(lShops)));
+   }
+
+   NavIsInn(rid = 0)
+   "Is this room an inn of the graphs?"
+   {
+      local i, j;
+
+      foreach i in Send(self,@NavTowns)
+      {
+         foreach j in Nth(i,3)
+         {
+            if j = rid
+            {
+               return TRUE;
+            }
+         }
+      }
+
+      return FALSE;
+   }
+
+   PBotIsSafeRoom(rid = 0)
+   "Is this a street or an inn of one of the towns, the only rooms where a bot passes the time, talks or chats (a hunting ground is not)?"
+   {
+      local i, j;
+
+      foreach i in Send(self,@NavTowns)
+      {
+         foreach j in Nth(i,2)
+         {
+            if j = rid
+            {
+               return TRUE;
+            }
+         }
+
+         foreach j in Nth(i,3)
+         {
+            if j = rid
+            {
+               return TRUE;
+            }
+         }
+      }
+
+      return FALSE;
+   }
+
+   NavNodePos(rid = 0,node = 0)
+   "[ row, col ] of a node of a room's graph, or $."
+   {
+      local lInfo;
+
+      lInfo = Send(self,@PBotDoorsOf,#rid=rid);
+      if lInfo = $ OR node < 1 OR node > Length(Nth(lInfo,3))
+      {
+         return $;
+      }
+
+      return Nth(Nth(lInfo,3),node);
+   }
+
+   NavNearest(rid = 0,row = 0,col = 0,oWho = $)
+   "The node of a room's graph nearest a square (0 when the room has no graph). oWho is kept for the callers' sake and ignored: where a bot walks is the planner's business, the node is only a name for the part of the room it is in."
+   {
+      local lInfo, lNodes, p, iIdx, iBest, iBestD, iD;
+
+      lInfo = Send(self,@PBotDoorsOf,#rid=rid);
+      if lInfo = $
+      {
+         return 0;
+      }
+
+      lNodes = Nth(lInfo,3);
+      iBest = 0;
+      iBestD = 999999;
+      iIdx = 0;
+      foreach p in lNodes
+      {
+         ++iIdx;
+         iD = Abs(row - First(p)) * Abs(row - First(p)) + Abs(col - Nth(p,2)) * Abs(col - Nth(p,2));
+         if iD < iBestD
+         {
+            iBestD = iD;
+            iBest = iIdx;
+         }
+      }
+
+      return iBest;
+   }
+
+   PBotCap(kind = 0)
+   "The top of the scale for a class: a bot's health is its level (20 to this)."
+   {
+      return 100 + Send(self,@CompStamina,#kind=kind);
+   }
+
+   PBotBand(health = 20,kind = 0)
+   "Which fifth of its class's scale (0 lowest, 4 top) a level is in."
+   {
+      return Bound((health - 20) * 5 / Bound(Send(self,@PBotCap,#kind=kind) - 20,1,$),0,4);
+   }
+
+   PBotBandShare(band = 0)
+   "The share, in percent, of all playerbots that should be in this band: many beginners, few veterans."
+   {
+      return Nth([35,25,18,12,10],band + 1);
+   }
+
+   PBotBandCount(band = 0)
+   "How many of the characters are in this band."
+   {
+      local i, iCount;
+
+      iCount = 0;
+      foreach i in plPBotIdentities
+      {
+         if Send(self,@PBotBand,#health=Nth(i,5),#kind=Nth(i,4)) = band
+         {
+            ++iCount;
+         }
+      }
+
+      return iCount;
+   }
+
+   PBotStartLevel(kind = 0)
+   "The level a new character starts at: a band drawn from the shares, with a pull towards the levels of the players online, then a level inside it."
+   {
+      local i, iRoll, iBand, iCap, iLo, iHi, lPlayers, oUser;
+
+      iCap = Send(self,@PBotCap,#kind=kind);
+      iBand = 0;
+      iRoll = Random(1,100);
+      while iBand < 4 AND iRoll > Send(self,@PBotBandShare,#band=iBand)
+      {
+         iRoll = iRoll - Send(self,@PBotBandShare,#band=iBand);
+         ++iBand;
+      }
+
+      if Random(1,100) <= 40
+      {
+         // near a player who is online (a group to join, rivals to meet)
+         lPlayers = $;
+         foreach i in Send(SYS,@GetUsersLoggedOn)
+         {
+            oUser = i;
+            if IsClass(oUser,&Player) AND NOT IsClass(oUser,&DM)
+            {
+               lPlayers = Cons(oUser,lPlayers);
+            }
+         }
+
+         if lPlayers <> $
+         {
+            oUser = Nth(lPlayers,Random(1,Length(lPlayers)));
+            iBand = Bound(Send(self,@PBotBand,#health=Send(oUser,@GetBaseMaxHealth),#kind=kind) + Random(-1,1),0,4);
+         }
+      }
+
+      return Send(self,@PBotLevelIn,#band=iBand,#kind=kind);
+   }
+
+   PBotLevelIn(band = 0,kind = 0)
+   "A level inside a band of a class's scale."
+   {
+      local iCap, iLo, iHi;
+
+      iCap = Send(self,@PBotCap,#kind=kind);
+      iLo = 20 + band * (iCap - 20) / 5;
+      iHi = 20 + (band + 1) * (iCap - 20) / 5;
+      if band = 4
+      {
+         iHi = iCap;
+      }
+
+      return Bound(Random(iLo,Bound(iHi,iLo,$)),20,iCap);
+   }
+
+   PBotRebalance()
+   "Once after a start: characters made before the level spread existed (all beginners) are given levels so that every band has its share."
+   {
+      local i, b, iBest, iDeficit, iTotal, iBandNo;
+
+      iTotal = Length(plPBotIdentities);
+      foreach i in plPBotIdentities
+      {
+         b = Send(self,@PBotBand,#health=Nth(i,5),#kind=Nth(i,4));
+         if Send(self,@PBotBandCount,#band=b) * 100 > iTotal * Send(self,@PBotBandShare,#band=b)
+         {
+            iBest = -1;
+            iDeficit = 0;
+            iBandNo = 0;
+            while iBandNo < 5
+            {
+               if iTotal * Send(self,@PBotBandShare,#band=iBandNo) - Send(self,@PBotBandCount,#band=iBandNo) * 100 > iDeficit
+               {
+                  iDeficit = iTotal * Send(self,@PBotBandShare,#band=iBandNo) - Send(self,@PBotBandCount,#band=iBandNo) * 100;
+                  iBest = iBandNo;
+               }
+
+               ++iBandNo;
+            }
+
+            if iBest >= 0
+            {
+               Send(self,@PBotSet,#id=First(i),#pos=5,#value=Send(self,@PBotLevelIn,#band=iBest,#kind=Nth(i,4)));
+            }
+         }
+      }
+
+      return;
+   }
+
+   PBotMayRise(id = 0)
+   "May this character rise a level? Not into a band that is already full: the world keeps its beginners and its few veterans."
+   {
+      local lId, iBand, iNew;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      iBand = Send(self,@PBotBand,#health=Nth(lId,5),#kind=Nth(lId,4));
+      iNew = Send(self,@PBotBand,#health=Nth(lId,5) + 1,#kind=Nth(lId,4));
+      if iNew = iBand
+      {
+         return TRUE;
+      }
+
+      return Send(self,@PBotBandCount,#band=iNew) * 100 < Length(plPBotIdentities) * Send(self,@PBotBandShare,#band=iNew);
+   }
+
+   PBotRetire(id = 0)
+   "A veteran leaves the world for good (it has gone home, it is said); a beginner with a new name takes its place."
+   {
+      local i, lKeep;
+
+      Send(self,@PBotLogout,#id=id);
+      lKeep = $;
+      foreach i in plPBotIdentities
+      {
+         if First(i) <> id
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plPBotIdentities = lKeep;
+      Send(self,@PBotNewIdentity);
+
+      return;
+   }
+
+   PBotNodeLoad(rid = 0,node = 0,oExcept = $)
+   "How many other bodies of the registry stand at, or are walking to, this node of a room."
+   {
+      local i, oBot, iCount;
+
+      iCount = 0;
+      foreach i in plPBotBodies
+      {
+         oBot = Nth(i,2);
+         if oBot <> oExcept AND Send(oBot,@GetOwner) <> $ AND Send(oBot,@GetNavRid) = rid
+            AND Send(oBot,@GetParkNode) = node
+         {
+            ++iCount;
+         }
+      }
+
+      return iCount;
+   }
+
+   PBotRouteRoomDamage(rid = 0,iSquares = 0)
+   "Conservative first-pass damage estimate for sprinting across a room: expected monster DPS, initial population cap and time in their vision."
+   {
+      local i, iDps, iVision, iAttackers, iExposure;
+
+      if piPBotNoRisk
+      {
+         // test mode (scripts/bot_scenarios.py): no map is dangerous, so every route can be walked
+         return 0;
+      }
+
+      foreach i in plPBotRooms
+      {
+         if First(i) = rid
+         {
+            if Length(i) < 7
+            {
+               return 0;
+            }
+
+            iDps = Nth(i,5);
+            iVision = Nth(i,6);
+            iAttackers = Nth(i,7);
+            // Sprint travel is estimated at 0.5 seconds per nav square, with
+            // extra exposure for the room's longest reported vision distance.
+            iExposure = (iSquares + 2 * iVision) * 500;
+
+            return iDps * iAttackers * iExposure / 1000;
+         }
+      }
+
+      return 0;
+   }
+
+   PBotTraceWanted(id = 0)
+   "Is the bot trace on for this bot (no line is counted)? Cheap enough to ask at every step."
+   {
+      return piPBotTrace <> 0 AND (piPBotTrace < 0 OR piPBotTrace = id) AND (piPBotTraceEnd = 0 OR GetTime() <= piPBotTraceEnd);
+   }
+
+   PBotTraceOn(id = 0)
+   "Is the bot trace on for this bot? It counts the lines and switches itself off at its limits (3000 lines or 15 minutes, set when it was turned on)."
+   {
+      if piPBotTrace = 0
+      {
+         return FALSE;
+      }
+
+      if piPBotTraceEnd = 0
+      {
+         piPBotTraceEnd = GetTime() + piPBotTraceMins * 60;
+         piPBotTraceLines = 0;
+      }
+
+      if GetTime() > piPBotTraceEnd OR piPBotTraceLines >= piPBotTraceMax
+      {
+         Debug("PBOT-TRACE off: limit reached after",piPBotTraceLines,"lines");
+         piPBotTrace = 0;
+         piPBotTraceEnd = 0;
+
+         return FALSE;
+      }
+
+      if piPBotTrace > 0 AND piPBotTrace <> id
+      {
+         return FALSE;
+      }
+
+      ++piPBotTraceLines;
+
+      return TRUE;
+   }
+
+   PBotHuntFailLimit()
+   "The rule piBotHuntFailLimit: failed attempts in a row to find or reach a foe after which a hunter gives its hunt up."
+   {
+      return piBotHuntFailLimit;
+   }
+
+   PBotHuntGiveUp(id = 0)
+   "A hunter that could not find or reach a foe the rule's number of times in a row ends its hunt: its activity is over now, the next one is chosen at the next tick (PBotFinish, PBotChoose)."
+   {
+      if Send(self,@PBotIdentity,#id=id) = $
+      {
+         return;
+      }
+
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime());
+
+      return;
+   }
+
+   PBotDoorsOf(rid = 0)
+   "[ doors, squares, nodes, components ] of a baked room, from a cache made once per bake: NavRoom builds the whole graph from literals on every call and the server frees such lists only at its garbage collection (list node numbers run out at 2^27, 2026-10-30), so the route search must not call it per step."
+   {
+      local lEntry, lRoom;
+
+      if piPBotNavStamp <> Send(self,@NavVersion)
+      {
+         // new bake (or a first use): the cached tables are stale. The old ones are left to the server's list memory, once per bake.
+         plPBotDoorCache = $;
+         piPBotNavStamp = Send(self,@NavVersion);
+      }
+
+      foreach lEntry in plPBotDoorCache
+      {
+         // (an entry of an older format, fewer parts than now, made before the nodes or the components were added and kept in the save, is made again)
+         if First(lEntry) = rid AND (Nth(lEntry,2) = $ OR Length(Nth(lEntry,2)) >= 4)
+         {
+            return Nth(lEntry,2);
+         }
+      }
+
+      lRoom = Send(self,@NavRoom,#rid=rid);
+      if lRoom = $
+      {
+         lEntry = [rid,$];
+      }
+      else
+      {
+         lEntry = [rid,[Nth(lRoom,3),Bound(Length(First(lRoom)) / 2,1,$),First(lRoom),Send(self,@PBotComponents,#lRoom=lRoom)]];
+      }
+
+      plPBotDoorCache = Cons(lEntry,plPBotDoorCache);
+
+      return Nth(lEntry,2);
+   }
+
+   PBotComponents(lRoom = $)
+   "For each node of a room's graph the number of the connected piece it belongs to (nodes with the same number can walk to each other)."
+   {
+      local lComp, iNodes, iNode, iLabel, lFront, lNext, iCur, lEdge, iNb, lRoutes;
+
+      iNodes = Length(First(lRoom));
+      lRoutes = Nth(lRoom,2);
+      lComp = $;
+      iNode = iNodes;
+      while iNode > 0
+      {
+         lComp = Cons(0,lComp);
+         iNode = iNode - 1;
+      }
+
+      iLabel = 0;
+      iNode = 0;
+      while iNode < iNodes
+      {
+         ++iNode;
+         if Nth(lComp,iNode) = 0
+         {
+            ++iLabel;
+            SetNth(lComp,iNode,iLabel);
+            lFront = [iNode];
+            while lFront <> $
+            {
+               lNext = $;
+               foreach iCur in lFront
+               {
+                  foreach lEdge in Nth(lRoutes,iCur)
+                  {
+                     iNb = First(lEdge);
+                     if Nth(lComp,iNb) = 0
+                     {
+                        SetNth(lComp,iNb,iLabel);
+                        lNext = Cons(iNb,lNext);
+                     }
+                  }
+               }
+
+               lFront = lNext;
+            }
+         }
+      }
+
+      return lComp;
+   }
+
+   MobHasPath(mob = $,what = $)
+   "Hook in brain.kod (Brain.GetHatred, rule pbMobAggroPath): can this monster walk to this one? TRUE for a monster that attacks from afar, in a room without a graph, and when the graph has a route between the nodes nearest to them."
+   {
+      local oRoom, rid, lInfo, iA, iB, lComp;
+
+      oRoom = Send(mob,@GetOwner);
+      if oRoom = $ OR Send(mob,@HasRangedAttack)
+      {
+         return TRUE;
+      }
+
+      rid = Send(oRoom,@GetRoomNum);
+      lInfo = Send(self,@PBotDoorsOf,#rid=rid);
+      if lInfo = $
+      {
+         return TRUE;
+      }
+
+      iA = Send(self,@NavNearest,#rid=rid,#row=Send(mob,@GetRow),#col=Send(mob,@GetCol));
+      iB = Send(self,@NavNearest,#rid=rid,#row=Send(what,@GetRow),#col=Send(what,@GetCol));
+      lComp = Nth(lInfo,4);
+      if iA = 0 OR iB = 0 OR lComp = $
+      {
+         return TRUE;
+      }
+
+      return Nth(lComp,iA) = Nth(lComp,iB);
+   }
+
+   PBotRouteEstimate(fromRid = 0,fromNode = 0,toRid = 0,iHealth = 1)
+   "Risk-weighted room-door search constrained to survivable sprint routes. toRid 0 returns the list of reachable room numbers, toRid > 0 returns [ first door, cost, damage ] or $."
+   {
+      local lStates, lState, lBest, lRoomInfo, lDoors, lDoor, iDoor, iBestScore, i, iRid, iNextRid, iCost, iDamage, iScore, iFirst,
+         iExisting, iIterations, lResult;
+
+      if toRid > 0 AND fromRid = toRid
+      {
+         return [$,0,0];
+      }
+
+      if Send(self,@PBotDoorsOf,#rid=fromRid) = $ OR (toRid > 0 AND Send(self,@PBotDoorsOf,#rid=toRid) = $)
+      {
+         return $;
+      }
+
+      // a state is [ room, cost, damage, first door as room * 100 + door number (0 = none yet), score, closed ]
+      lStates = [ [fromRid,0,0,0,0,FALSE] ];
+      iIterations = 0;
+      lResult = $;
+
+      while iIterations < 500
+      {
+         ++iIterations;
+         lBest = $;
+         iBestScore = 999999;
+         foreach lState in lStates
+         {
+            if NOT Nth(lState,6) AND Nth(lState,5) < iBestScore
+            {
+               lBest = lState;
+               iBestScore = Nth(lState,5);
+            }
+         }
+
+         if lBest = $
+         {
+            break;
+         }
+
+         SetNth(lBest,6,TRUE);
+         iRid = First(lBest);
+
+         if toRid > 0 AND iRid = toRid
+         {
+            iFirst = Nth(lBest,4);
+            lDoors = First(Send(self,@PBotDoorsOf,#rid=iFirst / 100));
+            lResult = [Nth(lDoors,iFirst - (iFirst / 100) * 100),Nth(lBest,2),Nth(lBest,3)];
+
+            break;
+         }
+
+         lRoomInfo = Send(self,@PBotDoorsOf,#rid=iRid);
+         if lRoomInfo = $
+         {
+            continue;
+         }
+
+         iDamage = Nth(lBest,3) + Send(self,@PBotRouteRoomDamage,#rid=iRid,#iSquares=Nth(lRoomInfo,2));
+         if iDamage >= iHealth
+         {
+            continue;
+         }
+
+         iDoor = 0;
+         foreach lDoor in First(lRoomInfo)
+         {
+            ++iDoor;
+            iNextRid = Nth(lDoor,6);
+            if Nth(lDoor,4) <> 1 OR Send(self,@PBotDoorsOf,#rid=iNextRid) = $
+            {
+               continue;
+            }
+
+            iCost = Nth(lBest,2) + 1;
+            iScore = iCost + iDamage * 5;
+            iFirst = Nth(lBest,4);
+            if iFirst = 0
+            {
+               iFirst = iRid * 100 + iDoor;
+            }
+
+            iExisting = $;
+            foreach lState in lStates
+            {
+               if First(lState) = iNextRid
+               {
+                  iExisting = lState;
+               }
+            }
+
+            if iExisting = $
+            {
+               lStates = Cons([iNextRid,iCost,iDamage,iFirst,iScore,FALSE],lStates);
+            }
+            else if NOT Nth(iExisting,6) AND iScore < Nth(iExisting,5)
+            {
+               SetNth(iExisting,2,iCost);
+               SetNth(iExisting,3,iDamage);
+               SetNth(iExisting,4,iFirst);
+               SetNth(iExisting,5,iScore);
+            }
+         }
+      }
+
+      if toRid = 0
+      {
+         foreach lState in lStates
+         {
+            lResult = Cons(First(lState),lResult);
+         }
+      }
+
+      return lResult;
+   }
+
+   PBotRemoveIndex(lList = $,iPos = 0)
+   "Remove the first matching state index from a list."
+   {
+      local lNew, i, bRemoved;
+
+      lNew = $;
+      bRemoved = FALSE;
+      foreach i in lList
+      {
+         if i = iPos AND NOT bRemoved
+         {
+            bRemoved = TRUE;
+         }
+         else
+         {
+            lNew = Cons(i,lNew);
+         }
+      }
+
+      return lNew;
+   }
+
+   PBotChatPartner(oBot = $)
+   "Another bot of the same room that is standing about (not talking, not leaving), chosen at random, else $."
+   {
+      local oRoom, i, o, lPick;
+
+      oRoom = Send(oBot,@GetOwner);
+      lPick = $;
+      foreach i in plPBotBodies
+      {
+         o = Nth(i,2);
+         if o <> oBot AND Send(o,@GetOwner) = oRoom AND Send(o,@IsStandingAbout)
+         {
+            lPick = Cons(o,lPick);
+         }
+      }
+
+      if lPick = $
+      {
+         return $;
+      }
+
+      return Nth(lPick,Random(1,Length(lPick)));
+   }
+
+   PBotIdentity(id = 0)
+   {
+      local i;
+
+      foreach i in plPBotIdentities
+      {
+         if First(i) = id
+         {
+            return i;
+         }
+      }
+
+      return $;
+   }
+
+   PBotIsShopping(id = 0)
+   {
+      local lId;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      return lId <> $ AND Nth(lId,8) = PBA_SHOP;
+   }
+
+   PBotBodyOf(id = 0)
+   {
+      local i;
+
+      foreach i in plPBotBodies
+      {
+         if First(i) = id
+         {
+            return Nth(i,2);
+         }
+      }
+
+      return $;
+   }
+
+   PBotPickName(iGender = GENDER_MALE)
+   "A random name of this gender's: a man's name for a man, a woman's for a woman."
+   {
+      local lNames;
+
+      if iGender = GENDER_FEMALE
+      {
+         lNames = Send(self,@PBotFemaleNames,#part=Random(1,4));
+      }
+      else
+      {
+         lNames = Send(self,@PBotMaleNames,#part=Random(1,4));
+      }
+
+      return Nth(lNames,Random(1,Length(lNames)));
+   }
+
+   PBotNameUsed(rName = $)
+   {
+      local i;
+
+      foreach i in plPBotIdentities
+      {
+         if Nth(i,2) = rName
+         {
+            return TRUE;
+         }
+      }
+
+      return FALSE;
+   }
+
+   PBotNewIdentity()
+   "A new character: a man or a woman (50/50) with a name of that gender nobody else has, a class, a start of health and ability, a home town."
+   {
+      local iGender, rName, iTry, iKind, lTowns, lId;
+
+      iGender = GENDER_FEMALE;
+      if Random(1,2) = 1
+      {
+         iGender = GENDER_MALE;
+      }
+
+      rName = Send(self,@PBotPickName,#iGender=iGender);
+      iTry = 0;
+      while Send(self,@PBotNameUsed,#rName=rName) AND iTry < 60
+      {
+         rName = Send(self,@PBotPickName,#iGender=iGender);
+         ++iTry;
+      }
+
+      if Send(self,@PBotNameUsed,#rName=rName)
+      {
+         return $;
+      }
+
+      iKind = Random(COMPANION_WARRIOR,COMPANION_ELEMENTALIST);
+      lTowns = Send(self,@PBotTowns);
+      lId = [ piPBotNextId, rName, iGender, iKind, Send(self,@PBotStartLevel,#kind=iKind), Random(60,300), Nth(lTowns,Random(1,Length(lTowns))), PBA_NONE, 0, 0, Random(50,400), 0, 0 ];
+      ++piPBotNextId;
+      plPBotIdentities = Cons(lId,plPBotIdentities);
+
+      return lId;
+   }
+
+   PBotLogin(id = 0)
+   "The bot with this identity enters the game: a body in its home town, told to every player's who list."
+   {
+      local lId, oRoom, oBot, i;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $ OR Send(self,@PBotBodyOf,#id=id) <> $
+      {
+         return;
+      }
+
+      oRoom = Send(SYS,@FindRoomByNum,#num=Nth(lId,7));
+      if oRoom = $
+      {
+         return;
+      }
+
+      oBot = Create(&PlayerBot,#kind=Nth(lId,4),#owner=$);
+      Send(oBot,@SetIdentity,#id=id,#name=Nth(lId,2),#gender=Nth(lId,3));
+      Send(self,@CompApplyIdentity,#comp=oBot,#health=Nth(lId,5),#points=Nth(lId,6));
+      plPBotBodies = Cons([id,oBot],plPBotBodies);
+      Send(self,@PBotResume,#id=id);
+
+      foreach i in Send(SYS,@GetUsersLoggedOn)
+      {
+         Send(i,@SomeoneLogon,#what=oBot);
+      }
+
+      return;
+   }
+
+   PBotLogout(id = 0)
+   "The bot leaves the game: gone from every who list, its body removed."
+   {
+      local oBot, i, lKeep;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      lKeep = $;
+      foreach i in plPBotBodies
+      {
+         if First(i) <> id
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plPBotBodies = lKeep;
+      if oBot = $
+      {
+         return;
+      }
+
+      foreach i in Send(SYS,@GetUsersLoggedOn)
+      {
+         Send(i,@SomeoneLogoff,#what=oBot);
+      }
+
+      Send(oBot,@Delete);
+
+      return;
+   }
+
+   PBotSet(id = 0,pos = 1,value = 0)
+   "Field pos of an identity set to value (a list is never changed in place: the list is made again)."
+   {
+      local i, j, lNew, lOne, n;
+
+      lNew = $;
+      foreach i in plPBotIdentities
+      {
+         if First(i) = id
+         {
+            lOne = $;
+            n = 0;
+            foreach j in i
+            {
+               ++n;
+               if n = pos
+               {
+                  lOne = Cons(value,lOne);
+               }
+               else
+               {
+                  lOne = Cons(j,lOne);
+               }
+            }
+
+            // Cons builds it backwards
+            lNew = Cons(Send(self,@PBotReverse,#lList=lOne),lNew);
+         }
+         else
+         {
+            lNew = Cons(i,lNew);
+         }
+      }
+
+      plPBotIdentities = lNew;
+
+      return;
+   }
+
+   PBotReverse(lList = $)
+   {
+      local i, lOut;
+
+      lOut = $;
+      foreach i in lList
+      {
+         lOut = Cons(i,lOut);
+      }
+
+      return lOut;
+   }
+
+   PBotWalkSteps()
+   "Steps a walking bot takes each tick: 1 in real time; with piBotTimeScale below 100 (testing only) that many times faster (10 steps at 10 percent, at most 20)."
+   {
+      return Bound(100 / Bound(piBotTimeScale,1,$),1,20);
+   }
+
+   PBotScale(seconds = 0)
+   "Seconds of a bot's day, scaled by the rule piBotTimeScale (percent: 100 real time, 10 ten times as fast, for testing)."
+   {
+      return Bound(seconds * piBotTimeScale / 100,1,$);
+   }
+
+   PBotLimbo(id = 0)
+   "Its body leaves the world (it is hunting, shopping or dead) but stays in who."
+   {
+      local oBot;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $
+      {
+         return;
+      }
+
+      Send(oBot,@EnterStateLimbo);
+      if Send(oBot,@GetOwner) <> $
+      {
+         Send(oBot,@NewOwner,#what=$);
+      }
+
+      return;
+   }
+
+   PBotPlace(id = 0,rid = 0,row = 0,col = 0)
+   "Its body appears in a room at a place (or the nearest free square)."
+   {
+      local oBot, oRoom;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      oRoom = Send(SYS,@FindRoomByNum,#num=rid);
+      if oBot = $ OR oRoom = $
+      {
+         return;
+      }
+
+      if Send(oBot,@GetOwner) <> $
+      {
+         Send(oBot,@NewOwner,#what=$);
+      }
+
+      // a baked node can lie a square beyond the room's edge (24 of 6276 nodes, 20 rooms: the stand-ins of edge exits): a body put there cannot move at all (the room's
+      // things box refuses every step), so it is put on the nearest square inside the room
+      row = Bound(row,1,Send(oRoom,@GetRoomRows));
+      col = Bound(col,1,Send(oRoom,@GetRoomCols));
+      Send(oRoom,@NewHold,#what=oBot,#new_row=row,#new_col=col);
+      Send(oBot,@EnterStateWait);
+      Send(oBot,@StartLife,#rid=rid,#row=row,#col=col);
+
+      return;
+   }
+
+   PBotPlaceNode(id = 0,rid = 0,node = 0)
+   "Its body appears in a room at a node of its graph."
+   {
+      local lPos;
+
+      lPos = Send(self,@NavNodePos,#rid=rid,#node=node);
+      if lPos = $
+      {
+         return;
+      }
+
+      Send(self,@PBotPlace,#id=id,#rid=rid,#row=First(lPos),#col=Nth(lPos,2));
+
+      return;
+   }
+
+   PBotPlaceAtDoor(id = 0,rid = 0)
+   "Its body appears in a room at the outside of one of its doors (as if it had just come out of a building), else at a node."
+   {
+      local lRoom, lDoors, lNodes, lPos;
+
+      lRoom = Send(self,@NavRoom,#rid=rid);
+      if lRoom = $
+      {
+         return;
+      }
+
+      lNodes = First(lRoom);
+      lDoors = Nth(lRoom,3);
+      if lDoors <> $
+      {
+         lPos = Nth(lNodes,Nth(Nth(lDoors,Random(1,Length(lDoors))),3));
+      }
+      else
+      {
+         lPos = Nth(lNodes,Random(1,Length(lNodes)));
+      }
+
+      Send(self,@PBotPlace,#id=id,#rid=rid,#row=First(lPos),#col=Nth(lPos,2));
+
+      return;
+   }
+
+   PBotWatched(id = 0)
+   "Is a player in the room its body is in (so it must not appear or vanish before their eyes)?"
+   {
+      local oBot, oRoom;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $
+      {
+         return FALSE;
+      }
+
+      oRoom = Send(oBot,@GetOwner);
+
+      return oRoom <> $ AND Send(oRoom,@CountHoldingHowMany,#class=&User) > 0;
+   }
+
+   PBotShopPresence(id = 0)
+   "Keep a simulated shopper in limbo while its selected shop is empty; show it there when a player arrives."
+   {
+      local lId, oBot, oRoom, iRid;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $ OR Nth(lId,8) <> PBA_SHOP
+      {
+         return;
+      }
+
+      iRid = Nth(lId,12);
+      oRoom = Send(SYS,@FindRoomByNum,#num=iRid);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oRoom = $ OR oBot = $
+      {
+         return;
+      }
+
+      if Send(oBot,@GetOwner) = oRoom
+      {
+         if Send(oRoom,@CountHoldingHowMany,#class=&User) = 0
+         {
+            Send(self,@PBotLimbo,#id=id);
+         }
+      }
+      else if Send(oBot,@GetOwner) = $ AND Send(oRoom,@CountHoldingHowMany,#class=&User) > 0
+      {
+         Send(self,@PBotPlaceAtDoor,#id=id,#rid=iRid);
+      }
+
+      return;
+   }
+
+   PBotResume(id = 0)
+   "It has just come into the game (or been made again): it goes on with what it was doing, or chooses."
+   {
+      local lId, iAct;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $
+      {
+         return;
+      }
+
+      iAct = Nth(lId,8);
+      if iAct = PBA_NONE OR GetTime() >= Nth(lId,9)
+      {
+         Send(self,@PBotChoose,#id=id);
+
+         return;
+      }
+
+      Send(self,@PBotStart,#id=id,#act=iAct,#keep=TRUE);
+
+      return;
+   }
+
+   PBotChoose(id = 0)
+   "A new activity, by weight: hunting most, then the town, the inn and shopping."
+   {
+      local iRoll, iAct, lTowns;
+
+      // now and then it moves to another town (so every town has some), never before a player's eyes
+      if Random(1,100) <= 25 AND NOT Send(self,@PBotWatched,#id=id)
+      {
+         lTowns = Send(self,@PBotTowns);
+         Send(self,@PBotSet,#id=id,#pos=7,#value=Nth(lTowns,Random(1,Length(lTowns))));
+      }
+
+      iRoll = Random(1,100);
+      iAct = PBA_INN;
+      if iRoll <= 40
+      {
+         iAct = PBA_HUNT;
+      }
+      else if iRoll <= 55
+      {
+         iAct = PBA_SHOP;
+      }
+      else if iRoll <= 80
+      {
+         iAct = PBA_TOWN;
+      }
+
+      Send(self,@PBotStart,#id=id,#act=iAct,#keep=FALSE);
+
+      return;
+   }
+
+   PBotCanRoam(rid = 0)
+   "A bot can hunt in a room only where it has a baked graph with room to move (three nodes or more): without one it cannot walk about the room or find its way back."
+   {
+      local lRoom;
+
+      lRoom = Send(self,@NavRoom,#rid=rid);
+
+      return lRoom <> $ AND Length(First(lRoom)) >= 3;
+   }
+
+   PBotRoomCrowd(rid = 0,id = 0)
+   "How many other hunters (bots heading there or fighting there) and players are in a hunt room: farming rooms hold at most PB_MAX_HUNTERS, so a full map sends the bot elsewhere."
+   {
+      local i, iCount, oRoom;
+
+      iCount = 0;
+      foreach i in plPBotIdentities
+      {
+         if First(i) <> id AND Nth(i,8) = PBA_HUNT AND Nth(i,10) = rid
+         {
+            iCount = iCount + 1;
+         }
+      }
+
+      oRoom = Send(SYS,@FindRoomByNum,#num=rid);
+      if oRoom <> $
+      {
+         iCount = iCount + Send(oRoom,@CountHoldingHowMany,#class=&User);
+      }
+
+      return iCount;
+   }
+
+   PBotHuntRoom(id = 0)
+   "A hunt room whose monsters suit the bot and whose shortest known nav route is survivable at sprint speed, else $."
+   {
+      local lId, i, lFit, iHealth, oBot, iStartRid, iStartNode, oOwner, lRoute, lRoutes, bReach;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      iHealth = Nth(lId,5);
+      iStartRid = First(Nth(Send(self,@PBotRegion,#home=Nth(lId,7)),2));
+      iStartNode = 1;
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot <> $
+      {
+         oOwner = Send(oBot,@GetOwner);
+         if oOwner <> $
+         {
+            iStartRid = Send(oBot,@GetNavRid);
+            iStartNode = Send(oBot,@GetNavNode);
+            iHealth = Send(oBot,@GetHealth);
+         }
+      }
+
+      // Search once from this bot's origin and reuse the safe reachable-room
+      // set for every level-appropriate hunt candidate.
+      lRoutes = Send(self,@PBotRouteEstimate,#fromRid=iStartRid,#fromNode=iStartNode,#toRid=0,#iHealth=iHealth);
+      lFit = $;
+      foreach i in plPBotRooms
+      {
+         if Nth(i,2) * 100 >= iHealth * 40 AND Nth(i,2) * 100 <= iHealth * 75
+            AND NOT Send(self,@PBotNightRoomClosed,#rid=First(i))
+         {
+            bReach = FALSE;
+            foreach lRoute in lRoutes
+            {
+               if lRoute = First(i)
+               {
+                  bReach = TRUE;
+               }
+            }
+            if bReach AND Send(self,@PBotRoomCrowd,#rid=First(i),#id=id) < PB_MAX_HUNTERS
+            {
+               lFit = Cons(i,lFit);
+            }
+         }
+      }
+
+      if lFit = $
+      {
+         return $;
+      }
+
+      return Nth(lFit,Random(1,Length(lFit)));
+   }
+
+   PBotStart(id = 0,act = 0,keep = FALSE)
+   "Begin an activity; keep = it was already going (it has come back into the game part way through). A body a player can see does not appear or vanish: it walks to a door, or goes on where it is."
+   {
+      local lId, lRegion, lRooms, iEnd, oBot, bWatched, iRid, lRoom, iRoll;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $
+      {
+         return;
+      }
+
+      if act = PBA_HUNT AND NOT keep
+      {
+         lRoom = Send(self,@PBotHuntRoom,#id=id);
+         if lRoom = $
+         {
+            // No hunt target has a survivable route: pick among the other
+            // activities instead of retrying another hunt or waiting.
+            iRoll = Random(1,60);
+            if iRoll <= 15
+            {
+               act = PBA_SHOP;
+            }
+            else if iRoll <= 40
+            {
+               act = PBA_TOWN;
+            }
+            else
+            {
+               act = PBA_INN;
+            }
+         }
+         else
+         {
+            Send(self,@PBotSet,#id=id,#pos=10,#value=First(lRoom));
+         }
+      }
+
+      if act = PBA_SHOP AND NOT keep
+      {
+         iRid = Send(self,@PBotShopRoom,#home=Nth(lId,7));
+         if iRid = $
+         {
+            act = PBA_TOWN;
+         }
+         else
+         {
+            Send(self,@PBotSet,#id=id,#pos=12,#value=iRid);
+         }
+      }
+
+      if act <> PBA_SHOP
+      {
+         Send(self,@PBotSet,#id=id,#pos=12,#value=0);
+      }
+
+      if NOT keep
+      {
+         iEnd = GetTime() + Send(self,@PBotScale,#seconds=Random(300,1800));
+         if act = PBA_SHOP
+         {
+            iEnd = GetTime() + Send(self,@PBotScale,#seconds=Random(60,240));
+         }
+
+         Send(self,@PBotSet,#id=id,#pos=8,#value=act);
+         Send(self,@PBotSet,#id=id,#pos=9,#value=iEnd);
+      }
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      bWatched = Send(self,@PBotWatched,#id=id);
+
+      if act = PBA_HUNT
+      {
+         // it goes there on its own two feet, seen by anyone it passes
+         Send(self,@PBotTravel,#id=id,#rid=Nth(Send(self,@PBotIdentity,#id=id),10));
+
+         return;
+      }
+
+      if act = PBA_HUNT OR act = PBA_SHOP
+      {
+         if bWatched
+         {
+            Send(oBot,@Leave);
+
+            return;
+         }
+
+         Send(self,@PBotLimbo,#id=id);
+
+         return;
+      }
+
+      lRegion = Send(self,@PBotRegion,#home=Nth(lId,7));
+      if act = PBA_INN
+      {
+         lRooms = Nth(lRegion,3);
+      }
+      else
+      {
+         lRooms = Nth(lRegion,2);
+      }
+
+      iRid = Nth(lRooms,Random(1,Length(lRooms)));
+
+      // away from its town (back from a hunt): it walks home
+      if oBot <> $ AND Send(self,@PBotAwayFromTown,#oBot=oBot,#home=Nth(lId,7))
+      {
+         Send(self,@PBotTravel,#id=id,#rid=iRid);
+
+         return;
+      }
+
+      if bWatched
+      {
+         if act = PBA_INN
+         {
+            Send(oBot,@Want,#what=1);
+         }
+         else
+         {
+            Send(oBot,@Want,#what=2);
+         }
+
+         return;
+      }
+
+      Send(self,@PBotPlaceAtDoor,#id=id,#rid=iRid);
+
+      return;
+   }
+
+   PBotAwayFromTown(oBot = $,home = 0)
+   "Is the place its body last stood (in the world or in limbo) outside its home town's rooms?"
+   {
+      local lRegion, iRid, i;
+
+      iRid = Send(oBot,@GetNavRid);
+      if iRid = 0
+      {
+         return FALSE;
+      }
+
+      lRegion = Send(self,@PBotRegion,#home=home);
+      foreach i in Nth(lRegion,2)
+      {
+         if i = iRid
+         {
+            return FALSE;
+         }
+      }
+
+      foreach i in Nth(lRegion,3)
+      {
+         if i = iRid
+         {
+            return FALSE;
+         }
+      }
+
+      return TRUE;
+   }
+
+   PBotTravel(id = 0,rid = 0)
+   "Its body walks to a room: from where it stands, or from where it was last (a bot out of the world is set down at a door there, or in its home town if it has no place yet)."
+   {
+      local oBot, lId, iFrom, lRegion;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $ OR rid = 0
+      {
+         return;
+      }
+
+      if Send(oBot,@GetOwner) = $
+      {
+         lId = Send(self,@PBotIdentity,#id=id);
+         iFrom = Send(oBot,@GetNavRid);
+         if iFrom = 0 OR Send(self,@NavRoom,#rid=iFrom) = $
+         {
+            lRegion = Send(self,@PBotRegion,#home=Nth(lId,7));
+            iFrom = First(Nth(lRegion,2));
+         }
+
+         Send(self,@PBotPlaceAtDoor,#id=id,#rid=iFrom);
+      }
+
+      Send(oBot,@Journey,#rid=rid);
+
+      return;
+   }
+
+   PBotJourneyEnd(id = 0,rid = 0)
+   "Its body has come to the room it was travelling to: a hunter begins to hunt there."
+   {
+      local lId, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if lId <> $ AND oBot <> $ AND Nth(lId,8) = PBA_HUNT AND Nth(lId,10) = rid
+      {
+         Send(oBot,@BeginHunt);
+      }
+
+      return;
+   }
+
+   PBotJourneyFailed(id = 0,rid = 0)
+   "No survivable route: a hunter goes back to the inn on foot; a bot with no way on casts Rescue (never a jump to where it wanted to go)."
+   {
+      local lId, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $
+      {
+         return;
+      }
+
+      Debug("PBOT-FAIL journey: no route, bot",id,"act",Nth(lId,8),"to room",rid,"from room",Send(Send(self,@PBotBodyOf,#id=id),@GetNavRid),"node",Send(Send(self,@PBotBodyOf,#id=id),@GetNavNode),"health",Send(Send(self,@PBotBodyOf,#id=id),@GetHealth));
+      if Nth(lId,8) = PBA_HUNT AND Nth(lId,10) = rid
+      {
+         // no way there after all: no invisible pretend hunt, the bot goes back to the inn (it walks home, or is set down there)
+         Send(self,@PBotStart,#id=id,#act=PBA_INN,#keep=FALSE);
+
+         return;
+      }
+
+      // no way on at all (not even home on foot): it is truly stuck, so it casts Rescue like any stuck bot; no jump to where it wanted to go
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot <> $
+      {
+         Send(oBot,@CastRescue);
+      }
+
+      return;
+   }
+
+   PBotHuntPresence(id = 0)
+   "Real hunting: a hunter stays in the world in its hunting room (PlayerBot.HuntStep fights); nothing to do here."
+   {
+      return;
+   }
+
+   PBotDied(id = 0)
+   "Beaten in the world: for a while in the underworld (out of the world), then back in its home town."
+   {
+      local oBot;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $ OR Send(self,@PBotIdentity,#id=id) = $
+      {
+         return;
+      }
+
+      Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_DEAD);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + Random(1500,2100));
+      Send(self,@PBotSet,#id=id,#pos=10,#value=0);
+      Send(oBot,@GainHealthNormal,#amount=99999,#precision=FALSE);
+      Send(oBot,@ResetLocation);
+      // a real body in the real underworld; the portal takes it back (PlayerBot.EnterUnderworld / PBotRevived)
+      Send(self,@PBotPlace,#id=id,#rid=RID_UNDERWORLD,#row=24,#col=16);
+      Send(oBot,@EnterUnderworld);
+
+      return;
+   }
+
+   PBotRevived(id = 0)
+   "Through the portal and out of the underworld: back among the living, in an inn, a little poorer."
+   {
+      local lId;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $
+      {
+         return;
+      }
+
+      Send(self,@PBotSet,#id=id,#pos=11,#value=Nth(lId,11) * 9 / 10);
+      Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_NONE);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + Random(20,60));
+
+      return;
+   }
+
+   PBotAddLoot(id = 0,gold = 0,reagents = 0)
+   "A hunter picked something up: gold and reagent counts are all a character keeps of its loot (the items themselves are cleared away)."
+   {
+      local lId;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $
+      {
+         return;
+      }
+
+      if gold > 0
+      {
+         Send(self,@PBotSet,#id=id,#pos=11,#value=Nth(lId,11) + gold);
+      }
+
+      if reagents > 0
+      {
+         Send(self,@PBotSet,#id=id,#pos=13,#value=Nth(lId,13) + reagents);
+      }
+
+      return;
+   }
+
+   PBotFinish(id = 0)
+   "The activity is over: what it brought, what it cost."
+   {
+      local lId, iAct, iSecs, iLevel, iHealth, iGold, iDanger, iChance, i, iRoomLevel, iKills, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      iAct = Nth(lId,8);
+      iHealth = Nth(lId,5);
+      iGold = Nth(lId,11);
+
+      if iAct = PBA_DEAD
+      {
+         // back from the underworld, in basic gear, a little poorer
+         Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_NONE);
+
+         return;
+      }
+
+      if iAct = PBA_SHOP
+      {
+         // Shopping is an abstract social activity; no shopkeeper transaction occurs.
+         return;
+      }
+
+      if iAct <> PBA_HUNT
+      {
+         return;
+      }
+
+      iRoomLevel = iHealth;
+      foreach i in plPBotRooms
+      {
+         if First(i) = Nth(lId,10)
+         {
+            iRoomLevel = Nth(i,2);
+         }
+      }
+
+      // its length in minutes (as the game's clock counts it, not scaled)
+      iSecs = Bound(Nth(lId,9) - GetTime(),0,$);
+      iDanger = iRoomLevel * 100 / Bound(iHealth,1,$);
+      // (deaths are real now: PlayerBot.Killed -> PBotDied)
+      iChance = 0;
+
+      if Random(1,100) <= iChance
+      {
+         // beaten: it is in the underworld a while, and has lost some of what it carried
+         Send(self,@PBotSet,#id=id,#pos=11,#value=iGold * 7 / 10);
+         Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_DEAD);
+         Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + Send(self,@PBotScale,#seconds=Random(300,900)));
+         Send(self,@PBotLimbo,#id=id);
+
+         return;
+      }
+
+      // what it earned came in as it hunted (PBotAddLoot); the foes it really beat decide how it grew
+      iKills = 0;
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot <> $
+      {
+         iKills = Send(oBot,@GetHuntKills);
+      }
+
+      if Random(1,100) <= Bound(iKills * 5,0,75) AND Send(self,@PBotMayRise,#id=id)
+      {
+         Send(self,@PBotSet,#id=id,#pos=5,#value=Bound(iHealth + 1,20,Send(self,@PBotCap,#kind=Nth(lId,4))));
+      }
+      Send(self,@PBotSet,#id=id,#pos=6,#value=Bound(Nth(lId,6) + Bound(iKills / 3,0,6),0,900));
+
+      // veterans move on now and then, so the top of the world stays rare
+      if Send(self,@PBotBand,#health=iHealth,#kind=Nth(lId,4)) = 4 AND Random(1,15) = 1
+      {
+         Send(self,@PBotRetire,#id=id);
+      }
+
+      return;
+   }
+
+   PBotTestHunt(id = 0,rid = 0,hp = 0)
+   "Test driver (scripts/bot_scenarios.py): the bot is made a hunter of room rid for two hours, set down in its home town (health raised to hp when hp > 0) and sent on its way on foot."
+   {
+      local lId, oBot, lRegion;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if lId = $ OR oBot = $
+      {
+         return FALSE;
+      }
+
+      if hp > 0
+      {
+         Send(self,@PBotSet,#id=id,#pos=5,#value=hp);
+         Send(self,@CompApplyIdentity,#comp=oBot,#health=hp,#points=Nth(lId,6),#nocap=TRUE);
+      }
+
+      Send(oBot,@GainHealthNormal,#amount=99999,#precision=FALSE);
+      Send(oBot,@SetStrict,#value=TRUE);
+      Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_HUNT);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + 7200);
+      Send(self,@PBotSet,#id=id,#pos=10,#value=rid);
+      Send(oBot,@ResetLocation);
+      lRegion = Send(self,@PBotRegion,#home=Nth(lId,7));
+      Send(self,@PBotPlaceAtDoor,#id=id,#rid=First(Nth(lRegion,2)));
+      Send(self,@PBotTravel,#id=id,#rid=rid);
+      Debug("PBOT-TEST hunt start: bot",id,"to room",rid,"health",Send(oBot,@GetHealth));
+
+      return TRUE;
+   }
+
+   PBotRescueHome(id = 0)
+   "A bot that cannot get out of a room (the stuck rule of PlayerBot.GiveUp): like the spell Rescue, which any class may use for this, it is taken home to an inn of its home town."
+   {
+      local lId, lRegion, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if lId = $ OR oBot = $
+      {
+         return;
+      }
+
+      lRegion = Send(self,@PBotRegion,#home=Nth(lId,7));
+      Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_NONE);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + Random(20,60));
+      Send(self,@PBotSet,#id=id,#pos=10,#value=0);
+      Send(oBot,@ResetLocation);
+      Send(self,@PBotPlaceAtDoor,#id=id,#rid=First(Nth(lRegion,3)));
+
+      return;
+   }
+
+   PBotTestHuntHere(id = 0,rid = 0,hp = 0)
+   "Test driver: like PBotTestHunt but the bot is set down at a door of the hunt room itself and begins to hunt at once (the fight is tested apart from the way there)."
+   {
+      local lId, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if lId = $ OR oBot = $ OR Send(self,@NavRoom,#rid=rid) = $
+      {
+         return FALSE;
+      }
+
+      if hp > 0
+      {
+         Send(self,@PBotSet,#id=id,#pos=5,#value=hp);
+         Send(self,@CompApplyIdentity,#comp=oBot,#health=hp,#points=Nth(lId,6),#nocap=TRUE);
+      }
+
+      Send(oBot,@GainHealthNormal,#amount=99999,#precision=FALSE);
+      Send(oBot,@SetStrict,#value=TRUE);
+      Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_HUNT);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + 7200);
+      Send(self,@PBotSet,#id=id,#pos=10,#value=rid);
+      Send(oBot,@ResetLocation);
+      Send(self,@PBotPlaceAtDoor,#id=id,#rid=rid);
+      Send(oBot,@BeginHunt);
+      Debug("PBOT-TEST hunt-here start: bot",id,"room",rid);
+
+      return TRUE;
+   }
+
+   PBotTestPlace(id = 0,rid = 0,row = 0,col = 0,hp = 0)
+   "Test driver (TEST ONLY, never used by a running bot): the bot is set down at a square of a room with so much health that nothing can kill it (not an admin flag: just health), its way points cleared."
+   {
+      local lId, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if lId = $ OR oBot = $ OR Send(self,@NavRoom,#rid=rid) = $
+      {
+         return FALSE;
+      }
+
+      if hp > 0
+      {
+         Send(self,@PBotSet,#id=id,#pos=5,#value=hp);
+         Send(self,@CompApplyIdentity,#comp=oBot,#health=hp,#points=Nth(lId,6),#nocap=TRUE);
+      }
+
+      Send(oBot,@GainHealthNormal,#amount=999999,#precision=FALSE);
+      Send(oBot,@SetStrict,#value=TRUE);
+      Send(oBot,@StopMoving);
+      Send(oBot,@ResetLocation);
+      Send(self,@PBotPlace,#id=id,#rid=rid,#row=row,#col=col);
+
+      return TRUE;
+   }
+
+   PBotTestHuntAt(id = 0,rid = 0,row = 0,col = 0,hp = 0)
+   "Test driver (TEST ONLY): like PBotTestHuntHere but the bot is set down at a given square (where it would arrive through a door) with so much health nothing can kill it, and begins to hunt at once."
+   {
+      local lId, oBot;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if lId = $ OR oBot = $ OR Send(self,@NavRoom,#rid=rid) = $
+      {
+         return FALSE;
+      }
+
+      if hp > 0
+      {
+         Send(self,@PBotSet,#id=id,#pos=5,#value=hp);
+         Send(self,@CompApplyIdentity,#comp=oBot,#health=hp,#points=Nth(lId,6),#nocap=TRUE);
+      }
+
+      Send(oBot,@GainHealthNormal,#amount=999999,#precision=FALSE);
+      Send(oBot,@SetStrict,#value=TRUE);
+      Send(self,@PBotSet,#id=id,#pos=8,#value=PBA_HUNT);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + 7200);
+      Send(self,@PBotSet,#id=id,#pos=10,#value=rid);
+      Send(oBot,@ResetLocation);
+      Send(self,@PBotPlace,#id=id,#rid=rid,#row=row,#col=col);
+      Send(oBot,@BeginHunt);
+
+      return TRUE;
+   }
+
+   PBotTestPath(id = 0,rid = 0,row = 0,col = 0,trow = 0,tcol = 0)
+   "PATH PROTOTYPE test driver (TEST ONLY): the bot is set down at a square of a room and told to walk to another by planning its own way (PlayerBot.TestPathTo), server wall check on."
+   {
+      local oBot;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $ OR Send(self,@NavRoom,#rid=rid) = $
+      {
+         return FALSE;
+      }
+
+      Send(oBot,@GainHealthNormal,#amount=99999,#precision=FALSE);
+      Send(oBot,@SetStrict,#value=TRUE);
+      Send(oBot,@ResetLocation);
+      Send(self,@PBotPlace,#id=id,#rid=rid,#row=row,#col=col);
+      Send(oBot,@TestPathTo,#iRow=trow,#iCol=tcol);
+
+      return TRUE;
+   }
+
+   PBotTestBlocked(id = 0)
+   "PATH PROTOTYPE test driver (TEST ONLY): the bot decides NOW what to do about the nearest creature, as if it blocked its way (PlayerBot.PathBlocked): TRUE and state 6 = it fights, TRUE and state 7 = it flees (rescue), FALSE = no creature within one and a half squares."
+   {
+      local oBot;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $
+      {
+         return FALSE;
+      }
+
+      return Send(oBot,@PathBlocked);
+   }
+
+   PBotTestPathState(id = 0)
+   "PATH PROTOTYPE test driver: PlayerBot.PathState of the bot, or $."
+   {
+      local oBot;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $
+      {
+         return $;
+      }
+
+      return Send(oBot,@PathState);
+   }
+
+   PBotTestStrict(id = 0,value = 1)
+   "Test driver: strict test mode of the bot on (1) or off (0): it keeps its activity, makes no quiet fixes (door placement, Rescue) and stays put when a walk fails."
+   {
+      local oBot;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      if oBot = $
+      {
+         return FALSE;
+      }
+
+      Send(oBot,@SetStrict,#value=value);
+
+      return TRUE;
+   }
+
+   PBotTestAct(id = 0,act = 0)
+   "Test driver: the bot begins activity act at once, with a long time to run (PBotStart chooses the rest)."
+   {
+      if Send(self,@PBotBodyOf,#id=id) = $
+      {
+         return FALSE;
+      }
+
+      Send(self,@PBotStart,#id=id,#act=act,#keep=FALSE);
+      Send(self,@PBotSet,#id=id,#pos=9,#value=GetTime() + 7200);
+      Debug("PBOT-TEST act start: bot",id,"act",act);
+
+      return TRUE;
+   }
+
+   PBotTestState(id = 0)
+   "Test driver: [ room, node, doing, journey room, stuck, in world (1/0), health, hunt kills, activity, hunt room, has target (1/0), monsters in its room, has a foe in reach (1/0), fightable foes alive ] of the bot, or $."
+   {
+      local oBot, lId, iMobs, iFoe;
+
+      oBot = Send(self,@PBotBodyOf,#id=id);
+      lId = Send(self,@PBotIdentity,#id=id);
+      if oBot = $ OR lId = $
+      {
+         return $;
+      }
+
+      iMobs = 0;
+      iFoe = 0;
+      if Send(oBot,@GetOwner) <> $
+      {
+         iMobs = Send(Send(oBot,@GetOwner),@CountHoldingHowMany,#class=&Monster);
+         iFoe = (Send(oBot,@HuntFoe) <> $);
+      }
+
+      return [Send(oBot,@GetNavRid),Send(oBot,@GetNavNode),Send(oBot,@GetDoing),Send(oBot,@GetJourneyRid),Send(oBot,@GetStuck),
+              (Send(oBot,@GetOwner) <> $),Send(oBot,@GetHealth),Send(oBot,@GetHuntKills),Nth(lId,8),Nth(lId,10),(Send(oBot,@GetTarget) <> $),iMobs,iFoe,Send(oBot,@HuntFoeCount),Send(oBot,@GetFailed),Send(oBot,@GetRow),Send(oBot,@GetCol),Send(oBot,@GetGoalNode)];
+   }
+
+   PBotThink(id = 0)
+   "Every few seconds for a bot in the game: when its activity is over it settles up and chooses the next."
+   {
+      local lId, oBody;
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $ OR (Nth(lId,8) = PBA_NONE AND (GetTime() < Nth(lId,9) OR Send(self,@PBotBodyOf,#id=id) = $))
+      {
+         return;
+      }
+
+      // a bot in strict test mode keeps the activity it was given
+      oBody = Send(self,@PBotBodyOf,#id=id);
+      if oBody <> $ AND Send(oBody,@IsStrict)
+      {
+         return;
+      }
+
+      if Nth(lId,8) = PBA_SHOP
+      {
+         Send(self,@PBotShopPresence,#id=id);
+      }
+
+      if Nth(lId,8) = PBA_HUNT
+      {
+         Send(self,@PBotHuntPresence,#id=id);
+      }
+
+      if GetTime() < Nth(lId,9)
+      {
+         return;
+      }
+
+      Send(self,@PBotFinish,#id=id);
+      Send(self,@PBotChoose,#id=id);
+
+      return;
+   }
+
+   PBotMigrate()
+   "Once after a start: characters made by an older version (fewer fields) are dropped, with their bodies."
+   {
+      local i, lKeep;
+
+      lKeep = $;
+      foreach i in plPBotIdentities
+      {
+         if Length(i) < 13
+         {
+            Send(self,@PBotLogout,#id=First(i));
+         }
+         else
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plPBotIdentities = lKeep;
+
+      return;
+   }
+
+   PBotNightOnly()
+   "Hunt rooms whose monsters appear only at night (the game's own rule in the room's TryCreateMonster: before 5 or after 21 o'clock): Tos graveyard 70. More can be added here."
+   {
+      return [70];
+   }
+
+   PBotNightRoomClosed(rid = 0)
+   "TRUE when this is a night-only hunt room and it is day: nothing spawns there, bots must neither choose it nor stay in it."
+   {
+      local iHour;
+
+      if FindListElem(Send(self,@PBotNightOnly),rid) = 0
+      {
+         return FALSE;
+      }
+
+      iHour = Send(SYS,@GetHour);
+
+      return NOT (iHour < 5 OR iHour > 21);
+   }
+
+   PBotNoHunt()
+   "Hunt rooms bots must not choose on their own for now (the harness found them unhuntable; kept for research, see claude_dev_notes.txt SESSION 11): BAR_SEWER2 111, FOREST2 26, ORC_CAVE5 2504, MAZEFOYER 1601, MAZEFOYER2 1602, GOLEM_DUNGEON 2822."
+   {
+      return [111,26,2504,1601,1602,2822];
+   }
+
+   PBotSurvey()
+   "Once after a start: survey hunting rooms for monster level, attack damage and timing, vision, and population for destination and route-risk estimates."
+   {
+      local oRoom, i, j, lLevels, lList, iSum, iPct, iLvl, lRooms, iTop, oTop,
+         iDpsSum, iDamage, iAttackTime, iVision, iVisionMax, iAttackers,
+         iDps, iSpellPower, iSpellDamage, iSpellDps, lSpellBook, oSpell, lDamageRange;
+
+      // the level of every kind of monster, from the templates
+      lLevels = $;
+      foreach i in Send(SYS,@GetMonsterTemplates)
+      {
+         // ground worms (burrowed: only a hammer or mace hurts them) and kriipa (on the roof) cannot be fought by a bot: rooms of only them are no hunting rooms
+         if IsClass(i,&Monster) AND NOT IsClass(i,&GroundWorm) AND NOT IsClass(i,&Kriipa)
+         {
+            iDamage = Send(i,@GetDamage);
+            iAttackTime = Send(i,@GetAttackTime);
+            if iAttackTime = $ OR iAttackTime < 1
+            {
+               iAttackTime = 3000;
+            }
+            iVision = Send(i,@GetVisionDistance);
+            iDps = iDamage * 1000 / iAttackTime;
+            // A caster's spell is often the real danger (for example, a
+            // lightning tree). Use its strongest damaging spell as a
+            // conservative per-attack estimate as well as its weapon damage.
+            lSpellBook = Send(i,@GetSpellBook);
+            foreach j in lSpellBook
+            {
+               oSpell = Send(SYS,@FindSpellByNum,#num=First(j));
+               if oSpell <> $ AND IsClass(oSpell,&AttackSpell)
+               {
+                  lDamageRange = Send(oSpell,@GetDamageRange);
+                  iSpellDamage = (First(lDamageRange) + Nth(lDamageRange,2)) / 2;
+                  iSpellPower = Send(i,@GetBaseSpellPower);
+                  iSpellDamage = iSpellDamage * (50 + iSpellPower / 2) / 100;
+                  iSpellDps = iSpellDamage * 1000 / iAttackTime;
+                  if iSpellDps > iDps
+                  {
+                     iDps = iSpellDps;
+                  }
+               }
+            }
+            lLevels = Cons([GetClass(i),Send(i,@GetLevel),i,iDps,iVision],lLevels);
+         }
+      }
+
+      lRooms = $;
+      foreach oRoom in Send(SYS,@GetRooms)
+      {
+         if IsClass(oRoom,&MonsterRoom) AND NOT IsClass(oRoom,&SurvivalRoom)
+         {
+            lList = Send(oRoom,@GetMonsterList);
+            iSum = 0;
+            iPct = 0;
+            iDpsSum = 0;
+            iVisionMax = 0;
+            iTop = 0;
+            oTop = $;
+            foreach j in lList
+            {
+               iLvl = 0;
+               foreach i in lLevels
+               {
+                  if First(i) = First(j)
+                  {
+                     iLvl = Nth(i,2);
+                     iDpsSum += Nth(i,4) * Nth(j,2);
+                     if Nth(i,5) > iVisionMax
+                     {
+                        iVisionMax = Nth(i,5);
+                     }
+                     if Nth(j,2) > iTop
+                     {
+                        iTop = Nth(j,2);
+                        oTop = Nth(i,3);
+                     }
+                  }
+               }
+
+               if iLvl > 0
+               {
+                  iSum += iLvl * Nth(j,2);
+                  iPct += Nth(j,2);
+               }
+            }
+
+            if iPct > 0 AND Length(lRooms) < 380 AND Send(self,@PBotCanRoam,#rid=Send(oRoom,@GetRoomNum))
+               AND FindListElem(Send(self,@PBotNoHunt),Send(oRoom,@GetRoomNum)) = 0
+            {
+               // Five is MonsterRoom's standard initial spawn maximum. Some
+               // room classes override it; first-pass risk remains an estimate.
+               iAttackers = 5;
+               lRooms = Cons([Send(oRoom,@GetRoomNum),iSum / iPct,Length(lList),oTop,iDpsSum / iPct,iVisionMax,iAttackers],lRooms);
+            }
+         }
+      }
+
+      plPBotRooms = lRooms;
+
+      return;
+   }
+
+   PBotRestartReset()
+   "A server restart (or by hand: send object <prime> PBotRestartReset): every bot is taken home like a Rescue (an inn of its home town; a dead one is revived, a shop visit or hunt trip ended, stale walks and timers dropped) and chooses a new activity after 20-60 s. A simple, honest reset."
+   {
+      local i, oBot, iCount;
+
+      iCount = 0;
+      foreach i in plPBotBodies
+      {
+         oBot = Nth(i,2);
+         if oBot <> $
+         {
+            Send(oBot,@RescueRestart);
+            ++iCount;
+         }
+      }
+
+      Debug("PBOT-RESTART: every bot taken home and given a new activity:",iCount);
+
+      return;
+   }
+
+   PBotsTick()
+   "Every second (BotsTick): every few seconds the number of bots in the game is brought to the rule piPlayerBotCount, or to none when the rule is off."
+   {
+      local iWant, iHave, i, lId, lFree;
+
+      ++piPBotTicks;
+      if piPBotTicks < 5
+      {
+         return;
+      }
+
+      piPBotTicks = 0;
+      if piPBotSeen > 0 AND GetTime() - piPBotSeen > 30
+      {
+         Send(self,@PBotRestartReset);
+      }
+
+      piPBotSeen = GetTime();
+      ++piPBotUp;
+      if piPBotUp = 1
+      {
+         Send(self,@PBotMigrate);
+         // the survey is made again after every start (it holds monster templates)
+         plPBotRooms = $;
+      }
+
+      if piPBotUp = 3
+      {
+         Send(self,@PBotRebalance);
+      }
+
+      if (piPBotUp = 12 AND plPBotRooms = $) OR (plPBotRooms <> $ AND Length(First(plPBotRooms)) < 7)
+      {
+         Send(self,@PBotSurvey);
+      }
+
+      foreach i in plPBotBodies
+      {
+         Send(self,@PBotThink,#id=First(i));
+      }
+
+      iWant = 0;
+      if piTownLife >= 1
+      {
+         iWant = piPlayerBotCount;
+      }
+
+      iHave = Length(plPBotBodies);
+      if iHave > iWant
+      {
+         Send(self,@PBotLogout,#id=First(First(plPBotBodies)));
+
+         return;
+      }
+
+      if iHave < iWant
+      {
+         // one of the characters that are not in the game, else a new one
+         lFree = $;
+         foreach i in plPBotIdentities
+         {
+            if Send(self,@PBotBodyOf,#id=First(i)) = $
+            {
+               lFree = Cons(First(i),lFree);
+            }
+         }
+
+         if lFree <> $ AND (Random(1,100) <= 70 OR Length(plPBotIdentities) >= 150)
+         {
+            Send(self,@PBotLogin,#id=Nth(lFree,Random(1,Length(lFree))));
+
+            return;
+         }
+
+         lId = Send(self,@PBotNewIdentity);
+         if lId <> $
+         {
+            Send(self,@PBotLogin,#id=First(lId));
+         }
+      }
+
+      return;
+   }
+
+   PBotStatus(id = 0,oBot = $)
+   "[ frame resource, arguments ... ] for the info window of a bot (the frame's first three %s are the description parts), or $ when the rule piBotShowDoing is off."
+   {
+      local lId, iAct, i, oRoom, oTop, lRegion;
+
+      if NOT piBotShowDoing
+      {
+         return $;
+      }
+
+      lId = Send(self,@PBotIdentity,#id=id);
+      if lId = $
+      {
+         return $;
+      }
+
+      iAct = Nth(lId,8);
+      if iAct = PBA_HUNT
+      {
+         oRoom = Send(SYS,@FindRoomByNum,#num=Nth(lId,10));
+         oTop = $;
+         foreach i in plPBotRooms
+         {
+            if First(i) = Nth(lId,10)
+            {
+               oTop = Nth(i,4);
+            }
+         }
+
+         if oRoom <> $ AND oTop <> $
+         {
+            return [pbr_hunt,Send(oTop,@GetName),Send(oRoom,@GetName)];
+         }
+      }
+
+      if iAct = PBA_SHOP
+      {
+         oRoom = Send(SYS,@FindRoomByNum,#num=Nth(lId,12));
+         if oRoom <> $
+         {
+            return [pbr_shop,Send(oRoom,@GetName)];
+         }
+      }
+
+      lRegion = Send(self,@PBotRegion,#home=Nth(lId,7));
+      oRoom = Send(SYS,@FindRoomByNum,#num=First(Nth(lRegion,2)));
+      if iAct = PBA_DEAD AND oRoom <> $
+      {
+         return [pbr_dead,Send(oRoom,@GetName)];
+      }
+
+      if oBot <> $
+      {
+         return Send(oBot,@StatusList);
+      }
+
+      return $;
+   }
+
+   TownCrowdOff()
+   "Is the townsfolk crowd of the client switched off (rule piTownLife = 1, playerbots instead)?"
+   {
+      return piTownLife = 1;
+   }
+
+   PBotsInWho(lUsers = $)
+   "Hook in User.ToCliPlayers: the bots in the game are in the list the client gets, so they are in who and can be told."
+   {
+      local i;
+
+      foreach i in plPBotBodies
+      {
+         lUsers = Cons(Nth(i,2),lUsers);
+      }
+
+      return lUsers;
+   }
+
+end

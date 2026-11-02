@@ -1,0 +1,21 @@
+--- a/kod/object/passive/spell/persench/focus.kod
++++ b/kod/object/passive/spell/persench/focus.kod
+@@ -26,7 +26,7 @@
+       "regenerating your mana at an accelerated rate and "
+       "increasing the damage of natural elemental attack spells. "
+       "Dissipates if your concentration is broken.  "
+-      "Requires one mushroom to cast."
++      "Requires no reagents."
+    manafocus_enchantment_rsc = \
+       "\n\nYour current %s enchantment was cast with %i spellpower."
+    manafocus_on = "You feel newly focused magic raging through your body."
+@@ -66,8 +66,8 @@
+ 
+    ResetReagents()
+    {
++      // Prime: Mana Focus needs no reagents (so the optional-reagent rule never weakens it either)
+       plReagents = $;
+-      plReagents = Cons([&Mushroom,1],plReagents);
+ 
+       return;
+    }

@@ -1,0 +1,15 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -3457,6 +3457,12 @@
+          }
+       }
+ 
++      // Prime: a playerbot is a player on the map (the same dot as a player's)
++      if IsClass(what,&PlayerBot)
++      {
++         return MM_PLAYER;
++      }
++
+       if IsClass(what,&Monster)
+       {
+          if Send(what,@IsLeader)

@@ -1,0 +1,16 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -1385,6 +1385,13 @@
+          propagate;
+       }
+ 
++      // Prime: the step finder keeps walking round whatever blocked it (ESTATE_AVOIDING) until it stops being blocked, which sends a follower the
++      // wrong way once its owner has turned. With a clear line to its owner there is nothing to walk round: it starts again, straight at them.
++      if (piState & ESTATE_AVOIDING) AND poOwner <> $ AND Send(poOwner,@LineOfSight,#obj1=self,#obj2=poMaster)
++      {
++         piState = piState & ESTATE_AVOID_MASK;
++      }
++
+       drow = ((Send(poMaster,@GetRow) * FINENESS) + Send(poMaster,@GetFineRow)) / 16;
+       dcol = ((Send(poMaster,@GetCol) * FINENESS) + Send(poMaster,@GetFineCol)) / 16;
+       drow = abs(drow - (((piRow * FINENESS) + piFine_row) / 16));

@@ -1,0 +1,12 @@
+--- a/blakserv/loadkod.c
++++ b/blakserv/loadkod.c
+@@ -67,6 +67,9 @@
+ 	//dprintf("starting to load bof files\n");
+ 	files_loaded = 0;
+ 	
++	// Prime: the vector still holds the names of the files just moved in from the load directory; scanning again without clearing it
++	// loaded every class twice (4020 loads for 2010 classes), which made SaveEachClass log ~2000 "invalid class" errors per save.
++	files.clear();
+ 	sprintf(file_load_path,"%s%s",ConfigStr(PATH_MEMMAP),BOF_SPEC);
+    if (FindMatchingFiles(file_load_path, &files))
+    {

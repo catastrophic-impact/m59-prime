@@ -1,0 +1,69 @@
+--- a/kod/util/companionkinds.kod
++++ b/kod/util/companionkinds.kod
+@@ -408,27 +408,28 @@
+    "Its weapon and headgear at a bond tier (1-5), made and worn in turn. Its school's robe and "
+    "its faction's herald shield come with every tier (Companion.SetTier)."
+    {
+-      // Prime: the warrior companion wears armour and its own shield (no robe, no herald shield)
++      // Prime: the warrior companion wears armour and its own shield (no robe, no herald shield): a longsword,
++      // plate and a knight's shield from the start, better helms and, at the top, the nerudite set
+       if kind = COMPANION_WARRIOR
+       {
+          if tier <= 1
+          {
+-            return [ &ShortSword, &MetalShield, &ChainArmor ];
++            return [ &LongSword, &Knightshield, &PlateArmor ];
+          }
+ 
+          if tier = 2
+          {
+-            return [ &LongSword, &MetalShield, &ChainArmor, &SteelHelm ];
++            return [ &LongSword, &Knightshield, &PlateArmor, &SteelHelm ];
+          }
+ 
+          if tier = 3
+          {
+-            return [ &LongSword, &Knightshield, &PlateArmor, &SteelHelm ];
++            return [ &LongSword, &Knightshield, &PlateArmor, &WarHelm ];
+          }
+ 
+          if tier = 4
+          {
+-            return [ &LongSword, &Knightshield, &PlateArmor, &WarHelm ];
++            return [ &LongSword, &Knightshield, &PlateArmor, &KnightsHelm ];
+          }
+ 
+          return [ &NeruditeSword, &NeruditeShield, &NeruditeArmor, &KnightsHelm ];
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -584,7 +584,7 @@
+    Rescale(who = $)
+    "Its strength from its owner's base health and the bond tier (docs/adr/0010 3)."
+    {
+-      local oComp, iH, iTier, iBonus, iHealth, iFight, lDamage, iMin, iMax;
++      local oComp, iH, iTier, iBonus, iHealth, iFight, lDamage, iMin, iMax, iDefense, lWarrior;
+ 
+       oComp = Send(who,@GetCompanion);
+       if oComp = $
+@@ -603,7 +603,20 @@
+       iMin = Bound(iH * First(lDamage) / 1000 * (100 + iBonus) / 100,1,$);
+       iMax = Bound(iH * Nth(lDamage,2) / 1000 * (100 + iBonus) / 100,iMin,$);
+ 
+-      Send(oComp,@ApplyScale,#level=iH,#health=iHealth,#offense=iFight,#defense=iFight,
++      iDefense = iFight;
++      // Prime: the warrior companion follows its owner's effective level (ECL): the owner's health, fixed
++      // fighting numbers, damage by ECL (PrimeClasses.WarriorNumbers)
++      if Send(oComp,@GetKind) = COMPANION_WARRIOR
++      {
++         lWarrior = Send(Send(SYS,@GetPrime),@WarriorNumbers,#who=who,#iBonus=iBonus);
++         iHealth = First(lWarrior);
++         iFight = Nth(lWarrior,2);
++         iDefense = Nth(lWarrior,3);
++         iMin = Nth(lWarrior,4);
++         iMax = Nth(lWarrior,5);
++      }
++
++      Send(oComp,@ApplyScale,#level=iH,#health=iHealth,#offense=iFight,#defense=iDefense,
+            #min_damage=iMin,#max_damage=iMax);
+       if Send(oComp,@GetGearTier) <> iTier
+       {

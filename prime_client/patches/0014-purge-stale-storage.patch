@@ -1,0 +1,35 @@
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -717,9 +717,8 @@
+     if (!social) return;
+     let first = true;
+     return social.onOwnPet((p) => {
+-      const local = loadPet(localStorage, gameSocketUrl(), social.character);
+-      if (first && !p && local) social.setPet(local);
+-      else {
++      // Prime: the browser's copy no longer goes up to the server (a new character must not get an old one's pet)
++      {
+         savePet(localStorage, gameSocketUrl(), social.character, p);
+         setPetState({ name: social.character, pet: p });
+       }
+--- a/apps/client/src/game/Game.tsx
++++ b/apps/client/src/game/Game.tsx
+@@ -242,6 +242,18 @@
+         },
+         characters: (c, m) => {
+           setCharacters([...c]);
++          // Prime: what this browser kept for characters that no longer exist (a server reset, a deleted character) is thrown away, so a
++          // new character that takes an old one's name does not inherit its hotbar, pet or friends
++          try {
++            const alive = new Set(c.filter((x) => x.flags !== 1).map((x) => x.name.toLowerCase()));
++            const server = gameSocketUrl();
++            for (const kind of ["quickslots", "pet", "study", "friends"]) {
++              const prefix = `shards.${kind}.${server}.`;
++              for (const k of Object.keys(localStorage)) if (k.startsWith(prefix) && !alive.has(k.slice(prefix.length))) localStorage.removeItem(k);
++            }
++          } catch {
++            // no storage
++          }
+           if (m) setMotd(m);
+           // charpick.c ChooseCharacter: with /Q and just one character (made already), enter
+           if (quickstart.current && c.length === 1 && c[0].flags !== 1) {

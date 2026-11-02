@@ -1,0 +1,96 @@
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -9,7 +9,7 @@
+ //   yourself, no target;  R: look at the target;  F or double click: pick up / activate
+ //   PgUp/PgDn/Home: look up, down, straight; End: turn around;  Enter: chat
+ 
+-import { primeMobBar } from "./primeGroup.ts";
++import { primeFriendly, primeMobBar } from "./primeGroup.ts";
+ import * as THREE from "three";
+ import { FINENESS, SF, ceilingHeightAt, floorHeightAt, gridTextureName, leafAt, skyboxForBackground, type Bgf, type Room } from "@shards/formats";
+ import {
+@@ -2223,6 +2223,8 @@
+     this.lastAttack = now;
+     this.mover.flush(now); // MoveUpdatePosition: attack from where we really stand
+     if (this.target !== null && this.target !== this.session.world.player?.id) {
++      const t = this.session.world.objects.get(this.target);
++      if (t && primeFriendly(t, this.session.world.self?.id)) return void this.onMessage?.("You do not attack a friend.");
+       if (this.isVisible(this.target)) this.session.attack(this.target);
+       else this.onMessage?.("You can't see your selected target.");
+       return;
+@@ -2559,7 +2561,9 @@
+       this.labelPool[n++] = el;
+       // Ours (docs/adr/0005-friends.md 5): a friend's name in the friends colour, their health under it
+       const friend = this.social?.friends.options.healthBars ? this.social.friendIds.get(l.id) : undefined;
+-      el.className = `name-label${l.id === this.hovered ? " hovered" : ""}${l.id === this.target ? " target" : ""}${friend ? " friend" : ""}`;
++      const targetObj = l.id === this.target ? this.session.world.objects.get(l.id) : undefined;
++      const friendly = !!targetObj && primeFriendly(targetObj, this.session.world.self?.id); // Prime: the selected friend is green
++      el.className = `name-label${l.id === this.hovered ? " hovered" : ""}${l.id === this.target ? " target" : ""}${friend ? " friend" : ""}${friendly ? " friendly" : ""}`;
+       // Ours: our companion's health under its name, as a friend's
+       // and an arena bout's fighters'
+       const arenaPct = this.arenaHp.get(l.id) ?? primeMobBar(l.id, this.target); // Prime: and monsters' health
+@@ -2879,7 +2883,8 @@
+    * under the cursor, a player or a monster; Attack On Target attacks it too.
+    */
+   private selectHovered(): void {
+-    const ids = this.objectsUnderCursor((o) => (o.info.flags & OF_ATTACKABLE) !== 0);
++    // Prime: players, groupmates and companions can be selected too (to heal them, to look at them), not only what can be attacked
++    const ids = this.objectsUnderCursor((o) => (o.info.flags & (OF_ATTACKABLE | OF_PLAYER)) !== 0 || primeFriendly(o, this.session.world.self?.id));
+     // Ours: with nothing real there, a critter under the cursor dies at once
+     if (!ids.length) {
+       const critter = this.critterUnderCursor();
+@@ -2887,7 +2892,8 @@
+     }
+     this.choose("Attack", ids, (id) => {
+       this.setTarget(id);
+-      if (this.settings.attackOnTarget) this.attack();
++      const o = this.session.world.objects.get(id);
++      if (this.settings.attackOnTarget && !(o && primeFriendly(o, this.session.world.self?.id))) this.attack();
+     });
+   }
+ 
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -9,7 +9,7 @@
+ import type { QuestStore } from "./quests.ts";
+ import { useCompanion, type CompanionStore } from "./companion.ts";
+ import { PrimeGroupWindow } from "./ui/PrimeGroupWindow.tsx";
+-import { primeGroup } from "./primeGroup.ts";
++import { primeGroup, primeSafety } from "./primeGroup.ts";
+ import { useArena, type ArenaStore } from "./arenaBouts.ts";
+ import { ArenaDialog } from "./ui/ArenaDialog.tsx";
+ import { CompanionPanel } from "./ui/CompanionPanel.tsx";
+@@ -787,6 +787,8 @@
+   );
+   // Ours (docs/adr/0010-followers.md 9.2): the Companion tab
+   const companionVersion = useCompanion(companion);
++  // Prime: whether the safety (no attacking innocents) is on, for the green of an innocent we select
++  primeSafety.on = ((serverPrefs ?? 0) & CF.SAFETY_OFF) === 0;
+   // Prime: floating numbers from our server go to the scene
+   useEffect(() => {
+     primeGroup.numberHandler = (id, amount, heal) => sceneRef.current?.primeNumber(id, amount, heal);
+--- a/apps/client/src/game/ui/ModernHud.tsx
++++ b/apps/client/src/game/ui/ModernHud.tsx
+@@ -12,7 +12,7 @@
+ //     edge (it's meant to run off the screen), so anywhere else the swing shows a straight cut.
+ // The Classic interface draws the same things in the original's column (Sidebar.tsx).
+ 
+-import { primeGroup, usePrimeGroup } from "../primeGroup.ts";
++import { primeFriendly, primeGroup, usePrimeGroup } from "../primeGroup.ts";
+ import type { ReactNode } from "react";
+ import type { MapWay } from "../questWays.ts";
+ import type { Room } from "@shards/formats";
+@@ -114,10 +114,11 @@
+   if (!o) return null;
+   const member = primeGroup.state?.members.find((m) => m.id === o.id && m.maxHp > 0);
+   const primeHp = primeGroup.mobHealth.get(o.id) ?? (member ? Math.round((100 * member.hp) / member.maxHp) : undefined);
+-  const attackable = (o.info.flags & OF_ATTACKABLE) !== 0 && o.id !== world.self?.id;
++  const friendly = primeFriendly(o, world.self?.id);
++  const attackable = (o.info.flags & OF_ATTACKABLE) !== 0 && o.id !== world.self?.id && !friendly;
+   return (
+     <div
+-      className={attackable ? "target-frame attackable" : "target-frame"}
++      className={friendly ? "target-frame friendly" : attackable ? "target-frame attackable" : "target-frame"}
+       onContextMenu={(e) => {
+         e.preventDefault();
+         onLook(o.id);

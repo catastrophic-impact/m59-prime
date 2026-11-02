@@ -1,0 +1,47 @@
+# ---- local dev notes and Claude working files: NEVER committed (the repo is public) ----
+DEVNOTES.md
+claude_dev_notes.txt*
+session.txt
+getting_started.txt
+.claude/
+claude_tools/WIKI.md
+claude_tools/session17_raw_notes.txt
+
+# ---- generated test output and bulky research (kept locally, rebuilt by the tools) ----
+docs/archive/
+docs/botwatch/
+docs/botinspect/
+docs/botfollow/
+docs/scenarios/
+docs/roomview/
+docs/walkcheck/
+docs/walker_ab/
+docs/reach_matrix/
+docs/roommaps/
+docs/old_server_reference/
+docs/navprobe_research/
+docs/room_reachability*
+docs/bot_room_graph_splits*
+docs/GITHUB_HOWTO.md
+
+# ---- art: only the final logo goes in (all the experiments stay local) ----
+custom_assets/*
+!custom_assets/fixedlogo_cropped.png
+
+# ---- build output, caches, big files (they live in $PRIME_WORK / release/, outside git) ----
+release/
+release_test/
+build/
+*.log
+*.old.*
+__pycache__/
+node_modules/
+
+# ---- documents of the old Godot-era project (out of date): kept locally only ----
+docs/ASSETS.md
+docs/MODULES.md
+docs/TESTING.md
+docs/RELEASE_README.txt
+docs/server_diff_report.md
+docs/client_parity_backlog.md
+prime_server/test_logs/

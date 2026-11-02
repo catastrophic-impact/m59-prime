@@ -1,0 +1,154 @@
+{
+ "_note": "made by prime_server/scripts/extract_zones.py from the Kod",
+ "zones": {
+  "marion.roo": [
+   {
+    "to": "c4.roo",
+    "when": "(new_row < 32) && (new_col > 66)"
+   },
+   {
+    "to": "c5.roo",
+    "when": "(new_row > 83) && (new_col > 48)"
+   }
+  ],
+  "bergcity.roo": [
+   {
+    "to": "bergleader.roo",
+    "when": "(new_row >= 39) && (new_col <= 43)"
+   }
+  ],
+  "tossecret.roo": [
+   {
+    "to": "i6.roo",
+    "when": "(new_row === 1 && ((new_col === 11 && 32 >= 32) || (new_col === 12 && 32 <= 32)))"
+   }
+  ],
+  "forest4.roo": [
+   {
+    "to": "forest2.roo",
+    "when": "(new_row === 8) && ((new_col === 46) || (new_col === 47))"
+   },
+   {
+    "to": "forest3.roo",
+    "when": "(new_row === 57) && (new_col === 49)"
+   },
+   {
+    "to": "forest5.roo",
+    "when": "(new_row === 48) && ((new_col === 3)||(new_col === 4) || (new_col === 5))"
+   }
+  ],
+  "nest1.roo": [
+   {
+    "to": "cave2.roo",
+    "when": "(new_row === 26) && (new_col === 14)"
+   },
+   {
+    "to": "cave2.roo",
+    "when": "(new_row === 2) && (new_col === 19)"
+   }
+  ],
+  "forest3.roo": [
+   {
+    "to": "forest4.roo",
+    "when": "((new_row === 39)||(new_row === 40)) && (new_col === 19)"
+   }
+  ],
+  "h7.roo": [
+   {
+    "to": "cave2.roo",
+    "when": "(new_row < 18) && (new_col < 7) && (new_row > 14)"
+   }
+  ],
+  "forest2.roo": [
+   {
+    "to": "cave2.roo",
+    "when": "(new_row < 19) && (new_col < 7)"
+   },
+   {
+    "to": "forest1.roo",
+    "when": "(new_row < 16) && (new_col > 40)"
+   },
+   {
+    "to": "forest3.roo",
+    "when": "(new_row > 33) && (new_col > 57)"
+   },
+   {
+    "to": "nest1.roo",
+    "when": "(new_row === 47) && (new_col === 14)"
+   },
+   {
+    "to": "forest4.roo",
+    "when": "(new_row === 55) && ((new_col === 46) || (new_col === 47))"
+   }
+  ],
+  "a6.roo": [
+   {
+    "to": "greenplantation.roo",
+    "when": "(new_row < 4) && (new_col > 47)"
+   },
+   {
+    "to": "a5.roo",
+    "when": "(new_row < 1) && (new_col < 21)"
+   }
+  ],
+  "c4.roo": [
+   {
+    "to": "marion.roo",
+    "when": "(new_row > 35) && (new_col < 9)"
+   },
+   {
+    "to": "temple.roo",
+    "when": "(new_row < 18) && (new_col < 13)"
+   }
+  ],
+  "i6.roo": [
+   {
+    "to": "tossecret.roo",
+    "when": "(new_row === 31 && (new_col === 12 || new_col === 13) && 32 <= 58)"
+   }
+  ],
+  "desertriver1.roo": [
+   {
+    "to": "waylayoasis.roo",
+    "when": "new_row < 2 && (new_col < 15)"
+   },
+   {
+    "to": "waylayoasis.roo",
+    "when": "new_row < 2 && (new_col > 20)"
+   },
+   {
+    "to": "desertriver2.roo",
+    "when": "new_row > ROWS-2 && (new_col < 10)"
+   },
+   {
+    "to": "desertriver2.roo",
+    "when": "new_row > ROWS-2 && (new_col > 10)"
+   }
+  ],
+  "desertriver2.roo": [
+   {
+    "to": "desertriver1.roo",
+    "when": "new_row < 2 && (new_col < 15)"
+   },
+   {
+    "to": "desertriver1.roo",
+    "when": "new_row < 2 && (new_col > 15)"
+   }
+  ],
+  "forest5.roo": [
+   {
+    "to": "forest4.roo",
+    "when": "(new_row === 7) && (new_col === 58)"
+   },
+   {
+    "to": "marion.roo",
+    "when": "(new_row === 36)&& ((new_col === 5) || (new_col === 6))"
+   },
+   {
+    "to": "temple.roo",
+    "when": "((new_row === 17)||(new_row === 18)) && (new_col === 12)"
+   }
+  ]
+ },
+ "notes": []
+}

@@ -1,0 +1,15 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/council/fourcon.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/council/fourcon.kod
+@@ -126,7 +126,11 @@
+       if num = SKID_SECOND_WIND
+          AND (Send(who,@GetMaxHealth) < NUM_HP_FOR_SPECIAL)
+       {
+-         Post(self,@SayToOne,#target=who,#message_rsc=fourCouncilor_not_ready);
++         // Prime: only when asked to report (the training lists ask all the time: it said this every few seconds)
++         if report
++         {
++            Post(self,@SayToOne,#target=who,#message_rsc=fourCouncilor_not_ready);
++         }
+ 
+          return FALSE;
+       }

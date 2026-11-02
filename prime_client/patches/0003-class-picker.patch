@@ -1,0 +1,69 @@
+--- a/apps/client/src/game/CharacterCreator.tsx
++++ b/apps/client/src/game/CharacterCreator.tsx
+@@ -21,9 +21,11 @@
+   type Rect,
+ } from "./ui/kit.tsx";
+ import { AppearanceEditor, facePicks, randomFace } from "./ui/AppearanceEditor.tsx";
++import { CLASSES, CLASS_CREATE_BASE, ClassPage, type ClassId } from "./ClassPage.tsx";     // Prime
+ 
+-const TABS = ["Name", "Appearance", "Statistics", "Spells", "Skills"] as const;
+-type TabName = (typeof TABS)[number];
++// Prime: look, name and class only (stats, spells and skills come with the class). The old pages stay below, unused.
++const TABS = ["Name", "Appearance", "Class"] as const;
++type TabName = (typeof TABS)[number] | "Statistics" | "Spells" | "Skills";
+ 
+ export const STAT_NAMES = ["Might", "Intellect", "Stamina", "Agility", "Mysticism", "Aim"];
+ const STAT_MIN = 1,
+@@ -120,6 +122,8 @@
+   // charface.c CharFaceInit: random starting looks
+   const [face, setFace] = useState(() => randomFace(info));
+   const [stats, setStats] = useState<number[]>(() => STAT_NAMES.map(() => STAT_START));
++  /** Prime: the class */
++  const [cls, setCls] = useState<ClassId>(1);
+   const [spells, setSpells] = useState<number[]>([]);
+   const [skills, setSkills] = useState<number[]>([]);
+   /** charmake.c VerifySettings: the question being asked, and whether the stat points were already accepted */
+@@ -162,25 +166,20 @@
+       setTab("Name");
+       return;
+     }
+-    if (!statsOk && statPoints > 0) {
+-      setConfirm({ text: "You have some points remaining to allocate to statistics; are you sure you want to discard these points?", statsOk: false });
+-      return;
+-    }
+-    if (!spellsOk && spellPoints > 0) {
+-      setConfirm({ text: "You have some points remaining to allocate to spells and skills; are you sure you want to discard these points?", statsOk: true });
+-      return;
+-    }
++    // Prime: no stat or spell points to spend: the class fixes them
+     // Ours: sent as the character first enters the game (GameView)
+     rememberStartCity(localStorage, gameSocketUrl(), n, skipTutorial ? startCity : null);
+     session.createCharacter({
+       id: slotId, name: n, description: desc, gender: face.gender === 0 ? GENDER.MALE : GENDER.FEMALE,
+       // Ours: a 6th part only with facial hair (player.kod PlayerNewCharInfo takes 5 or 6)
+       faceParts: [sel.parts.head, sel.hair, sel.eyes, sel.nose, sel.mouth, ...(sel.beard ? [sel.beard] : [])],
+-      hairTranslation: sel.hairT, skinTranslation: sel.faceT, stats, spells, skills,
++      hairTranslation: sel.hairT, skinTranslation: sel.faceT,
++      // Prime: the class's fixed stats, and the class as a pseudo skill (the server ignores the rest)
++      stats: CLASSES.find((c) => c.id === cls)!.stats, spells: [], skills: [CLASS_CREATE_BASE + cls],
+     });
+   };
+ 
+-  const ti = TABS.indexOf(tab);
++  const ti = (TABS as readonly string[]).indexOf(tab);
+   /** Every page's Prev and Next (charmake.c CharTabPageCommand) */
+   const prevNext = (y: number) => (
+     <>
+@@ -228,6 +227,12 @@
+         {prevNext(146)}
+       </AppearanceEditor>
+     );
++  } else if (tab === "Class") {
++    page = (
++      <ClassPage at={INNER} cls={cls} onChange={setCls}>
++        {prevNext(214)}
++      </ClassPage>
++    );
+   } else if (tab === "Statistics") {
+     // char.rc IDD_CHARSTATS
+     page = (

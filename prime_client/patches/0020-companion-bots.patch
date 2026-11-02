@@ -1,0 +1,32 @@
+--- a/apps/client/src/game/ui/CompanionPanel.tsx
++++ b/apps/client/src/game/ui/CompanionPanel.tsx
+@@ -9,6 +9,7 @@
+ import { Button } from "./kit.tsx";
+ import { PanelSection } from "./FriendsPanel.tsx";
+ import { ObjIcon } from "./Sidebar.tsx";
++import { PrimeBots } from "./PrimeBots.tsx";     // Prime: the companion bots, beside the faction companion
+ 
+ export function CompanionPanel({
+   status, icons, object, onCommand, onGive, onTake, onLooks,
+@@ -34,12 +35,11 @@
+             You have no companion. From 50 health, your faction's leader will swear one to you: the Duke a battle-mage, the Princess a spellsword, Jonas a war-priest.
+             Stand close to them and ask.
+           </p>
+-          <p className="panel-note">Or call a warrior companion, any time: it fights at your side in plate and shield and keeps the monsters on itself.</p>
+           <div className="panel-row wrap">
+-            <Button onClick={() => onCommand("companion call")}>Call a warrior companion</Button>
+             <Button onClick={() => onCommand("companion ask")}>Ask a faction leader</Button>
+           </div>
+         </PanelSection>
++        <PrimeBots command={onCommand} />
+       </div>
+     );
+   }
+@@ -152,6 +152,7 @@
+           </div>
+         )}
+       </PanelSection>
++      <PrimeBots command={onCommand} />
+     </div>
+   );
+ }

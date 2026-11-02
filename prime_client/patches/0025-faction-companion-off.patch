@@ -1,0 +1,47 @@
+--- a/apps/client/src/game/ui/CompanionPanel.tsx
++++ b/apps/client/src/game/ui/CompanionPanel.tsx
+@@ -12,14 +12,6 @@
+ import { PrimeBots } from "./PrimeBots.tsx";
+ import type { BotInfo } from "@shards/world";     // Prime: the companion bots, beside the faction companion
+ 
+-/** Prime: the companion classes (the same four as the bots) */
+-const PRIME_CLASSES: readonly { id: string; label: string; info: string }[] = [
+-  { id: "warrior", label: "Warrior", info: "Plate and shield; keeps the monsters on itself." },
+-  { id: "monk", label: "Monk", info: "Fights with its hands; heals, blesses and shields the group, and focuses to get its mana back." },
+-  { id: "paladin", label: "Paladin", info: "Fights in front with a spirit sword or hammer (each hit returns mana); heals and buffs the group." },
+-  { id: "elementalist", label: "Elementalist", info: "Casts fire and ice; the group's mana battery (gives mana to players who run low), heals a little." },
+-];
+-
+ export function CompanionPanel({
+   status, icons, object, onCommand, onGive, onTake, onLooks, onBotLooks,
+ }: {
+@@ -37,28 +29,11 @@
+   onLooks: () => void;
+ }) {
+   const [confirm, setConfirm] = useState(false);
+-  const [kind, setKind] = useState("warrior");     // Prime: the class of the companion to ask for or call
+ 
++  // Prime: the faction companion is switched off (server rule pbFactionCompanions): the window is the companion bots
+   if (!status) {
+     return (
+       <div className="pets-panel companion-panel">
+-        <PanelSection title="Companion">
+-          <p className="panel-note">
+-            You have no companion. Choose its class: from 50 health a faction leader will swear one to you (stand close and ask), or call it to your side anywhere.
+-          </p>
+-          <select className="companion-kinds" size={4} value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Companion class" style={{ width: "100%" }}>
+-            {PRIME_CLASSES.map((c) => (
+-              <option key={c.id} value={c.id} title={c.info}>
+-                {c.label}
+-              </option>
+-            ))}
+-          </select>
+-          <p className="panel-note">{PRIME_CLASSES.find((c) => c.id === kind)?.info}</p>
+-          <div className="panel-row wrap">
+-            <Button onClick={() => onCommand(`companion ask ${kind}`)}>Ask a faction leader</Button>
+-            <Button onClick={() => onCommand(`companion call ${kind}`)}>Summon Companion</Button>
+-          </div>
+-        </PanelSection>
+         <PrimeBots command={onCommand} onLooks={onBotLooks} />
+       </div>
+     );

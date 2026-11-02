@@ -1,0 +1,11 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -10158,6 +10158,8 @@
+       {
+          // As an outlaw, justice was met by dying. But, not if it's a cheap death!
+          Send(self,@SetPlayerFlag,#flag=PFLAG_OUTLAW,#value=FALSE);
++         // Prime: and a murderer who has died is an outlaw (red to orange) when the rule pbMurderNotPermanent is on
++         Send(Send(SYS,@GetPrime),@MurdererDied,#who=self);
+          Post(self,@EvaluatePKStatus);
+ 
+          if (piFlags & PFLAG_HAUNTED)

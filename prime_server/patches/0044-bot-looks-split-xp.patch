@@ -1,0 +1,99 @@
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -1024,13 +1024,18 @@
+ 
+    ////////////////////////////////////////////////////////////// looks
+ 
+-   Look(who = $,words = $)
+-   "companion look <gender> <hair> <eyes> <nose> <mouth> <beard> <hair colour> <skin> <c1> <c2>"
++   Look(who = $,words = $,comp = $,start = 3)
++   "companion look <gender> <hair> <eyes> <nose> <mouth> <beard> <hair colour> <skin> <c1> <c2>. Prime: for a bot (comp), the ten numbers start at word <start>."
+    {
+       local oComp, lN, i, iGender, l, rHair, rEyes, rNose, rMouth, rBeard, iHairColour,
+             iSkin, lPalette;
+ 
+-      oComp = Send(who,@GetCompanion);
++      oComp = comp;
++      if oComp = $
++      {
++         oComp = Send(who,@GetCompanion);
++      }
++
+       if oComp = $
+       {
+          Send(who,@MsgSendUser,#message_rsc=cbook_none);
+@@ -1038,7 +1043,7 @@
+          return;
+       }
+ 
+-      if Length(words) < 12
++      if Length(words) < start + 9
+       {
+          Send(who,@MsgSendUser,#message_rsc=cbook_bad_look,#parm1=Send(oComp,@GetName));
+ 
+@@ -1046,8 +1051,8 @@
+       }
+ 
+       lN = $;
+-      i = 3;
+-      while i <= 12
++      i = start;
++      while i <= start + 9
+       {
+          lN = AppendListElem(StringToNumber(Nth(words,i)),lN);
+          ++i;
+@@ -1093,7 +1098,14 @@
+       Send(oComp,@SetLooks,#gender=iGender,#hair=rHair,#eyes=rEyes,#nose=rNose,
+            #mouth=rMouth,#beard=rBeard,#hair_colour=iHairColour,#skin=iSkin,
+            #colour1=Nth(lN,9),#colour2=Nth(lN,10));
+-      Send(self,@SendStatus,#who=who);
++      if Send(oComp,@IsBot)
++      {
++         Send(Send(SYS,@GetPrime),@BotStatus,#who=who);
++      }
++      else
++      {
++         Send(self,@SendStatus,#who=who);
++      }
+ 
+       return;
+    }
+@@ -1229,6 +1241,18 @@
+ 
+       AddPacket(2,Length(lPack), 2,iBulk, 2,Send(who,@GetBulkMax));
+ 
++      Send(self,@AddLookPackets,#oComp=oComp);
++
++      SendPacket(oSession);
++
++      return;
++   }
++
++   AddLookPackets(oComp = $)
++   "Its look as places in our client's lists, then its palette (the end of UC_COMPANION kind 1; Prime: also of each bot in the bots packet)."
++   {
++      local lParts, iGender, lPalette, i;
++
+       // Its look, as places in our client's lists
+       lParts = Send(oComp,@GetLookParts);
+       iGender = First(lParts);
+@@ -1271,8 +1295,6 @@
+          AddPacket(1,i);
+       }
+ 
+-      SendPacket(oSession);
+-
+       return;
+    }
+ 
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -9407,6 +9407,8 @@
+          }
+ 
+          iXP = iXP * Bound(Send(SETTINGS_OBJECT,@GetXPPercent),50,1000) / 100;
++         // Prime: with companion bots in the group, each seat takes its share of the XP (rule pbBotSplitXP)
++         iXP = Send(Send(SYS,@GetPrime),@SplitXP,#who=self,#xp=iXP);
+          // Add in XP bonus from items after this.
+          iXP += iItemBonus;
+ 		   iXP += iBonusXP;

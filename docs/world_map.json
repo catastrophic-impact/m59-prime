@@ -1,0 +1,7333 @@
+[
+ {
+  "rid": 1,
+  "name": "The Underworld",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2,
+  "name": "Outside Castle Victoria",
+  "status": "EXCLUDED",
+  "reason": "Castle Victoria: excluded for now, to be added back later (owner, 2026-10-31)",
+  "hops": 1,
+  "route": [
+   38,
+   2
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   38,
+   599
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 3,
+  "name": "The Fields",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 4,
+  "name": "The Deep Dark Woods of Tos",
+  "status": "EXCLUDED",
+  "reason": "never a bot destination (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   6,
+   26,
+   28
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 6,
+  "name": "The Deep Dark Woods of Marion",
+  "status": "EXCLUDED",
+  "reason": "never (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   48,
+   200
+  ],
+  "one_way_in": [],
+  "links_out": [
+   4,
+   48,
+   200
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 15,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   4300,
+   15
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   76,
+   4300
+  ],
+  "links_out": [
+   51,
+   52,
+   53,
+   56,
+   57,
+   58,
+   61,
+   70,
+   77,
+   586,
+   950
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 24,
+  "name": "The Forests of Meridian",
+  "status": "EXCLUDED",
+  "reason": "Forests of Meridian: cut off by excluded 28; excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [
+   26
+  ],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 26,
+  "name": "The Forests of Meridian",
+  "status": "EXCLUDED",
+  "reason": "Forests of Meridian: cut off by excluded 28; excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   24,
+   27,
+   28,
+   35
+  ],
+  "one_way_in": [],
+  "links_out": [
+   4,
+   24,
+   27,
+   28,
+   35
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 27,
+  "name": "A Deep, Dark, Spooky, Icky Cave",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 3,
+  "route": [
+   578,
+   576,
+   587,
+   27
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   26,
+   35
+  ],
+  "links_out": [
+   587,
+   2500
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 28,
+  "name": "The Forests of Meridian",
+  "status": "EXCLUDED",
+  "reason": "never (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   36
+  ],
+  "one_way_in": [
+   26,
+   32
+  ],
+  "links_out": [
+   4,
+   36
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 32,
+  "name": "The Berdonne Canyons",
+  "status": "EXCLUDED",
+  "reason": "never (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   28,
+   47
+  ],
+  "one_way_in": [],
+  "links_out": [
+   28,
+   47
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 35,
+  "name": "The Spider Nest",
+  "status": "EXCLUDED",
+  "reason": "never (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   27
+  ],
+  "one_way_in": [
+   26
+  ],
+  "links_out": [
+   27
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 36,
+  "name": "The Hermit's Hut",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   578,
+   576,
+   587,
+   597,
+   36
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   28
+  ],
+  "links_out": [
+   597
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 37,
+  "name": "Far'Nohl's Chambers",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   38,
+   37
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   38
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 38,
+  "name": "Castle Victoria",
+  "status": "EXCLUDED",
+  "reason": "Castle Victoria interior: excluded for now (owner, 2026-10-31)",
+  "hops": 0,
+  "route": [
+   38
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2,
+   37,
+   38,
+   39,
+   40,
+   42
+  ],
+  "grid": "",
+  "town": "Castle Victoria"
+ },
+ {
+  "rid": 39,
+  "name": "Upstairs in Castle Victoria",
+  "status": "EXCLUDED",
+  "reason": "Castle Victoria interior: excluded for now (owner, 2026-10-31)",
+  "hops": 1,
+  "route": [
+   38,
+   39
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   38
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 40,
+  "name": "The Antechamber of Castle Victoria",
+  "status": "EXCLUDED",
+  "reason": "Castle Victoria: excluded for now, to be added back later (owner, 2026-10-31)",
+  "hops": 1,
+  "route": [
+   38,
+   40
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   38,
+   41
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 41,
+  "name": "The Throne Room of Castle Victoria",
+  "status": "EXCLUDED",
+  "reason": "Castle Victoria interior: excluded for now (owner, 2026-10-31)",
+  "hops": 2,
+  "route": [
+   38,
+   40,
+   41
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   40
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 42,
+  "name": "Underbasement of Victoria",
+  "status": "EXCLUDED",
+  "reason": "Castle Victoria: excluded for now, to be added back later (owner, 2026-10-31)",
+  "hops": 1,
+  "route": [
+   38,
+   42
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   38
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 43,
+  "name": "Out of Grace with the Higher Powers",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 45,
+  "name": "The Badlands",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   45
+  ],
+  "one_way_out": [
+   615
+  ],
+  "one_way_in": [
+   2901
+  ],
+  "links_out": [
+   49,
+   615
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 47,
+  "name": "Martyr's Battleground",
+  "status": "EXCLUDED",
+  "reason": "never (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [
+   32
+  ],
+  "links_out": [
+   47
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 48,
+  "name": "The Temple of Shal'ille",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   534,
+   48
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   6
+  ],
+  "links_out": [
+   534
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 49,
+  "name": "Kardde's Canyon",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   101,
+   102,
+   593,
+   49
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   45,
+   593,
+   1500
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 50,
+  "name": "The Streets of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   50
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": "Tos"
+ },
+ {
+  "rid": 51,
+  "name": "The Freelance Merchant and Menders Shop",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   51
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 52,
+  "name": "Familiars",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   52
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   74
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 53,
+  "name": "Frisconar's Mysticals",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   53
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 54,
+  "name": "First Royal Bank of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   61,
+   54
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   61
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 56,
+  "name": "Abandoned Building",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   56
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 57,
+  "name": "Abandoned Building",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   57
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 58,
+  "name": "Forgotten Lover's Tryst",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   58
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 59,
+  "name": "Hall of the Forgotten Heroes",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   59
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000,
+   2014,
+   2015
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 60,
+  "name": "The Arena of Kraanan",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   4300,
+   15,
+   61,
+   73,
+   60
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   73
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 61,
+  "name": "East Ende",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   61
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   54,
+   72,
+   73,
+   79,
+   596,
+   707,
+   2950
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 70,
+  "name": "The Graveyard of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   70
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   71
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 71,
+  "name": "The Crypt",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   70,
+   71
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   70
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 72,
+  "name": "The Adventurer's Hall of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   61,
+   72
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   61
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 73,
+  "name": "The Arena foyer",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   61,
+   73
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   60,
+   61
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 74,
+  "name": "The Cellar",
+  "status": "EXCLUDED",
+  "reason": "Tos cellar (below Familiars): bots not needed (owner)",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   52,
+   74
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   52,
+   75
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 75,
+  "name": "Secret Passage",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 4,
+  "route": [
+   4300,
+   15,
+   52,
+   74,
+   75
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   74,
+   76,
+   858
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 76,
+  "name": "Abandoned Fountain Tavern",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 5,
+  "route": [
+   4300,
+   15,
+   52,
+   74,
+   75,
+   76
+  ],
+  "one_way_out": [
+   15
+  ],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   75
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 77,
+  "name": "Abandoned Storage Room",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   77
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   78
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 78,
+  "name": "The Smuggler's Way",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   77,
+   78
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   77,
+   596
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 79,
+  "name": "The Arena of Death",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   61,
+   79
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   61
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 101,
+  "name": "North Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   101
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   102,
+   103,
+   104,
+   105,
+   106,
+   107,
+   108,
+   115,
+   116,
+   714
+  ],
+  "grid": "",
+  "town": "Barloque"
+ },
+ {
+  "rid": 102,
+  "name": "South Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   102
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101,
+   109,
+   113,
+   593,
+   700,
+   702,
+   716
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 103,
+  "name": "The Bhrama & Falcon",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   103
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 104,
+  "name": "Joguer's Herbs and Roots",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   104
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 105,
+  "name": "Adventurer's Hall of Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   105
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 106,
+  "name": "Brownestone Inn",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   106
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 107,
+  "name": "The Ports of Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   107
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101,
+   114,
+   117,
+   709
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 108,
+  "name": "The Sewers of Barloque",
+  "status": "EXCLUDED",
+  "reason": "sewers/hideouts: excluded (owner, 2026-10-31)",
+  "hops": 1,
+  "route": [
+   101,
+   108
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101,
+   110,
+   111,
+   562,
+   708
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 109,
+  "name": "The Sparkling Stone Shop",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   102,
+   109
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   102
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 110,
+  "name": "A shadowy corner",
+  "status": "EXCLUDED",
+  "reason": "sewers/hideouts: excluded (owner, 2026-10-31)",
+  "hops": 2,
+  "route": [
+   101,
+   108,
+   110
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   108
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 111,
+  "name": "The Sewers of Barloque",
+  "status": "EXCLUDED",
+  "reason": "sewers/hideouts: excluded (owner, 2026-10-31)",
+  "hops": 2,
+  "route": [
+   101,
+   108,
+   111
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   108,
+   112
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 112,
+  "name": "The Sewers of Barloque",
+  "status": "EXCLUDED",
+  "reason": "sewers/hideouts: excluded (owner, 2026-10-31)",
+  "hops": 3,
+  "route": [
+   101,
+   108,
+   111,
+   112
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   111,
+   380
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 113,
+  "name": "The Royal Blacksmith of Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   102,
+   113
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   102
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 114,
+  "name": "Office of the Barloque Vaultman",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   107,
+   114
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   107
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 115,
+  "name": "Office of the Justicar",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   115
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101,
+   115
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 116,
+  "name": "Old Jailhouse",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   116
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 117,
+  "name": "The citizen's market of Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   107,
+   117
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   107
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 150,
+  "name": "Cor Noth",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   150
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   151,
+   152,
+   153,
+   154,
+   155,
+   156,
+   157,
+   158,
+   574,
+   575,
+   701,
+   711
+  ],
+  "grid": "",
+  "town": "Cor Noth"
+ },
+ {
+  "rid": 151,
+  "name": "Solomon's Edibles",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   151
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 152,
+  "name": "The Adventurer's Hall of Cor Noth",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   152
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 153,
+  "name": "Cibilo Creek Inn",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   153
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 154,
+  "name": "The Weapon Master's Abode",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   154
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150,
+   154
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 155,
+  "name": "The Spindle and the Spinster",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   155
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 156,
+  "name": "The Hall of Genealogy",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   156
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 157,
+  "name": "The University of Cor Noth",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   157
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 158,
+  "name": "The Meridian 59 Museum",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   158
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 200,
+  "name": "Marion",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   200
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   6,
+   203
+  ],
+  "links_out": [
+   201,
+   202,
+   204,
+   205,
+   206,
+   534,
+   535,
+   2600
+  ],
+  "grid": "",
+  "town": "Marion"
+ },
+ {
+  "rid": 201,
+  "name": "Ye Olde Slasher Salesman",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   201
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 202,
+  "name": "The Limping Toad Inn and Tavern",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   202
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 203,
+  "name": "The home of the elder",
+  "status": "EXCLUDED",
+  "reason": "Marion elder's home interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   200
+  ],
+  "one_way_in": [],
+  "links_out": [
+   200
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 204,
+  "name": "The Adventurer's Hall of Marion",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   204
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 205,
+  "name": "Lady Aftyn's Sanctuary",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   205
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 206,
+  "name": "Green Acres Plantation",
+  "status": "EXCLUDED",
+  "reason": "a lot going on in this map: excluded for now (owner, 2026-10-31)",
+  "hops": 1,
+  "route": [
+   200,
+   206
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200,
+   206,
+   207,
+   208,
+   516,
+   717
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 207,
+  "name": "The Green's Home",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   206,
+   207
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   206
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 208,
+  "name": "Workers quarters",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   206,
+   208
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   206
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 300,
+  "name": "Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   300
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   301,
+   302,
+   303,
+   304,
+   305,
+   306,
+   307,
+   308,
+   330,
+   332,
+   333
+  ],
+  "grid": "",
+  "town": "Raza"
+ },
+ {
+  "rid": 301,
+  "name": "The Inn of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   301
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 302,
+  "name": "The Adventurer's Hall of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   302
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 303,
+  "name": "The Blacksmith of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   303
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 304,
+  "name": "Ravi's Magicks of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   304
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 305,
+  "name": "The Home of Roderic D'Stane",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   305
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 306,
+  "name": "Mausoleum",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   306
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 307,
+  "name": "Eric's Stout Spirits",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   307
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 308,
+  "name": "The Grand Museum of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   308
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 330,
+  "name": "Outskirts of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   330
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300,
+   331
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 331,
+  "name": "Western Edge of the Forest of Farol",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   300,
+   330,
+   331
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   330,
+   526,
+   536
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 332,
+  "name": "Raza Vaults",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   332
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 333,
+  "name": "Royal Bank of Raza",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   300,
+   333
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   300
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 350,
+  "name": "East Jasper",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   350
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   372,
+   373,
+   374,
+   382,
+   568,
+   704,
+   710
+  ],
+  "grid": "",
+  "town": "Jasper"
+ },
+ {
+  "rid": 351,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 352,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 353,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   353
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 354,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 355,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 356,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 357,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 358,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 359,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 360,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 361,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 362,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 363,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 364,
+  "name": "Room",
+  "status": "EXCLUDED",
+  "reason": "Jasper house/shop interior: excluded for now (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   382
+  ],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 370,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   370
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 371,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   371
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 372,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   372
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   350
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 373,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   373
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   350
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 374,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   374
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   350
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 375,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   375
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 376,
+  "name": "The Royal Bank of Jasper",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   376
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 377,
+  "name": "The Sewers of Jasper",
+  "status": "EXCLUDED",
+  "reason": "Jasper sewers (same)",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   377
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   378,
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 378,
+  "name": "The Sewers of Jasper",
+  "status": "EXCLUDED",
+  "reason": "Jasper sewers (same)",
+  "hops": 3,
+  "route": [
+   350,
+   382,
+   377,
+   378
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   377,
+   379
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 379,
+  "name": "The Sewers of Jasper",
+  "status": "EXCLUDED",
+  "reason": "Jasper sewers: excluded for now (owner)",
+  "hops": 4,
+  "route": [
+   350,
+   382,
+   377,
+   378,
+   379
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   378,
+   380
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 380,
+  "name": "The Ancient Smuggler's Crossing",
+  "status": "EXCLUDED",
+  "reason": "sewers/hideouts: excluded (owner, 2026-10-31)",
+  "hops": 4,
+  "route": [
+   101,
+   108,
+   111,
+   112,
+   380
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   112,
+   379
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 382,
+  "name": "West Jasper",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   382
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   351,
+   352,
+   354,
+   355,
+   356,
+   357,
+   358,
+   359,
+   360,
+   361,
+   362,
+   363,
+   364
+  ],
+  "links_out": [
+   350,
+   353,
+   370,
+   371,
+   375,
+   376,
+   377,
+   384,
+   547,
+   557
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 384,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   384
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   382
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 511,
+  "name": "North Quilicia Wood",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   206,
+   717,
+   511
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   531,
+   717
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 515,
+  "name": "Seafarer's Peak",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   206,
+   516,
+   515
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   516
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 516,
+  "name": "The Hills",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   206,
+   516
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   206,
+   515,
+   526
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 521,
+  "name": "Elhadrim",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   200,
+   534,
+   533,
+   522,
+   521
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   522,
+   531
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 522,
+  "name": "Lower Elhadrim",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   534,
+   533,
+   522
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   521,
+   533
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 526,
+  "name": "Druid Hills",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   206,
+   516,
+   526
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   331,
+   516,
+   750
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 531,
+  "name": "The Fey's Crossing",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   200,
+   206,
+   717,
+   511,
+   531
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   511,
+   521,
+   532,
+   541
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 532,
+  "name": "The Vale of Sorrows",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   200,
+   206,
+   717,
+   511,
+   531,
+   532
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   531
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 533,
+  "name": "Quilicia Wood",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   534,
+   533
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   522,
+   534,
+   542
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 534,
+  "name": "Deep Woods of Ileria",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   534
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   48,
+   200,
+   533,
+   544
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 535,
+  "name": "West Merchant Way through Ilerian Woods",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   535
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200,
+   536,
+   545,
+   706
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 536,
+  "name": "Forest of Farol",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   535,
+   536
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   546
+  ],
+  "links_out": [
+   331,
+   535,
+   537,
+   550,
+   706
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 537,
+  "name": "Faronath, home of the TreeFolk",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   535,
+   536,
+   537
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   536,
+   547,
+   706
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 541,
+  "name": "Dirhadrim",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   200,
+   534,
+   533,
+   542,
+   541
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   531,
+   542
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 542,
+  "name": "Lower Dirhadrim",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   534,
+   533,
+   542
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   533,
+   541
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 544,
+  "name": "Valley of Ileria",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   534,
+   544
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   534,
+   545,
+   552,
+   554
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 545,
+  "name": "West Merchant Way",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   535,
+   545
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   546,
+   556
+  ],
+  "links_out": [
+   535,
+   544,
+   550,
+   554
+  ],
+  "grid": "grid: 1 entrance/door outside main region",
+  "town": null
+ },
+ {
+  "rid": 546,
+  "name": "Deep in the Forest of Farol",
+  "status": "EXCLUDED",
+  "reason": "orphan room: nothing links to it (D6E6 550 replaced it)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   536,
+   545,
+   547
+  ],
+  "one_way_in": [],
+  "links_out": [
+   536,
+   545,
+   547
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 547,
+  "name": "Deep in the Forest of Farol",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   547
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   546
+  ],
+  "links_out": [
+   382,
+   537,
+   550,
+   557
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 550,
+  "name": "Deep in the Forest of Farol",
+  "status": "EXCLUDED",
+  "reason": "trap stream: bots never enter (NO_GO d6e6)",
+  "hops": 3,
+  "route": [
+   200,
+   535,
+   536,
+   550
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   536,
+   545,
+   547,
+   551,
+   555,
+   557
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 551,
+  "name": "Underground Lake - Home of the Mollusk",
+  "status": "EXCLUDED",
+  "reason": "behind the trap stream",
+  "hops": 4,
+  "route": [
+   200,
+   535,
+   536,
+   550,
+   551
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   550
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 552,
+  "name": "The Great Ocean",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   534,
+   544,
+   552
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   544,
+   562
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 554,
+  "name": "East Merchant Way through Ilerian Woods",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   534,
+   544,
+   554
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   544,
+   545,
+   564
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 555,
+  "name": "The Forest Shrine",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   200,
+   535,
+   536,
+   550,
+   555
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   556
+  ],
+  "links_out": [
+   550
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 556,
+  "name": "Deep Forest of Farol",
+  "status": "EXCLUDED",
+  "reason": "orphan room (same)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   545,
+   555,
+   557
+  ],
+  "one_way_in": [],
+  "links_out": [
+   545,
+   555,
+   557
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 557,
+  "name": "The Sweet Grass Prairies",
+  "status": "EXCLUDED",
+  "reason": "reached only by falling off the cliff in Jasper (one-way): not walkable, owner can test if needed",
+  "hops": 2,
+  "route": [
+   350,
+   382,
+   557
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   556
+  ],
+  "links_out": [
+   382,
+   547,
+   550
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 562,
+  "name": "The sandy shores of the Great Ocean",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   108,
+   562
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   108,
+   552
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 563,
+  "name": "Source of the River Ille",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   150,
+   574,
+   563
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   574
+  ],
+  "links_out": [
+   564,
+   583,
+   712
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 564,
+  "name": "East Merchant Way",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   150,
+   574,
+   564
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   554,
+   563,
+   574
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 566,
+  "name": "Off the beaten path",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   578,
+   576,
+   566
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   567,
+   576
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 567,
+  "name": "Off the beaten path",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   568,
+   567
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   566,
+   568
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 568,
+  "name": "Lake of Jala's Song",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   568
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   350,
+   567,
+   578,
+   703
+  ],
+  "grid": "grid: 1 entrance/door outside main region",
+  "town": null
+ },
+ {
+  "rid": 574,
+  "name": "Main gate to Cor Noth",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   574
+  ],
+  "one_way_out": [
+   563
+  ],
+  "one_way_in": [],
+  "links_out": [
+   150,
+   563,
+   564,
+   584
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 575,
+  "name": "Outskirts of Cor Noth",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   575
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150,
+   576
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 576,
+  "name": "The King's Way",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   578,
+   576
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   566,
+   575,
+   578,
+   587
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 578,
+  "name": "The Cragged Mountains",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   578
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   568,
+   576,
+   579,
+   826
+  ],
+  "grid": "grid: 10 entrance/door outside main region",
+  "town": "Brax"
+ },
+ {
+  "rid": 579,
+  "name": "An ancient place, its origin forgotten",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   578,
+   579
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   578,
+   589,
+   801
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 583,
+  "name": "Outskirts of Barloque",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   101,
+   102,
+   593,
+   583
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   563,
+   584,
+   593
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 584,
+  "name": "The Flatlands",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   150,
+   574,
+   584
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   574,
+   583,
+   585
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 585,
+  "name": "The border of the Badlands",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   150,
+   574,
+   584,
+   585
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   2900
+  ],
+  "links_out": [
+   584,
+   586
+  ],
+  "grid": "grid: 1 entrance/door outside main region",
+  "town": null
+ },
+ {
+  "rid": 586,
+  "name": "Main gate to the city of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   586
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   585,
+   587,
+   596
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 587,
+  "name": "Western border of the Twisted Wood",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   578,
+   576,
+   587
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   27,
+   576,
+   586,
+   597
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 589,
+  "name": "Under the shadow of the Sentinel",
+  "status": "EXCLUDED",
+  "reason": "not a bot hunting room for now (owner, 2026-10-29)",
+  "hops": 2,
+  "route": [
+   578,
+   579,
+   589
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   579,
+   599
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 593,
+  "name": "Main gate of Barloque-- Royal City of Meridian",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   102,
+   593
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   49,
+   102,
+   583,
+   603
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 596,
+  "name": "Outskirts of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   586,
+   596
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   61,
+   78,
+   586,
+   597,
+   2950
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 597,
+  "name": "The Twisted Wood",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   578,
+   576,
+   587,
+   597
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   36,
+   587,
+   596,
+   598
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 598,
+  "name": "The Cragged Mountains",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   38,
+   2,
+   599,
+   598
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   597,
+   599
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 599,
+  "name": "Ukgoth, Holy Land of Trolls",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   38,
+   2,
+   599
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2,
+   589,
+   598
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 603,
+  "name": "The Queen's Way",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   101,
+   102,
+   593,
+   603
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   593,
+   851,
+   860
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 615,
+  "name": "The Badlands",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   45,
+   615
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   45
+  ],
+  "links_out": [
+   2820
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 700,
+  "name": "The Guildmaster's Hall",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   102,
+   700
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   102
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 701,
+  "name": "Mercenary Alley",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   701
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 702,
+  "name": "The Hall of Explorers",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   102,
+   702
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   102
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 703,
+  "name": "The Den of Shadows",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   350,
+   568,
+   703
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   568
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 704,
+  "name": "The Wryn's Keep",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   704
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   350
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 705,
+  "name": "West Tower Guild Hall in Ko'catan",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   705
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   705,
+   2000
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 706,
+  "name": "The Old Dwarven Hall",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   535,
+   706
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   535,
+   536,
+   537
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 707,
+  "name": "Konima's Abandoned Dwelling",
+  "status": "EXCLUDED",
+  "reason": "Konima: part of the cave network between the island and the mainland (owner, 2026-10-31): excluded",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   61,
+   707
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   61
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 708,
+  "name": "The Sewer Hideout",
+  "status": "EXCLUDED",
+  "reason": "sewers/hideouts: excluded (owner, 2026-10-31)",
+  "hops": 2,
+  "route": [
+   101,
+   108,
+   708
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   108
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 709,
+  "name": "The Abandoned Warehouse",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   107,
+   709
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   107
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 710,
+  "name": "Jaarba's Abode",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   350,
+   710
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   350
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 711,
+  "name": "The Ivory Chapel",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   150,
+   711
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   150
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 712,
+  "name": "The home of the Friends of the Forest",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   150,
+   574,
+   563,
+   712
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   563
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 713,
+  "name": "The Hall of the Slaughtered Command",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   2009,
+   713
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   713,
+   2009
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 714,
+  "name": "The Bookmaker's Guild House",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   101,
+   714
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   101
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 715,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   578,
+   826,
+   827,
+   828,
+   829,
+   830,
+   825,
+   715
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   825
+  ],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 716,
+  "name": "The Symbol of Dawn",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   101,
+   102,
+   716
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   102
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 717,
+  "name": "Green's workshop",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   206,
+   717
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   206,
+   511
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 719,
+  "name": "The Wetland Fortress",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   4300,
+   15,
+   61,
+   2950,
+   2951,
+   2953,
+   719
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2953
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 720,
+  "name": "Muskgate Post",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2808,
+   2809,
+   720
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2809
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 749,
+  "name": "Inner Sanctum of Queen Venya'cyr",
+  "status": "EXCLUDED",
+  "reason": "bots never go there on their own (owner)",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 750,
+  "name": "The Dreaded Caves of Ice",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   200,
+   206,
+   516,
+   526,
+   750
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   526
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 801,
+  "name": "The Temple of Kraanan",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   578,
+   579,
+   801
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   579
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 802,
+  "name": "The Temple of Qor",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 825,
+  "name": "The Dungeon of Castle Brax",
+  "status": "EXCLUDED",
+  "reason": "Brax interior (elevator): excluded (owner)",
+  "hops": 6,
+  "route": [
+   578,
+   826,
+   827,
+   828,
+   829,
+   830,
+   825
+  ],
+  "one_way_out": [
+   715
+  ],
+  "one_way_in": [],
+  "links_out": [
+   715,
+   830
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 826,
+  "name": "Winding Caverns",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   578,
+   826
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   578,
+   827
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 827,
+  "name": "Ancient Graveyard of Brax",
+  "status": "EXCLUDED",
+  "reason": "Brax interior (elevator): excluded (owner)",
+  "hops": 2,
+  "route": [
+   578,
+   826,
+   827
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   826,
+   828
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 828,
+  "name": "Decaying City of Brax",
+  "status": "EXCLUDED",
+  "reason": "Brax interior (elevator): excluded (owner)",
+  "hops": 3,
+  "route": [
+   578,
+   826,
+   827,
+   828
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   827,
+   829,
+   833,
+   834
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 829,
+  "name": "Within the Walls of Castle Brax",
+  "status": "EXCLUDED",
+  "reason": "Brax interior (elevator): excluded (owner)",
+  "hops": 4,
+  "route": [
+   578,
+   826,
+   827,
+   828,
+   829
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   828,
+   830
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 830,
+  "name": "Ruins of Castle Brax",
+  "status": "EXCLUDED",
+  "reason": "Brax interior (elevator): excluded (owner)",
+  "hops": 5,
+  "route": [
+   578,
+   826,
+   827,
+   828,
+   829,
+   830
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   825,
+   829,
+   830
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 833,
+  "name": "Goad's Grinder",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   578,
+   826,
+   827,
+   828,
+   833
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   828
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 834,
+  "name": "Maze of The Mimic",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   578,
+   826,
+   827,
+   828,
+   834
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   828,
+   834
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 850,
+  "name": "Banquet Hall of the Bourgeois Castle",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   850
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   851,
+   853,
+   855,
+   856
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 851,
+  "name": "Bourgeois Castle",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   603,
+   850,
+   852,
+   853,
+   2819
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 852,
+  "name": "The Assembly Chamber",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   852
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   851,
+   853
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 853,
+  "name": "Royal Library of the Bourgeois Castle",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   853
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   850,
+   851,
+   852,
+   853,
+   854
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 854,
+  "name": "Chamber of the Mocker",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   853,
+   854
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   853
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 855,
+  "name": "The Councilors' Chamber",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   850,
+   855
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   850
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 856,
+  "name": "Room",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   850,
+   856
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   850
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 857,
+  "name": "Chamber of the Forgotten Heroes",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 858,
+  "name": "Dark Caves",
+  "status": "EXCLUDED",
+  "reason": "caves between the island and the mainland: excluded for bots (owner)",
+  "hops": 5,
+  "route": [
+   4300,
+   15,
+   52,
+   74,
+   75,
+   858
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   75,
+   859
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 859,
+  "name": "Abandoned Outpost",
+  "status": "EXCLUDED",
+  "reason": "caves between the island and the mainland (same)",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   860,
+   859
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   858,
+   860
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 860,
+  "name": "Rumbling Cavern",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 4,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   860
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   603,
+   859
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 901,
+  "name": "The meeting place of the Gods",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   4300,
+   901
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   4300
+  ],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 902,
+  "name": "Meridian University",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 903,
+  "name": "object gallery",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 950,
+  "name": "The Courtyard of Blackstone Keep",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   4300,
+   15,
+   950
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   951,
+   2900
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 951,
+  "name": "Blackstone Keep",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   950,
+   951
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   950,
+   951,
+   952,
+   953
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 952,
+  "name": "The Chambers of Duke Akardius",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   4300,
+   15,
+   950,
+   951,
+   952
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   951
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 953,
+  "name": "The Duke's Feast Hall",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   4300,
+   15,
+   950,
+   951,
+   953
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   951,
+   954
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 954,
+  "name": "The Duke's Grand Ballroom",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   4300,
+   15,
+   950,
+   951,
+   953,
+   954
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   953,
+   954
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1500,
+  "name": "Waylay Oasis",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   1510
+  ],
+  "links_out": [
+   49,
+   1501,
+   1512
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 1501,
+  "name": "A harrowing cleft",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500,
+   1501
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1500,
+   1502
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1502,
+  "name": "Sandbreak Cliffs",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak Cliffs: excluded for now (owner does not know the area yet)",
+  "hops": 6,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500,
+   1501,
+   1502
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1501,
+   1503,
+   1505
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1503,
+  "name": "Sandbreak Cliffs",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak Cliffs (same)",
+  "hops": 7,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500,
+   1501,
+   1502,
+   1503
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1502,
+   1504
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1504,
+  "name": "Sandbreak Cliffs",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak Cliffs (same)",
+  "hops": 8,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500,
+   1501,
+   1502,
+   1505,
+   1504
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1503,
+   1505
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1505,
+  "name": "Sandbreak Cliffs",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak Cliffs (same)",
+  "hops": 7,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500,
+   1501,
+   1502,
+   1505
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1502,
+   1504
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1507,
+  "name": "Solitary Shoreline",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1508,
+   1509
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1508,
+  "name": "Solitary Shoreline",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1507,
+   1524
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1509,
+  "name": "Solitary Shoreline",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1507,
+   1524
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1510,
+  "name": "Cliffbound River",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   1500
+  ],
+  "one_way_in": [],
+  "links_out": [
+   1500,
+   1511
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1511,
+  "name": "Abyssal Bore",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1510
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1512,
+  "name": "Collapsed Causeway",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   49,
+   1500,
+   1512
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1500
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 1524,
+  "name": "Solitary Shoreline",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1508,
+   1509
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1525,
+  "name": "Desert Oasis",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1526,
+  "name": "A labyrinth lost in the sands",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1601
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1601,
+  "name": "A labyrinth lost in the sands",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1526,
+   1602
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 1602,
+  "name": "A labyrinth lost in the sands",
+  "status": "EXCLUDED",
+  "reason": "Sandbreak/desert area behind excluded 1502-1505: excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   1601
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2000,
+  "name": "Ko'catan, the Island Settlement",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   2000
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   59,
+   705,
+   2001,
+   2002,
+   2004,
+   2005,
+   2008,
+   2009,
+   2013,
+   2505
+  ],
+  "grid": "",
+  "town": "Ko'catan"
+ },
+ {
+  "rid": 2001,
+  "name": "The Aerie Guest House",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2001
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000,
+   2008
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2002,
+  "name": "Two Lizards Magic Shop",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2002
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2003,
+  "name": "The Chimney House",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   2009,
+   2003
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2009
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2004,
+  "name": "The Neglected Arsenal",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2004
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000,
+   2010
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2005,
+  "name": "The Hungry Vaults",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2005
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2006,
+  "name": "The Crooked Hem Garment Shop",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   2009,
+   2006
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2006,
+   2009,
+   2012
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2007,
+  "name": "The Hall of Heroes",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2008,
+  "name": "The Barking Monster",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2008
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000,
+   2001
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2009,
+  "name": "Ko'catan, the Island Settlement",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2009
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   713,
+   2000,
+   2003,
+   2006
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2010,
+  "name": "A foul place to wander",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   2004,
+   2010
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2004,
+   2012
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2012,
+  "name": "Up Chuk Creek without a paddle",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2000,
+   2004,
+   2010,
+   2012
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2006,
+   2010
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2013,
+  "name": "The East Tower",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2000,
+   2013
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000,
+   2115
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2014,
+  "name": "The Hall of Heroes West",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   59,
+   2014
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   59
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2015,
+  "name": "The Hall of Heroes East",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   59,
+   2015
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   59
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2100,
+  "name": "The Bowmaker's Hut",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113,
+   2100
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2113
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2101,
+  "name": "The Remote Trading Post of Wulfgang zax'Ak",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2143,
+   2144,
+   2101
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2144
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2102,
+  "name": "The Cellar Rooms",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2143,
+   2144,
+   2102
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2144
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2110,
+  "name": "A dark, humid cavern",
+  "status": "EXCLUDED",
+  "reason": "behind excluded Ko'catan jungle (only leads to 2111): excluded for now, audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   2111
+  ],
+  "one_way_in": [],
+  "links_out": [
+   2111
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2111,
+  "name": "Cliff Hive",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 6,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113,
+   2112,
+   2111
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   2110
+  ],
+  "links_out": [
+   2112,
+   2121
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2112,
+  "name": "The Jungle Cliffs",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113,
+   2112
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2111,
+   2113,
+   2121
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2113,
+  "name": "A notch in the jungle",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 4,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2100,
+   2112,
+   2114
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2114,
+  "name": "Into the Jungle",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 3,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2113,
+   2115
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2115,
+  "name": "Outside the Guard Tower",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2000,
+   2013,
+   2115
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2013,
+   2114,
+   2124,
+   2125
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2121,
+  "name": "The Cliffs",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 6,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113,
+   2112,
+   2121
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2111,
+   2112,
+   2122,
+   2131
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2122,
+  "name": "Headquarters for the Avar Warriors",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2123,
+   2122
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2121,
+   2123,
+   2132
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2123,
+  "name": "Camp of the Warrior Avars",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 4,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2123
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2122,
+   2124,
+   2132,
+   2133
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2124,
+  "name": "Path to the Ruins",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2115,
+   2123,
+   2133
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2125,
+  "name": "Into the Jungle",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 3,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2125
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2115,
+   2135
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2131,
+  "name": "The Chasm",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 7,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113,
+   2112,
+   2121,
+   2131
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2121,
+   2141
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2132,
+  "name": "Turf of the Warrior Avars",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2123,
+   2132
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2122,
+   2123,
+   2133
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2133,
+  "name": "Ruins of the Riija Temple",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 4,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2123,
+   2124,
+   2132,
+   2134,
+   2142,
+   2143
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2134,
+  "name": "Origin of the Kriipa",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2134
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2133,
+   2135
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2135,
+  "name": "Outside the Mad Scientist's Hut",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 4,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2125,
+   2135
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2125,
+   2134,
+   2136
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2136,
+  "name": "Hut of the Mad Scientist",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2125,
+   2135,
+   2136
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2135
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2141,
+  "name": "Lair of the Bone Priestess",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 8,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2114,
+   2113,
+   2112,
+   2121,
+   2131,
+   2141
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2131
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2142,
+  "name": "Territory of the Noble Avars",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2142
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2133,
+   2143,
+   2151,
+   2152
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2143,
+  "name": "Deep in the Jungle",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 5,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2143
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2133,
+   2142,
+   2144
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2144,
+  "name": "The Clearing of the Trading Post",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 6,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2143,
+   2144
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2101,
+   2102,
+   2143,
+   2154
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2151,
+  "name": "The Temple of Riija",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2142,
+   2151
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2142,
+   2151,
+   2152
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2152,
+  "name": "Headquarters of the Noble Avars",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 6,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2142,
+   2152
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2142,
+   2151
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2154,
+  "name": "Avar Village",
+  "status": "EXCLUDED",
+  "reason": "Ko'catan jungle: the guard mechanic at the east tower (owner, 2026-10-29), not a pathing bug",
+  "hops": 7,
+  "route": [
+   2000,
+   2013,
+   2115,
+   2124,
+   2133,
+   2143,
+   2144,
+   2154
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2144
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2500,
+  "name": "Ugol's Warren Entrance",
+  "status": "EXCLUDED",
+  "reason": "Ugol's Warren: excluded for now (owner)",
+  "hops": 4,
+  "route": [
+   578,
+   576,
+   587,
+   27,
+   2500
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   27,
+   2501,
+   2509
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2501,
+  "name": "An Enigmatic Chamber",
+  "status": "EXCLUDED",
+  "reason": "Ugol's Warren (same)",
+  "hops": 5,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2503,
+   2502,
+   2501
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2500,
+   2502,
+   2508
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2502,
+  "name": "The Archaic Hollows",
+  "status": "EXCLUDED",
+  "reason": "Ugol's Warren (same)",
+  "hops": 4,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2503,
+   2502
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2501,
+   2503,
+   2507
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2503,
+  "name": "Aqueducts of Merb",
+  "status": "EXCLUDED",
+  "reason": "Ugol's Warren (same)",
+  "hops": 3,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2503
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2502,
+   2504
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2504,
+  "name": "Obfal's Sepulchre",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 2,
+  "route": [
+   2000,
+   2505,
+   2504
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2503,
+   2505,
+   2510
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2505,
+  "name": "Konima's Ascension",
+  "status": "EXCLUDED",
+  "reason": "Konima: part of the cave network between the island and the mainland (owner, 2026-10-31): excluded",
+  "hops": 1,
+  "route": [
+   2000,
+   2505
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2000,
+   2504
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2506,
+  "name": "Lair of the Orc Pit Boss",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 4,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2510,
+   2506
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2507,
+   2508,
+   2509,
+   2510
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2507,
+  "name": "Grog's Antechamber",
+  "status": "EXCLUDED",
+  "reason": "Ugol's Warren (same)",
+  "hops": 5,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2510,
+   2506,
+   2507
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2502,
+   2506
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2508,
+  "name": "Brog's Antechamber",
+  "status": "EXCLUDED",
+  "reason": "Ugol's Warren (same)",
+  "hops": 5,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2510,
+   2506,
+   2508
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2501,
+   2506
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2509,
+  "name": "A Tranquil Place",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 5,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2510,
+   2506,
+   2509
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2500,
+   2506
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2510,
+  "name": "A spring of vitality",
+  "status": "EXCLUDED",
+  "reason": "excluded (owner, 2026-10-31)",
+  "hops": 3,
+  "route": [
+   2000,
+   2505,
+   2504,
+   2510
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2504,
+   2506
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2600,
+  "name": "The crypt in Marion",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   200,
+   2600
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   200,
+   2601
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2601,
+  "name": "Resting place of Marion's ancestors",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   200,
+   2600,
+   2601
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2600,
+   2602
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2602,
+  "name": "Affirmation of the Forsaken",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   200,
+   2600,
+   2601,
+   2602
+  ],
+  "one_way_out": [
+   2603
+  ],
+  "one_way_in": [],
+  "links_out": [
+   2601,
+   2603
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2603,
+  "name": "The Laboratory of the Mad Brothers",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   200,
+   2600,
+   2601,
+   2602,
+   2603
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   2602
+  ],
+  "links_out": [],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2800,
+  "name": "Berg",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   2800
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2801,
+   2802,
+   2803,
+   2804,
+   2805,
+   2806,
+   2807,
+   2808,
+   2823,
+   2960
+  ],
+  "grid": "",
+  "town": "Bergen"
+ },
+ {
+  "rid": 2801,
+  "name": "Golden Crocodile Vault",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2801
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2802,
+  "name": "The Smoldering Forge",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2802
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2803,
+  "name": "The Adventurer's Hall of Berg",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2803
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2804,
+  "name": "Runes and Relics",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2804
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2805,
+  "name": "Murky Fork Bar",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2805
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2806,
+  "name": "Berg Treasury",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2806
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2807,
+  "name": "The Gilded Gavel",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2807
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2808,
+  "name": "The Main Gate to the City of Berg",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2808
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800,
+   2809,
+   2813
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2809,
+  "name": "Trader's Route",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2800,
+   2808,
+   2809
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   720,
+   2808,
+   2810
+  ],
+  "grid": "grid: 1 entrance/door outside main region",
+  "town": null
+ },
+ {
+  "rid": 2810,
+  "name": "A Flowing River",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2800,
+   2960,
+   2810
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2809,
+   2811,
+   2960
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2811,
+  "name": "The Jagged Hills",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2960,
+   2810,
+   2811
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2810,
+   2812,
+   2815
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2812,
+  "name": "A Dark Place",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2811,
+   2813,
+   2816
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2813,
+  "name": "Outskirts of Berg",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2800,
+   2808,
+   2813
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2808,
+   2812,
+   2814
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2814,
+  "name": "The Temple of Jala",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2814
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2813
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2815,
+  "name": "Kardde's Path",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2811,
+   2816,
+   2818,
+   2904
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2816,
+  "name": "Southern Kardde's Pass",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2812,
+   2815,
+   2817
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2817,
+  "name": "Valley Crossing",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2816,
+   2850,
+   2954
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2818,
+  "name": "Northern Kardde's Pass",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2815,
+   2820,
+   2821,
+   2822,
+   2961
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2819,
+  "name": "Crown Point",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   101,
+   102,
+   593,
+   603,
+   851,
+   2819
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   851,
+   2820
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2820,
+  "name": "The Queen's Path",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2820
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   615,
+   2818,
+   2819,
+   2821
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2821,
+  "name": "The Hallowed Training Grounds",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2821
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2818,
+   2820
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2822,
+  "name": "Caverns of Ancient Rock",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2822
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2818
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2823,
+  "name": "Outside the Palace of the Mountain King",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2823
+  ],
+  "one_way_out": [],
+  "one_way_in": [
+   2827
+  ],
+  "links_out": [
+   2800,
+   2824,
+   2826
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2824,
+  "name": "The Royal Palace of Berg",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2800,
+   2823,
+   2824
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2823,
+   2824,
+   2825
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2825,
+  "name": "Clandestine Tombs",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2823,
+   2824,
+   2825
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2824
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2826,
+  "name": "Bouldergate Prison",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2800,
+   2823,
+   2826
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2823,
+   2826
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2827,
+  "name": "The Hall of Developers",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [
+   2823
+  ],
+  "one_way_in": [],
+  "links_out": [
+   2823
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2850,
+  "name": "Into the Valley of Death",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2817,
+   2851
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2851,
+  "name": "A Bone Dry Wasteland",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850,
+   2851
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2850,
+   2852
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2852,
+  "name": "Hopeless Slopes",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 8,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850,
+   2851,
+   2852
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2851,
+   2853
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2853,
+  "name": "A Parched and Barren Stretch of Land",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 9,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850,
+   2851,
+   2852,
+   2853
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2852,
+   2854
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2854,
+  "name": "Crumbling Ruins",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 10,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850,
+   2851,
+   2852,
+   2853,
+   2854
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2853,
+   2855
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2855,
+  "name": "Chamber of the Crying Serpent",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 11,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850,
+   2851,
+   2852,
+   2853,
+   2854,
+   2855
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2854,
+   2856
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2856,
+  "name": "Pantheon of the Arcane Arts",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 12,
+  "route": [
+   2800,
+   2808,
+   2813,
+   2812,
+   2816,
+   2817,
+   2850,
+   2851,
+   2852,
+   2853,
+   2854,
+   2855,
+   2856
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2855
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2900,
+  "name": "The forlorn path to Jixa",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   950,
+   2900
+  ],
+  "one_way_out": [
+   585
+  ],
+  "one_way_in": [],
+  "links_out": [
+   585,
+   950,
+   2901
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2901,
+  "name": "Chupacabra Territory",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   4300,
+   15,
+   950,
+   2900,
+   2901
+  ],
+  "one_way_out": [
+   45
+  ],
+  "one_way_in": [],
+  "links_out": [
+   45,
+   2900,
+   2902
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2902,
+  "name": "Archaic Obelisk",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   4300,
+   15,
+   950,
+   2900,
+   2901,
+   2902
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2901,
+   2903
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2903,
+  "name": "Hidden Village of Jixa",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815,
+   2904,
+   2903
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2902,
+   2904,
+   2905,
+   2907,
+   2908,
+   2952
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2904,
+  "name": "Outskirts of Jixa",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815,
+   2904
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2815,
+   2903,
+   2954
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2905,
+  "name": "The Wandering Fiddler Pub",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815,
+   2904,
+   2903,
+   2905
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2903
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2907,
+  "name": "The Adventurer's Hall of Jixa",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815,
+   2904,
+   2903,
+   2907
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2903
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2908,
+  "name": "Between Hammer and Anvil",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 7,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815,
+   2904,
+   2903,
+   2908
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2903
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 2950,
+  "name": "Eastern gate to the city of Tos",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   4300,
+   15,
+   61,
+   2950
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   61,
+   596,
+   2951
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2951,
+  "name": "The Duke's Way",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 4,
+  "route": [
+   4300,
+   15,
+   61,
+   2950,
+   2951
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2950,
+   2952,
+   2953
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2952,
+  "name": "Eastern Duke's Way",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   4300,
+   15,
+   61,
+   2950,
+   2951,
+   2952
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2903,
+   2951,
+   2953
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2953,
+  "name": "The Marsh",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 5,
+  "route": [
+   4300,
+   15,
+   61,
+   2950,
+   2951,
+   2953
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   719,
+   2951,
+   2952,
+   2954
+  ],
+  "grid": "grid: 1 entrance/door outside main region",
+  "town": null
+ },
+ {
+  "rid": 2954,
+  "name": "The desolate Mire",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 6,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2818,
+   2815,
+   2904,
+   2954
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2817,
+   2904,
+   2953
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2960,
+  "name": "The mines of Berg",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 1,
+  "route": [
+   2800,
+   2960
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2800,
+   2810,
+   2961
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2961,
+  "name": "Bandit Camp",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 2,
+  "route": [
+   2800,
+   2960,
+   2961
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2818,
+   2960,
+   2962
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 2962,
+  "name": "Hideout of the Eastern Bandits",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 3,
+  "route": [
+   2800,
+   2960,
+   2961,
+   2962
+  ],
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   2961
+  ],
+  "grid": "grid ok",
+  "town": null
+ },
+ {
+  "rid": 4300,
+  "name": "The Proving Grounds",
+  "status": "OPEN",
+  "reason": "",
+  "hops": 0,
+  "route": [
+   4300
+  ],
+  "one_way_out": [
+   15,
+   901
+  ],
+  "one_way_in": [],
+  "links_out": [
+   15,
+   901
+  ],
+  "grid": "",
+  "town": "Proving Grounds"
+ },
+ {
+  "rid": 9000,
+  "name": "Historic Jasper",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 9001,
+  "name": "Historic Marion",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 9002,
+  "name": "Historic North Barloque",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 9003,
+  "name": "Historic South Barloque",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 9004,
+  "name": "Historic Cor Noth",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   9005
+  ],
+  "grid": "",
+  "town": null
+ },
+ {
+  "rid": 9005,
+  "name": "The Historic Hall of Genealogy",
+  "status": "EXCLUDED",
+  "reason": "not part of the world (dev/historic/unlinked room): excluded (owner 2026-11-01), audit later",
+  "hops": null,
+  "route": null,
+  "one_way_out": [],
+  "one_way_in": [],
+  "links_out": [
+   9004
+  ],
+  "grid": "",
+  "town": null
+ }
+]

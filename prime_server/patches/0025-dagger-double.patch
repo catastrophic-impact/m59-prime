@@ -1,0 +1,12 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -5685,6 +5685,9 @@
+ 
+       iDamage += iDamageBonus;
+ 
++      // Prime: a dagger sometimes hits twice (kod/object/prime/primeclasses.kod)
++      iDamage = Send(Send(SYS,@GetPrime),@DaggerDouble,#who=self,#what=what,#damage=iDamage);
++
+       return iDamage;
+    }
+ 

@@ -1,0 +1,136 @@
+--- a/apps/client/src/game/CharacterCreator.tsx
++++ b/apps/client/src/game/CharacterCreator.tsx
+@@ -25,6 +25,8 @@
+ 
+ // Prime: look, name and class only (stats, spells and skills come with the class). The old pages stay below, unused.
+ const TABS = ["Name", "Appearance", "Class"] as const;
++// Prime: with the class system off the original pages are used instead of the class page
++const CLASSLESS_TABS = ["Name", "Appearance", "Statistics", "Spells", "Skills"] as const;
+ type TabName = (typeof TABS)[number] | "Statistics" | "Spells" | "Skills";
+ 
+ export const STAT_NAMES = ["Might", "Intellect", "Stamina", "Agility", "Mysticism", "Aim"];
+@@ -102,8 +104,10 @@
+ }
+ 
+ export function CharacterCreator({
+-  info, slotId, session, icons, error, onCancel, onClearError,
++  info, slotId, session, icons, error, onCancel, onClearError, classless = false,
+ }: {
++  /** Prime: the server's class system is off: the original creator (stats, spells, skills) */
++  classless?: boolean;
+   info: CharInfo;
+   slotId: number;
+   session: GameSession;
+@@ -166,7 +170,17 @@
+       setTab("Name");
+       return;
+     }
+-    // Prime: no stat or spell points to spend: the class fixes them
++    // Prime: with a class there are no stat or spell points to spend (the class fixes them); without one the original questions are asked
++    if (classless) {
++      if (!statsOk && statPoints > 0) {
++        setConfirm({ text: "You have some points remaining to allocate to statistics; are you sure you want to discard these points?", statsOk: false });
++        return;
++      }
++      if (!spellsOk && spellPoints > 0) {
++        setConfirm({ text: "You have some points remaining to allocate to spells and skills; are you sure you want to discard these points?", statsOk: true });
++        return;
++      }
++    }
+     // Prime: a new character starts clean: nothing this browser kept under that name (hotbar, pet, friends, study) carries over
+     try {
+       const server = gameSocketUrl();
+@@ -182,18 +196,21 @@
+       faceParts: [sel.parts.head, sel.hair, sel.eyes, sel.nose, sel.mouth, ...(sel.beard ? [sel.beard] : [])],
+       hairTranslation: sel.hairT, skinTranslation: sel.faceT,
+       // Prime: the class's fixed stats, and the class as a pseudo skill (the server ignores the rest)
+-      stats: CLASSES.find((c) => c.id === cls)!.stats, spells: [], skills: [CLASS_CREATE_BASE + cls],
++      ...(classless
++        ? { stats, spells, skills }
++        : { stats: CLASSES.find((c) => c.id === cls)!.stats, spells: [], skills: [CLASS_CREATE_BASE + cls] }),
+     });
+   };
+ 
+-  const ti = (TABS as readonly string[]).indexOf(tab);
++  const tabs: readonly TabName[] = classless ? CLASSLESS_TABS : TABS;
++  const ti = tabs.indexOf(tab);
+   /** Every page's Prev and Next (charmake.c CharTabPageCommand) */
+   const prevNext = (y: number) => (
+     <>
+-      <Button at={[231, y, 34, 12]} disabled={ti === 0} onClick={() => setTab(TABS[ti - 1])}>
++      <Button at={[231, y, 34, 12]} disabled={ti === 0} onClick={() => setTab(tabs[ti - 1])}>
+         Prev
+       </Button>
+-      <Button at={[270, y, 34, 12]} disabled={ti === TABS.length - 1} onClick={() => setTab(TABS[ti + 1])}>
++      <Button at={[270, y, 34, 12]} disabled={ti === tabs.length - 1} onClick={() => setTab(tabs[ti + 1])}>
+         Next
+       </Button>
+     </>
+@@ -286,7 +303,7 @@
+   return (
+     <Backdrop>
+       <Window title="Customize your character" showTitle={false} closeButton={false} wide dlu={SHEET} onClose={onCancel}>
+-        <Tabs at={[2, 0, 316, 22]} tabs={TABS} active={tab} onChange={setTab} />
++        <Tabs at={[2, 0, 316, 22]} tabs={tabs} active={tab} onChange={setTab} />
+         <div className="mk-page" style={at(PAGE, "h")}>
+           {page}
+         </div>
+--- a/apps/client/src/game/CharacterSelect.tsx
++++ b/apps/client/src/game/CharacterSelect.tsx
+@@ -10,14 +10,18 @@
+ 
+ /** BP_CHARACTERS flag 1: the slot has no character yet */
+ const NEW_CHARACTER = 1;
++/** Prime: flag 3 is a free slot while the class system is off; flag 2 is a character made in the other mode (not playable) */
++const NEW_CLASSLESS = 3;
++const OTHER_MODE = 2;
++const isNew = (c: CharacterSlot) => c.flags === NEW_CHARACTER || c.flags === NEW_CLASSLESS;
+ 
+ /**
+  * charpick.c WM_INITDIALOG: characters by name, case-insensitively (strcmpi), with the
+  * free slots always last in the server's order.
+  */
+ export function sortCharacters(chars: readonly CharacterSlot[]): CharacterSlot[] {
+-  const named = chars.filter((c) => c.flags !== NEW_CHARACTER);
+-  const free = chars.filter((c) => c.flags === NEW_CHARACTER);
++  const named = chars.filter((c) => !isNew(c));
++  const free = chars.filter(isNew);
+   named.sort((a, b) => {
+     const x = a.name.toLowerCase(),
+       y = b.name.toLowerCase();
+@@ -46,7 +50,8 @@
+   const ok = (id = selected) => {
+     const c = rows.find((r) => r.id === id);
+     if (!c) return;
+-    if (c.flags === NEW_CHARACTER) onCreate(c.id);
++    if (c.flags === OTHER_MODE) return;
++    if (isNew(c)) onCreate(c.id);
+     else session.useCharacter(c.id);
+   };
+ 
+@@ -59,13 +64,13 @@
+           autoFocus
+           items={rows.map((c) => ({
+             key: c.id,
+-            label: c.flags === NEW_CHARACTER ? "<New character>" : c.name,
++            label: isNew(c) ? "<New character>" : c.flags === OTHER_MODE ? <span style={{ opacity: 0.45 }}>{c.name} (other class mode)</span> : c.name,
+           }))}
+           selected={selected}
+           onSelect={setPicked}
+           onActivate={ok}
+         />
+-        <Button at={[159, 9, 47, 14]} isDefault onClick={() => ok()} disabled={selected === null}>
++        <Button at={[159, 9, 47, 14]} isDefault onClick={() => ok()} disabled={selected === null || rows.find((r) => r.id === selected)?.flags === OTHER_MODE}>
+           OK
+         </Button>
+         <Button at={[159, 27, 47, 14]} onClick={() => setConfirmLogoff(true)}>
+--- a/apps/client/src/game/Game.tsx
++++ b/apps/client/src/game/Game.tsx
+@@ -382,6 +382,7 @@
+         <CharacterCreator
+           info={creating.info}
+           slotId={creating.slotId}
++          classless={characters.find((c) => c.id === creating.slotId)?.flags === 3}
+           session={session}
+           icons={live.icons}
+           error={error}

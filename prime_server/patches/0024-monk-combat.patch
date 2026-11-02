@@ -1,0 +1,11 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -5519,7 +5519,7 @@
+          // Bind health between 20-150 for defense calculation.
+          iHealth = Send(self,@GetBaseMaxHealth);
+ 
+-         iDefense = iParry + iBlock + (iDodge*2) + (iAgility*8)
++         iDefense = iParry + iBlock + (iDodge*Send(Send(SYS,@GetPrime),@DodgeWeight,#who=self)) + (iAgility*8)
+                      + (200 * iHealth)/(100 + Send(self,@GetStamina));
+       }
+ 

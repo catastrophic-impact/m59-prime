@@ -1,0 +1,188 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -99,6 +99,8 @@
+    // Its chance to cast in a fight (percent); how it supports its owner ([ [spell, mana, mode],
+    // ... ], CompanionKinds.GetSupport) and the timer that does it
+    piCastChance = 0
++   // Prime: a class companion's abilities, [ is skill, number, percent, class level ] (PrimeCompanions.CompProfile)
++   plProfile = $
+    plSupport = $
+    ptSupport = $
+    // GetTime when its enchantments on its owner, its next heal and its next reflection are due;
+@@ -675,11 +677,12 @@
+ 
+    CastAt(sid = 0,mana = 0,target = $)
+    "One of its spells on a target, as Monster.MonsterCastSpell casts: its mana, the spell's "
+-   "own checks and the room's. Returns whether it cast."
++   "own checks and the room's. Returns whether it cast. Prime: a class companion casts with the "
++   "percent it has in the spell and pays the spell's own mana cost, as a player does (Mana Focus stays free)."
+    {
+-      local oSpell, lTargets;
++      local oSpell, lTargets, iPower, iCost;
+ 
+-      if poOwner = $ OR target = $ OR piMana < mana OR GetTime() < piNextCast
++      if poOwner = $ OR target = $ OR GetTime() < piNextCast
+       {
+          return FALSE;
+       }
+@@ -690,23 +693,83 @@
+          return FALSE;
+       }
+ 
++      iPower = piSpellPower;
++      iCost = mana;
++      if plProfile <> $
++      {
++         iPower = Bound(Send(self,@AbilityPct,#bSkill=FALSE,#num=sid),1,99);
++         if mana > 0
++         {
++            iCost = Send(oSpell,@GetManaCost,#who=self,#iSpellPower=iPower);
++         }
++      }
++
++      if piMana < iCost
++      {
++         return FALSE;
++      }
++
+       lTargets = Send(oSpell,@GetTargets,#who=self,#lTargets=[target]);
+       if NOT Send(oSpell,@CanPayMonsterCosts,#who=self,#lTargets=lTargets,
+-                  #iSpellPower=piSpellPower)
++                  #iSpellPower=iPower)
+          OR NOT Send(poOwner,@ReqSpellCast,#who=self,#oSpell=oSpell,#lItems=lTargets)
+       {
+          return FALSE;
+       }
+ 
+-      piMana = piMana - mana;
++      piMana = piMana - iCost;
+       piNextCast = GetTime() + COMPANION_CAST_SECONDS;
+       Send(self,@NewMana);
+       Send(self,@MonsterCastAnimation,#iSpellNum=sid);
+-      Send(oSpell,@CastSpell,#who=self,#lTargets=lTargets,#iSpellPower=piSpellPower);
++      Send(oSpell,@CastSpell,#who=self,#lTargets=lTargets,#iSpellPower=iPower);
+ 
+       return TRUE;
+    }
+ 
++   ApplyKit(lSpells = $,support = $,chance = 0,maxmana = 0,lAbil = $,power = 30)
++   "Prime: a class companion's spells, support, chance to cast, mana and abilities (PrimeCompanions.CompApply). It keeps the share of its mana it had."
++   {
++      plSpellBook = lSpells;
++      plSupport = support;
++      piCastChance = chance;
++      plProfile = lAbil;
++      piSpellPower = power;
++      if piMax_Mana > 0
++      {
++         piMana = piMana * maxmana / piMax_Mana;
++      }
++      else
++      {
++         piMana = maxmana;
++      }
++
++      piMax_Mana = maxmana;
++      piMana = Bound(piMana,0,maxmana);
++      Send(self,@NewMana);
++      if plSupport <> $ AND ptSupport = $
++      {
++         ptSupport = CreateTimer(self,@SupportTimer,COMPANION_SUPPORT_MS);
++      }
++
++      return;
++   }
++
++   AbilityPct(bSkill = TRUE,num = 0)
++   "Prime: its percent in a skill or spell, 0 if it has none."
++   {
++      local i;
++
++      foreach i in plProfile
++      {
++         if First(i) = bSkill AND Nth(i,2) = num
++         {
++            return Nth(i,3);
++         }
++      }
++
++      return 0;
++   }
++
+    PickSpell(target = $)
+    "[ spell, mana ] from its book for this target, or $: Fireball turns to Ice Shard when the "
+    "target resists cold less."
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -111,7 +111,7 @@
+ 
+       if StringEqual(sVerb,"ask")
+       {
+-         Send(self,@Ask,#who=who);
++         Send(self,@Ask,#who=who,#words=words);
+ 
+          return;
+       }
+@@ -223,9 +223,10 @@
+       return $;
+    }
+ 
+-   Ask(who = $)
++   Ask(who = $,words = $)
++   "Prime: any leader swears a companion of the class the player names (`companion ask <class>`)."
+    {
+-      local oLeader, iKind, iFaction;
++      local oLeader, iKind;
+ 
+       if Send(who,@GetCompanion) <> $
+       {
+@@ -249,15 +250,7 @@
+          return;
+       }
+ 
+-      iKind = Send(self,@KindForLeader,#npc=oLeader);
+-      iFaction = Send(self,@GetKindFaction,#kind=iKind);
+-      if iFaction <> $ AND Send(who,@GetFaction) <> iFaction
+-      {
+-         Send(who,@MsgSendUser,#message_rsc=cbook_wrong_faction,
+-              #parm1=Send(oLeader,@GetCapDef),#parm2=Send(oLeader,@GetName));
+-
+-         return;
+-      }
++      iKind = Send(Send(SYS,@GetPrime),@CallKind,#words=words);
+ 
+       Send(self,@Grant,#who=who,#kind=iKind);
+ 
+@@ -302,7 +295,7 @@
+       return;
+    }
+ 
+-   Grant(who = $,kind = COMPANION_DUKE)
++   Grant(who = $,kind = COMPANION_WARRIOR)
+    "A new companion of this kind for who (Ask checked they may have one)."
+    {
+       local oComp;
+@@ -613,6 +606,14 @@
+          return;
+       }
+ 
++      // Prime: a class companion takes everything from the player's own numbers (PrimeCompanions.CompApply)
++      if Send(oComp,@GetKind) >= COMPANION_WARRIOR
++      {
++         Send(Send(SYS,@GetPrime),@CompApply,#who=who,#comp=oComp);
++
++         return;
++      }
++
+       iH = Send(who,@GetBaseMaxHealth);
+       iTier = Send(self,@TierOf,#points=Send(who,@GetCompanionBond));
+       if Send(oComp,@IsBot)
+@@ -1373,7 +1374,7 @@
+                Length(Send(oComp,@GetPack)) ];
+    }
+ 
+-   AdminGrant(who = $,kind = COMPANION_DUKE)
++   AdminGrant(who = $,kind = COMPANION_WARRIOR)
+    "Admin supported. A companion of this kind (1-3), whatever the rules."
+    {
+       if who = $ OR NOT IsClass(who,&User) OR kind < 1 OR kind > COMPANION_KINDS

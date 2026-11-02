@@ -1,0 +1,52 @@
+--- a/apps/client/src/game/ui/AdminConsole.tsx
++++ b/apps/client/src/game/ui/AdminConsole.tsx
+@@ -61,7 +61,7 @@
+   return rooms.filter((r) => r.name.toLowerCase().includes(t) || r.roo.includes(t) || String(r.rid).startsWith(t));
+ }
+ 
+-const TABS = ["Travel", "Players", "Self", "World"] as const;
++const TABS = ["Travel", "Players", "Self", "World", "Prime"] as const;
+ type Tab = (typeof TABS)[number];
+ 
+ /** Where the tabs' pages start, and how the button rows are laid out, in dialog units */
+@@ -158,6 +158,11 @@
+   const [place, setPlace] = useState("");
+   const [message, setMessage] = useState("");
+   const [confirmClear, setConfirmClear] = useState(false);
++  // Prime: the Prime tab's fields
++  const [pLevel, setPLevel] = useState("3");
++  const [pHealth, setPHealth] = useState("500");
++  const [pGold, setPGold] = useState("5000");
++  const [pItem, setPItem] = useState("");
+   const outRef = useRef<HTMLTextAreaElement | null>(null);
+   const players = [...session.world.players.values()].sort((a, b) => a.name.localeCompare(b.name));
+   const me = session.world.player?.id ?? 0;
+@@ -310,6 +315,28 @@
+         ))}
+       </>
+     );
++  } else if (tab === "Prime") {
++    // Prime (ours): class levels, health, shillings, items and robes for yourself or the player picked on the Players tab
++    // (dm.kod "dm prime ..." -> PrimeClasses.DmPrime). A class level gives every spell and skill of the target's class table up to
++    // that level at 70 percent; health is capped by the game at 100 plus the target's stamina.
++    const target = user !== null && user !== me ? session.world.players.get(user)?.name : undefined;
++    const to = target ? ` to ${target}` : "";
++    const prime = (what: string, value: string) => () => (value.trim() ? dm(`prime ${what} ${value.trim()}${to}`) : setStatus("Type a value first."));
++    page = (
++      <>
++        <Text at={[3, PAGE_Y + 1, 290, 8]}>{target ? `For: ${target} (picked on the Players tab)` : "For: yourself (pick a player on the Players tab to give to them)"}</Text>
++        <ButtonRows
++          rows={[
++            { label: "", items: [] },
++            { label: "Class level", items: [{ field: "Level 1-6", value: pLevel, onChange: setPLevel, onSubmit: prime("level", pLevel) }, { label: "Give abilities", onClick: prime("level", pLevel) }] },
++            { label: "Health", items: [{ field: "Max health", value: pHealth, onChange: setPHealth, onSubmit: prime("health", pHealth) }, { label: "Set health", onClick: prime("health", pHealth) }] },
++            { label: "Shillings", items: [{ field: "Amount", value: pGold, onChange: setPGold, onSubmit: prime("gold", pGold) }, { label: "Give shillings", onClick: prime("gold", pGold) }] },
++            { label: "Item", items: [{ field: 'An item ("plate armor")', value: pItem, onChange: setPItem, onSubmit: prime("item", pItem) }, { label: "Give item", onClick: prime("item", pItem) }] },
++            { label: "Disciple robe", items: ["Qor", "Shalille", "Kraanan", "Faren", "Riija", "Jala"].map((g) => ({ label: g, onClick: () => dm(`prime robe ${g.toLowerCase()}${to}`) })) },
++          ]}
++        />
++      </>
++    );
+   } else if (tab === "Self") {
+     page = (
+       <ButtonRows

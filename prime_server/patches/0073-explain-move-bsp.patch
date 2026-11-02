@@ -1,0 +1,216 @@
+--- a/blakserv/roofile.c
++++ b/blakserv/roofile.c
+@@ -792,6 +792,72 @@
+ }
+ 
+ /*********************************************************************************************/
++/* BSPExplainMove: PRIME (patch 0073). The same verdict as BSPCanMoveInRoom, with the REASON.
++/*   returns 0 = allowed, 1 = a wall stops it (out = wall P1.X, P1.Y, P2.X, P2.Y in roo units),
++/*   2 = a body (blocker) stops it (out = object id, its X, its Y, 0), 3 = no room data / bad arguments.
++/*   Used only by the debug tools (ExplainMoveBSP); it never changes anything.
++/*********************************************************************************************/
++int BSPExplainMove(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, int out[4])
++{
++   out[0] = out[1] = out[2] = out[3] = 0;
++
++   if (!Room || Room->TreeNodesCount == 0 || !S || !E)
++      return 3;
++
++   if (ISZERO(S->X - E->X) && ISZERO(S->Y - E->Y))
++      return 0;
++
++   Wall* bw = NULL;
++   if (!moveOutsideBSP && !BSPCanMoveInRoomTree(&Room->TreeNodes[0], S, E, &bw))
++   {
++      if (bw)
++      {
++         out[0] = (int)bw->P1.X;
++         out[1] = (int)bw->P1.Y;
++         out[2] = (int)bw->P2.X;
++         out[3] = (int)bw->P2.Y;
++      }
++      return 1;
++   }
++
++   BlockerNode* blocker = Room->Blocker;
++   while (blocker)
++   {
++      if (blocker->ObjectID == ObjectID)
++      {
++         blocker = blocker->Next;
++         continue;
++      }
++
++      V2 ms;
++      V2SUB(&ms, S, &blocker->Position);
++      float ds2 = V2LEN2(&ms);
++      bool hit = false;
++
++      if (ds2 <= OBJMINDISTANCE2)
++      {
++         V2 me;
++         V2SUB(&me, E, &blocker->Position);
++         if (V2LEN2(&me) <= ds2)
++            hit = true;
++      }
++      else if (IntersectLineCircle(&blocker->Position, OBJMINDISTANCE, S, E))
++         hit = true;
++
++      if (hit)
++      {
++         out[0] = blocker->ObjectID;
++         out[1] = (int)blocker->Position.X;
++         out[2] = (int)blocker->Position.Y;
++         return 2;
++      }
++      blocker = blocker->Next;
++   }
++
++   return 0;
++}
++
++/*********************************************************************************************/
+ /* BSPChangeTexture: Sets textures of sides and/or sectors to given NewTexture num based on Flags
+ /*********************************************************************************************/
+ void BSPChangeTexture(room_type* Room, unsigned int ServerID, unsigned short NewTexture, unsigned int Flags)
+--- a/blakserv/roofile.h
++++ b/blakserv/roofile.h
+@@ -247,6 +247,7 @@
+ /**************************************************************************************************************/
+ bool  BSPGetHeight(room_type* Room, V2* P, float* HeightF, float* HeightFWD, float* HeightC, BspLeaf** Leaf);
+ bool  BSPCanMoveInRoom(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, Wall** BlockWall);
++int   BSPExplainMove(room_type* Room, V2* S, V2* E, int ObjectID, bool moveOutsideBSP, int out[4]);
+ bool  BSPLineOfSightView(V2 *S, V2 *E, int kod_angle);
+ bool  BSPLineOfSight(room_type* Room, V3* S, V3* E);
+ void  BSPChangeTexture(room_type* Room, unsigned int ServerID, unsigned short NewTexture, unsigned int Flags);
+--- a/blakserv/ccode.c
++++ b/blakserv/ccode.c
+@@ -3539,6 +3539,64 @@
+ }
+ 
+ /*
++ * C_ExplainMoveBSP: PRIME (patch 0073). ExplainMoveBSP(room, srow, scol, sfinerow, sfinecol, drow, dcol, dfinerow, dfinecol, objectid, *o1, *o2, *o3, *o4):
++ *    the verdict of CanMoveInRoomBSP with the reason. Returns 0 allowed, 1 a wall stops it (o1..o4 = wall P1.X, P1.Y, P2.X, P2.Y in roo units),
++ *    2 a body stops it (o1 = object id, o2/o3 = its position), 3 no room data / bad arguments. The four o variables are passed with the * operator.
++ */
++int C_ExplainMoveBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[])
++{
++	val_type ret_val, room_val, a[9], ov[4];
++	room_node *r;
++
++	ret_val.v.tag = TAG_INT;
++	ret_val.v.data = 3;
++
++	if (num_normal_parms != 14)
++		return ret_val.int_val;
++
++	room_val = RetrieveValue(object_id, local_vars, normal_parm_array[0].type, normal_parm_array[0].value);
++	for (int k = 0; k < 9; k++)
++		a[k] = RetrieveValue(object_id, local_vars, normal_parm_array[k + 1].type, normal_parm_array[k + 1].value);
++	for (int k = 0; k < 4; k++)
++		ov[k] = RetrieveValue(object_id, local_vars, normal_parm_array[10 + k].type, normal_parm_array[10 + k].value);
++
++	if (room_val.v.tag != TAG_ROOM_DATA)
++		return ret_val.int_val;
++	for (int k = 0; k < 8; k++)
++		if (a[k].v.tag != TAG_INT)
++			return ret_val.int_val;
++	if (a[8].v.tag != TAG_OBJECT)
++		return ret_val.int_val;
++	for (int k = 0; k < 4; k++)
++	{
++		int idx = (int)ov[k].v.data;
++		if (idx < 0 || idx >= MAX_LOCALS || local_vars->locals[idx].v.tag != TAG_INT)
++			return ret_val.int_val;
++	}
++
++	r = GetRoomDataByID(room_val.v.data);
++	if (r == NULL)
++		return ret_val.int_val;
++
++	V2 s;
++	s.X = GRIDCOORDTOROO(a[1].v.data, a[3].v.data);
++	s.Y = GRIDCOORDTOROO(a[0].v.data, a[2].v.data);
++
++	V2 e;
++	e.X = GRIDCOORDTOROO(a[5].v.data, a[7].v.data);
++	e.Y = GRIDCOORDTOROO(a[4].v.data, a[6].v.data);
++
++	int out[4];
++	ret_val.v.data = BSPExplainMove(&r->data, &s, &e, a[8].v.data, false, out);
++	for (int k = 0; k < 4; k++)
++		local_vars->locals[ov[k].v.data].v.data = out[k];
++
++	return ret_val.int_val;
++}
++
++/*
+  * C_FindPathStepBSP: PRIME. FindPathStepBSP(room, srow, scol, sfinerow, sfinecol, drow, dcol, dfinerow, dfinecol, objectid):
+  *    finds a walkable way (A*, every link judged by the client's walk rules in BSPCanMoveInRoom) from the source to the goal in
+  *    the dest variables and writes the next point to walk to (the farthest point of that way in a straight line) into them.
+--- a/blakserv/ccode.h
++++ b/blakserv/ccode.h
+@@ -217,6 +217,10 @@
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+ 
++int C_ExplainMoveBSP(int object_id, local_var_type *local_vars,
++	int num_normal_parms, parm_node normal_parm_array[],
++	int num_name_parms, parm_node name_parm_array[]);
++
+ int C_FindPathStepBSP(int object_id, local_var_type *local_vars,
+ 	int num_normal_parms, parm_node normal_parm_array[],
+ 	int num_name_parms, parm_node name_parm_array[]);
+--- a/blakserv/sendmsg.c
++++ b/blakserv/sendmsg.c
+@@ -202,6 +202,7 @@
+    ccall_table[GETRANDOMPOINTBSP] = C_GetRandomPointBSP;
+    ccall_table[GETSTEPTOWARDSBSP] = C_GetStepTowardsBSP;
+    ccall_table[FINDPATHSTEPBSP] = C_FindPathStepBSP;
++   ccall_table[EXPLAINMOVEBSP] = C_ExplainMoveBSP;
+ 
+    ccall_table[APPENDLISTELEM] = C_AppendListElem;
+    ccall_table[CONS] = C_Cons;
+--- a/blakserv/adminfn.c
++++ b/blakserv/adminfn.c
+@@ -2390,6 +2390,7 @@
+ 		case GETRANDOMPOINTBSP: strcpy(c_name, "GetRandomPointBSP"); break;
+ 		case GETSTEPTOWARDSBSP: strcpy(c_name, "GetStepTowardsBSP"); break;
+ 		case FINDPATHSTEPBSP: strcpy(c_name, "FindPathStepBSP"); break;
++		case EXPLAINMOVEBSP: strcpy(c_name, "ExplainMoveBSP"); break;
+ 		case BLOCKERADDBSP: strcpy(c_name, "BlockerAddBSP"); break;
+ 		case BLOCKERMOVEBSP: strcpy(c_name, "BlockerMoveBSP"); break;
+ 		case BLOCKERREMOVEBSP: strcpy(c_name, "BlockerRemoveBSP"); break;
+--- a/blakdeco/blakdeco.c
++++ b/blakdeco/blakdeco.c
+@@ -546,6 +546,7 @@
+    case GETRANDOMPOINTBSP: return "GetRandomPointBSP";
+    case GETSTEPTOWARDSBSP: return "GetStepTowardsBSP";
+    case FINDPATHSTEPBSP: return "FindPathStepBSP";
++   case EXPLAINMOVEBSP: return "ExplainMoveBSP";
+ 
+    case STRINGTONUMBER : return "StringToNumber";
+ 
+--- a/include/bkod.h
++++ b/include/bkod.h
+@@ -180,6 +180,7 @@
+    GETRANDOMPOINTBSP = 79,
+    GETSTEPTOWARDSBSP = 80,
+    FINDPATHSTEPBSP = 81,
++   EXPLAINMOVEBSP = 82,
+ 
+    DELLASTLISTELEM = 98,
+    GETALLLISTNODESBYCLASS = 99,
+--- a/blakcomp/function.c
++++ b/blakcomp/function.c
+@@ -105,6 +105,8 @@
+ {"GetRandomPointBSP",   GETRANDOMPOINTBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+ {"GetStepTowardsBSP",   GETSTEPTOWARDSBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
++{"ExplainMoveBSP",      EXPLAINMOVEBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
++                                           AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION, ANONE },
+ {"FindPathStepBSP",     FINDPATHSTEPBSP, STORE_OPTIONAL, AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, AEXPRESSION, AEXPRESSION,
+                                            AEXPRESSION, AEXPRESSION,  AEXPRESSION, AEXPRESSION, ANONE },
+ {"SetResource",         SETRESOURCE,     STORE_OPTIONAL, AEXPRESSION,   AEXPRESSION,  ANONE},

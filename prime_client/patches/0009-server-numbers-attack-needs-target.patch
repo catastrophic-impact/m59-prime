@@ -1,0 +1,76 @@
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -41,6 +41,8 @@
+ import { HALO_COLOR, actionsFor, getSettings, isHeld, mouseCode, onSettings, touchUi, type Action, type Mods, type Settings } from "./settings.ts";
+ 
+ /** Ours: a click kills a critter this far off, and an attack one this close (and ahead), fine units */
++/** Prime: our server sends the floating numbers (primeNumber), so the message-based guess in showDamage is off */
++const PRIME_SERVER_NUMBERS: boolean = true;
+ const SQUISH_RANGE = 10 * FINENESS;
+ const CRITTER_REACH = 1.6 * FINENESS;
+ const CRITTER_DEATH_VOLUME = 0.35;
+@@ -2214,10 +2216,8 @@
+       else this.onMessage?.("You can't see your selected target.");
+       return;
+     }
+-    const closest = this.visibleObjects(OF_ATTACKABLE, CLOSE_DISTANCE)[0];
+-    if (closest) this.session.attack(closest.id);
+-    // Ours: nothing real to hit, but a critter at our feet
+-    else this.squishAhead();
++    // Prime: an enemy has to be selected first (area spells such as firewall need no target, but they are not attacks)
++    this.onMessage?.("Select a target first: click an enemy, or press ] for the nearest.");
+   }
+ 
+   /**
+@@ -2589,12 +2589,27 @@
+    * rather than giving its id, so it's the target when the name matches (attacks and spells go
+    * there), else the nearest object with that name.
+    */
++  /** Prime: a number over an object, from our server (UC_PRIME_GROUP combat): damage in gold, red on a player or companion, healing green */
++  primeNumber(id: number, amount: number, heal: boolean): void {
++    if (!this.settings.damageNumbers) return;
++    const o = this.session.world.objects.get(id);
++    if (!o && id !== this.session.world.self?.id) return;
++    const el = this.labelsEl.appendChild(document.createElement("div"));
++    const onUs = !heal && (o ? (o.info.flags & 0x4) !== 0 : true); // OF_PLAYER
++    el.className = `damage-number${heal ? " heal" : onUs ? " hurt" : ""}`;
++    el.textContent = heal ? `+${amount}` : String(amount);
++    el.style.display = "none";
++    this.damageFloats.push({ id, born: performance.now(), pos: this.objects?.topOf(id) ?? null, dx: (Math.random() - 0.5) * 24, el });
++  }
++
+   showDamage(hit: DamageDealt): void {
+     // Ours (docs/adr/0019-arena-bouts.md): the stands cheer a mock bout's blows now and then
+     if (this.arenaFloorBusy && this.arena && Math.random() < 0.35) {
+       const self = this.session.world.self;
+       if (self) this.boutCheers.push({ type: "cheer", x: self.x, y: self.y, female: Math.random() < 0.5 });
+     }
++    // Prime: our server sends a number for every blow and heal (primeNumber), so this guess from the message is not needed
++    if (PRIME_SERVER_NUMBERS) return;
+     if (!this.settings.damageNumbers) return;
+     const world = this.session.world;
+     const self = world.self;
+--- a/apps/client/src/game/GameView.tsx
++++ b/apps/client/src/game/GameView.tsx
+@@ -9,6 +9,7 @@
+ import type { QuestStore } from "./quests.ts";
+ import { useCompanion, type CompanionStore } from "./companion.ts";
+ import { PrimeGroupWindow } from "./ui/PrimeGroupWindow.tsx";
++import { primeGroup } from "./primeGroup.ts";
+ import { useArena, type ArenaStore } from "./arenaBouts.ts";
+ import { ArenaDialog } from "./ui/ArenaDialog.tsx";
+ import { CompanionPanel } from "./ui/CompanionPanel.tsx";
+@@ -786,6 +787,13 @@
+   );
+   // Ours (docs/adr/0010-followers.md 9.2): the Companion tab
+   const companionVersion = useCompanion(companion);
++  // Prime: floating numbers from our server go to the scene
++  useEffect(() => {
++    primeGroup.numberHandler = (id, amount, heal) => sceneRef.current?.primeNumber(id, amount, heal);
++    return () => {
++      primeGroup.numberHandler = null;
++    };
++  }, []);
+   // ...and its health under its name (gameScene.ts drawLabels)
+   useEffect(() => {
+     const scene = sceneRef.current;

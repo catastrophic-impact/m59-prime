@@ -1,0 +1,24 @@
+--- a/packages/render/src/objectsView.ts
++++ b/packages/render/src/objectsView.ts
+@@ -605,7 +605,7 @@
+       if ((f & OF.DISPLAY_NAME || mobName) && !hidden) {
+         const dist = Math.hypot(dx, dy);
+         if (o.info.flags & OF.SIGN || dist < MAX_NAME_DISTANCE) {
+-          const c = o.info.nameColor;
++          const c = mobName ? 0xffffff : o.info.nameColor; // Prime: a monster's name in white (its own colour is unreadable)
+           const k = Math.max(r, g, b);
+           const col = [(c >> 16) & 255, (c >> 8) & 255, c & 255].map((v) => Math.round(v * Math.min(1, k * (255 / 239))));
+           labels.push({
+--- a/apps/client/src/game/gameScene.ts
++++ b/apps/client/src/game/gameScene.ts
+@@ -83,8 +83,8 @@
+ /** Ours (following): don't turn towards a spot this close (fine units); we'd spin on it */
+ const FOLLOW_TURN_SLOP = 96;
+ /** Ours (health bars over friends): the bar's width a square away, and the least it shrinks to (px) */
+-const FRIEND_BAR_WIDTH = 120;
+-const FRIEND_BAR_MIN = 36;
++const FRIEND_BAR_WIDTH = 170;
++const FRIEND_BAR_MIN = 50;
+ /** Eye height above the floor (clientd3d/game.c player.height = 3/4 square). */
+ const EYE_HEIGHT = 768;
+ /** Mouse sensitivity in client angle units per pixel (4096 per circle). */

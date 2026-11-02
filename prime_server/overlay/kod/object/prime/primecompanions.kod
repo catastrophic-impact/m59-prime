@@ -1,0 +1,1188 @@
+// Meridian 59 Prime: the class companions (Monk, Paladin, Elementalist; the Warrior is patch 0015). PrimeClasses is a PrimeCompanions, so everything
+// is reached with Send(Send(SYS,@GetPrime),@Message,...). The upstream companion framework (util/companionkinds.kod, companionbook.kod, companion.kod)
+// asks this class for the numbers of every kind from COMPANION_MONK on, and calls CompTick (every COMPANION_SUPPORT_MS) and CompBeforeAttack (each swing) for them.
+//
+// What a class companion does, in this order, for every member of its owner's group (the owner, the group's players, their companions, itself):
+//   1. an emergency heal on whoever is below piCompEmergencyPct percent health (the lowest first);
+//   2. each buff of its kit that a member lacks (also in a fight, before it attacks);
+//   3. the Elementalist gives mana (Mystic Touch) to players who are low;
+//   4. Mana Focus on itself when its mana is low and nothing is on it (Monk, Elementalist);
+//   5. a normal heal below piCompHealPct percent; then the upstream fight AI (weapon, fight spells).
+// Its kit follows the owner's base health: level 1-6 (CompLevel), as the class tables give the players their abilities. The Paladin's spirit weapon
+// returns mana on hits like a player's (SpiritHit), and it takes the sword or the hammer, whichever the target resists less.
+
+PrimeCompanions is PrimeGroups
+
+constants:
+
+   include blakston.khd
+   include protocol.khd
+   include prime.khd
+
+resources:
+
+   pc_kind_monk = "monk companion"
+   pc_kind_paladin = "paladin companion"
+   pc_kind_elementalist = "elementalist companion"
+
+
+
+
+   pc_m_aldric = "Aldric"
+   pc_m_gerhard = "Gerhard"
+   pc_m_lorenzo = "Lorenzo"
+   pc_m_ambrose = "Ambrose"
+   pc_m_josiah = "Josiah"
+   pc_m_silas = "Silas"
+   pc_m_ezekiel = "Ezekiel"
+   pc_m_reynard = "Reynard"
+   pc_m_tobias = "Tobias"
+   pc_m_matthias = "Matthias"
+   pc_m_cosimo = "Cosimo"
+   pc_m_benedict = "Benedict"
+   pc_m_hartmann = "Hartmann"
+   pc_m_giles = "Giles"
+   pc_m_lucian = "Lucian"
+   pc_m_thaddeus = "Thaddeus"
+   pc_m_barnabas = "Barnabas"
+   pc_m_elias = "Elias"
+   pc_m_amadeus = "Amadeus"
+   pc_m_piers = "Piers"
+   pc_m_everard = "Everard"
+   pc_m_caspar = "Caspar"
+   pc_m_jeremiah = "Jeremiah"
+   pc_m_gideon = "Gideon"
+
+   pc_f_isolde = "Isolde"
+   pc_f_beatrix = "Beatrix"
+   pc_f_marguerite = "Marguerite"
+   pc_f_abigail = "Abigail"
+   pc_f_temperance = "Temperance"
+   pc_f_prudence = "Prudence"
+   pc_f_hester = "Hester"
+   pc_f_seraphina = "Seraphina"
+   pc_f_lucrezia = "Lucrezia"
+   pc_f_rosalind = "Rosalind"
+   pc_f_philippa = "Philippa"
+   pc_f_constance = "Constance"
+   pc_f_adelheid = "Adelheid"
+   pc_f_eleanor = "Eleanor"
+   pc_f_cecily = "Cecily"
+   pc_f_mercy = "Mercy"
+   pc_f_verity = "Verity"
+   pc_f_griselda = "Griselda"
+   pc_f_odette = "Odette"
+   pc_f_perpetua = "Perpetua"
+   pc_f_tabitha = "Tabitha"
+   pc_f_clarice = "Clarice"
+   pc_f_ysolde = "Ysolde"
+   pc_f_patience = "Patience"
+
+   pc_gave_mana = "%s gives you some of their magical energy."
+
+classvars:
+
+properties:
+
+   // Health (percent) below which a group member is an emergency for a healer companion, and below which any heal is worth casting
+   piCompEmergencyPct = 40
+   piCompHealPct = 70
+   // Mana (percent) below which the companion focuses, and of a player's mana below which the elementalist gives some
+   piCompFocusPct = 35
+   piCompBatteryPct = 35
+   // Seconds after its last blow that it counts as being fought (it will not focus then)
+   piCompMeleeSeconds = 4
+
+   // Heals that a companion has just started: [ target, companion, until ], so two healers do not heal the same member at once
+   plHealClaims = $
+
+messages:
+
+   // ---------------------------------------------------------------------------------------------
+   // What the kind tables of the upstream companion framework ask for
+
+   CompKindName(kind = 0)
+   {
+      if kind = COMPANION_MONK
+      {
+         return pc_kind_monk;
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return pc_kind_paladin;
+      }
+
+      return pc_kind_elementalist;
+   }
+
+   CompSchool(kind = 0)
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return SS_FAREN;
+      }
+
+      return SS_SHALILLE;
+   }
+
+   CompLevel(health = 50)
+   "Class level 1-6 of a companion for its owner's base health (20 at the start, about 130 at the most)."
+   {
+      return Bound(1 + (health - 20) / 20,1,6);
+   }
+
+   CompSpellBook(kind = 0, health = 50)
+   "Fight spells as Monster.plSpellBook has them: [ spell, mana, cumulative chance ]. Only the Elementalist has any: fire from the start, ice from level 3."
+   {
+      if kind <> COMPANION_ELEMENTALIST
+      {
+         return $;
+      }
+
+      if Send(self,@CompLevel,#health=health) < 3
+      {
+         return [ [SID_FIREBALL,6,100] ];
+      }
+
+      return [ [SID_FIREBALL,6,60], [SID_ICESHARD,6,100] ];
+   }
+
+   CompSupport(kind = 0, health = 50)
+   "Its kit: [ spell, mana, role ] with the roles CSUP_*, in the order they are tried (stronger heals first)."
+   {
+      local iLevel, lKit;
+
+      iLevel = Send(self,@CompLevel,#health=health);
+      lKit = $;
+
+      if kind = COMPANION_MONK
+      {
+         lKit = [ [SID_MINOR_HEAL,4,CSUP_HEAL], [SID_MANA_FOCUS,0,CSUP_FOCUS] ];
+         if iLevel >= 3
+         {
+            lKit = Cons([SID_BLESS,6,CSUP_BUFF],lKit);
+         }
+
+         if iLevel >= 4
+         {
+            lKit = Cons([SID_MAGIC_SHIELD,9,CSUP_BUFF],lKit);
+         }
+
+         if iLevel >= 5
+         {
+            lKit = Cons([SID_MAJOR_HEAL,10,CSUP_HEAL],lKit);
+         }
+
+         return lKit;
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         lKit = [ [SID_MINOR_HEAL,4,CSUP_HEAL] ];
+         if iLevel >= 3
+         {
+            lKit = Cons([SID_BLESS,6,CSUP_BUFF],lKit);
+         }
+
+         if iLevel >= 4
+         {
+            lKit = Cons([SID_MAGIC_SHIELD,9,CSUP_BUFF],lKit);
+         }
+
+         if iLevel >= 6
+         {
+            lKit = Cons([SID_ARMOR_OF_GORT,10,CSUP_BUFF],lKit);
+            lKit = Cons([SID_MAJOR_HEAL,10,CSUP_HEAL],lKit);
+         }
+
+         return lKit;
+      }
+
+      // Elementalist: the group's mana battery
+      lKit = [ [SID_MINOR_HEAL,4,CSUP_HEAL], [SID_MANA_FOCUS,0,CSUP_FOCUS] ];
+      if iLevel >= 4
+      {
+         lKit = Cons([SID_MAGIC_SHIELD,9,CSUP_BUFF],lKit);
+         lKit = Cons([SID_MYSTIC_TOUCH,6,CSUP_BATTERY],lKit);
+      }
+
+      return lKit;
+   }
+
+   CompCaster(kind = 0, tier = 1, health = 50)
+   "[ chance to cast in a fight (percent), spell power, maximum mana ]: the Elementalist casts most and holds most mana."
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return [ 55 + 3 * tier, Bound(health * 2 / 3 + 3 * tier,10,99), 100 + health ];
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return [ 0, Bound(health * 2 / 3 + 3 * tier,10,99), 40 + health / 2 ];
+      }
+
+      return [ 0, Bound(health * 2 / 3 + 3 * tier,10,99), 60 + health * 2 / 3 ];
+   }
+
+   CompNames(kind = 0, gender = GENDER_MALE)
+   "First names for any class companion: the old server's pool of 24 men's and 24 women's names."
+   {
+      if gender = GENDER_MALE
+      {
+         return [pc_m_aldric, pc_m_gerhard, pc_m_lorenzo, pc_m_ambrose, pc_m_josiah, pc_m_silas, pc_m_ezekiel, pc_m_reynard, pc_m_tobias, pc_m_matthias, pc_m_cosimo, pc_m_benedict, pc_m_hartmann, pc_m_giles, pc_m_lucian, pc_m_thaddeus, pc_m_barnabas, pc_m_elias, pc_m_amadeus, pc_m_piers, pc_m_everard, pc_m_caspar, pc_m_jeremiah, pc_m_gideon];
+      }
+
+      return [pc_f_isolde, pc_f_beatrix, pc_f_marguerite, pc_f_abigail, pc_f_temperance, pc_f_prudence, pc_f_hester, pc_f_seraphina, pc_f_lucrezia, pc_f_rosalind, pc_f_philippa, pc_f_constance, pc_f_adelheid, pc_f_eleanor, pc_f_cecily, pc_f_mercy, pc_f_verity, pc_f_griselda, pc_f_odette, pc_f_perpetua, pc_f_tabitha, pc_f_clarice, pc_f_ysolde, pc_f_patience];
+   }
+
+   CompDamage(kind = 0)
+   "[ least, most ] damage, in thousandths of the owner's base health."
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return [ 25, 55 ];
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return [ 50, 105 ];
+      }
+
+      return [ 45, 95 ];
+   }
+
+   CompDamageFloor(kind = 0)
+   "[ least, most ] damage a class companion has at the very least: what a new character of the class does (the paladin's spirit sword 3-8, the monk's fists, the elementalist's staff)."
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return [ 1, 3 ];
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return [ 3, 8 ];
+      }
+
+      return [ 2, 5 ];
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // A class companion is built from the player's own numbers: health (to its class's cap), and the skill and spell percents the player
+   // has, spent the way a player would spend them (CompProfile). Everything a designer may tweak is in the small tables below.
+
+   CompStamina(kind = 0)
+   "The stamina of a class companion's class: its health cap is 100 plus this (the game's own rule). Tweak here."
+   {
+      if kind = COMPANION_WARRIOR
+      {
+         return 50;
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return 40;
+      }
+
+      if kind = COMPANION_MONK
+      {
+         return 30;
+      }
+
+      return 20;
+   }
+
+   CompMysticism(kind = 0)
+   "The mysticism of a class companion's class: its mana is 15 + this / 5, as a player's. Tweak here."
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return 60;
+      }
+
+      if kind = COMPANION_MONK
+      {
+         return 50;
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return 40;
+      }
+
+      return 25;
+   }
+
+   FactionCompanionsOn()
+   "Rule pbFactionCompanions (PrimeRules): is the old faction companion (CompanionBook) switched on?"
+   {
+      return pbFactionCompanions;
+   }
+
+   CompClassOf(kind = 0)
+   {
+      if kind = COMPANION_MONK
+      {
+         return CLASS_MONK;
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return CLASS_PALADIN;
+      }
+
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return CLASS_ELEMENTALIST;
+      }
+
+      return CLASS_WARRIOR;
+   }
+
+   CompHealth(who = $, kind = 0)
+   "The player's base health, up to the cap of the companion's class."
+   {
+      return Bound(Send(who,@GetBaseMaxHealth),20,100 + Send(self,@CompStamina,#kind=kind));
+   }
+
+   CompPoints(who = $)
+   "All the percent the player has in skills and spells."
+   {
+      local i, n;
+
+      n = 0;
+      foreach i in Send(who,@GetSkillList)
+      {
+         n += Send(who,@DecodeSkillAbility,#compound=i);
+      }
+
+      foreach i in Send(who,@GetSpellList)
+      {
+         n += Send(who,@DecodeSpellAbility,#compound=i);
+      }
+
+      return n;
+   }
+
+   CompNeed(who = $, level = 2, prev = 3, intellect = -1)
+   "Percent the best three abilities of the level below must add up to before `level` opens: the player's own rule (PrimeClasses.LearnCheck); prev is how many abilities that level has."
+   {
+      local iNeed, iInt;
+
+      iInt = intellect;
+      if iInt < 0
+      {
+         iInt = Send(who,@GetRawIntellect);
+      }
+
+      iNeed = (Send(SYS,@GetLevelLearnPoints,#level=level) * PRIME_POINTS_SLOPE)
+              + (297 - (Send(SETTINGS_OBJECT,@GetMaxLearnPoints) * PRIME_POINTS_SLOPE))
+              - ((iInt * 2 * PRIME_POINTS_SLOPE) / 5);
+      iNeed = Bound(iNeed,PRIME_MIN_NEEDED_TO_ADVANCE,$);
+      if prev = 1
+      {
+         iNeed = iNeed / 3;
+      }
+
+      if prev = 2
+      {
+         iNeed = (iNeed * 2) / 3;
+      }
+
+      return iNeed;
+   }
+
+   CompProfile(who = $, kind = 0, points = -1, intellect = -1)
+   "[ [ is skill, number, percent, class level ] ... ]: the companion's class abilities with the player's total percent spent evenly on the first level, then (once it opens the next) the next, and so on; what is left once every level is open goes evenly on all of them."
+   {
+      local lTable, lAt, lOut, lNew, i, iLevel, k, iBudget, iEach, iNeed, iBest, iLeft, bMore;
+
+      lTable = Send(self,@ClassAbilityTable,#iClass=Send(self,@CompClassOf,#kind=kind));
+      iBudget = points;
+      if iBudget < 0
+      {
+         iBudget = Send(self,@CompPoints,#who=who);
+      }
+
+      // never less than a new character of the class: its first level at 25 percent each
+      k = 0;
+      foreach i in lTable
+      {
+         if Nth(i,3) = 1
+         {
+            ++k;
+         }
+      }
+
+      iBudget = Bound(iBudget,25 * k,$);
+      lOut = $;
+      iLevel = 1;
+      bMore = TRUE;
+      while iLevel <= 6 AND bMore
+      {
+         lAt = $;
+         foreach i in lTable
+         {
+            if Nth(i,3) = iLevel
+            {
+               lAt = Cons(i,lAt);
+            }
+         }
+
+         k = Length(lAt);
+         if k > 0
+         {
+            iBest = Bound(k,1,3);
+            iNeed = 0;
+            if iLevel < 6
+            {
+               iNeed = Send(self,@CompNeed,#who=who,#level=iLevel + 1,#prev=k,#intellect=intellect);
+            }
+
+            iEach = Bound((iNeed + iBest - 1) / iBest,1,99);
+            if iBudget < iEach * k
+            {
+               iEach = iBudget / k;
+               bMore = FALSE;
+            }
+
+            if iEach > 0
+            {
+               foreach i in lAt
+               {
+                  lOut = Cons([First(i),Nth(i,2),iEach,iLevel],lOut);
+               }
+
+               iBudget = iBudget - iEach * k;
+            }
+         }
+
+         iLevel = iLevel + 1;
+      }
+
+      if bMore AND lOut <> $
+      {
+         iLeft = iBudget / Length(lOut);
+         lNew = $;
+         foreach i in lOut
+         {
+            lNew = Cons([First(i),Nth(i,2),Bound(Nth(i,3) + iLeft,1,99),Nth(i,4)],lNew);
+         }
+
+         lOut = lNew;
+      }
+
+      return lOut;
+   }
+
+   CompPct(lAbil = $, bSkill = TRUE, num = 0)
+   {
+      local i;
+
+      foreach i in lAbil
+      {
+         if First(i) = bSkill AND Nth(i,2) = num
+         {
+            return Nth(i,3);
+         }
+      }
+
+      return 0;
+   }
+
+   CompTopLevel(lAbil = $)
+   {
+      local i, n;
+
+      n = 1;
+      foreach i in lAbil
+      {
+         if Nth(i,4) > n
+         {
+            n = Nth(i,4);
+         }
+      }
+
+      return n;
+   }
+
+   CompFight(kind = 0, health = 20, lAbil = $)
+   "[ offense, defense, least damage, most damage ] by the player's formulas (Player.GetOffense, GetDefense, the weapon's damage and its proficiency) from the companion's percents, new-character aim and agility (25) and its class stamina."
+   {
+      local iStroke, iProf, iOffense, iDefense, iParry, iBlock, iDodge, iWeight, iStam, iMin, iMax, bArmed, iTouch, iBonus;
+
+      iStam = Send(self,@CompStamina,#kind=kind);
+      bArmed = (kind = COMPANION_WARRIOR OR kind = COMPANION_PALADIN);
+      iStroke = 20;
+      iProf = 20;
+      iParry = 0;
+      iBlock = 0;
+      iWeight = 20;
+      iMin = 1;
+      iMax = 3;
+      if bArmed
+      {
+         iStroke = Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_SLASH);
+         iProf = Bound(Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_PROFICIENCY_SWORD),
+                       Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_PROFICIENCY_HAMMER),$);
+         iProf = Bound(Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_PROFICIENCY_AXE),iProf,$);
+         iParry = Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_PARRY);
+         iBlock = Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_BLOCK);
+         iMin = 3;
+         iMax = 8;
+      }
+      else if kind = COMPANION_MONK
+      {
+         iStroke = Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_PUNCH);
+         iProf = Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_BRAWLING);
+         iWeight = 30;
+      }
+
+      // an elementalist with Touch of Flame hits with it: the spell's damage, its percent in proficiency, the mysticism bonus (Touch Attack Spell.DamageFactors)
+      iTouch = Send(self,@CompPct,#lAbil=lAbil,#bSkill=FALSE,#num=SID_TOUCH_OF_FLAME);
+      if kind = COMPANION_ELEMENTALIST AND iTouch > 0
+      {
+         iBonus = 100 + Bound(Send(self,@CompMysticism,#kind=kind) - 25,0,40);
+         iMin = (4 + iTouch * 5 / 100) * iBonus / 100;
+         iMax = (9 + iTouch * 5 / 100) * iBonus / 100;
+         iProf = iTouch;
+      }
+
+      iDodge = Send(self,@CompPct,#lAbil=lAbil,#bSkill=TRUE,#num=SKID_DODGE);
+      iOffense = iStroke * 2 + iProf * 2 + 25 * 8 + 200 * health / (100 + iStam);
+      iDefense = iParry + iBlock + iDodge * iWeight / 10 + 25 * 8 + 200 * health / (100 + iStam);
+
+      if kind = COMPANION_ELEMENTALIST AND iTouch > 0
+      {
+         return [ Bound(iOffense,1,2000), Bound(iDefense,1,2000), iMin, iMax ];
+      }
+
+      return [ Bound(iOffense,1,2000), Bound(iDefense,1,2000), iMin + iProf * 5 / 100, iMax + iProf * 5 / 100 ];
+   }
+
+   CompKitBook(kind = 0, lAbil = $)
+   "Fight spells as Monster.plSpellBook has them, for the spells the companion has: only the Elementalist casts them."
+   {
+      local bFire, bIce;
+
+      if kind <> COMPANION_ELEMENTALIST
+      {
+         return $;
+      }
+
+      bFire = Send(self,@CompPct,#lAbil=lAbil,#bSkill=FALSE,#num=SID_FIREBALL) > 0;
+      bIce = Send(self,@CompPct,#lAbil=lAbil,#bSkill=FALSE,#num=SID_ICESHARD) > 0;
+      if bFire AND bIce
+      {
+         return [ [SID_FIREBALL,6,60], [SID_ICESHARD,6,100] ];
+      }
+
+      if bFire
+      {
+         return [ [SID_FIREBALL,6,100] ];
+      }
+
+      if bIce
+      {
+         return [ [SID_ICESHARD,6,100] ];
+      }
+
+      return $;
+   }
+
+   CompKitSupport(kind = 0, lAbil = $)
+   "Its kit: [ spell, mana, role ] with the roles CSUP_*, in the order they are tried (stronger first), of the spells it has."
+   {
+      local lKit, lWanted, i;
+
+      // [ spell, mana, role ] in the order they are added (the last added is tried first)
+      if kind = COMPANION_MONK
+      {
+         lWanted = [ [SID_MANA_FOCUS,0,CSUP_FOCUS], [SID_MINOR_HEAL,4,CSUP_HEAL], [SID_BLESS,6,CSUP_BUFF],
+                     [SID_MAGIC_SHIELD,9,CSUP_BUFF], [SID_MAJOR_HEAL,10,CSUP_HEAL] ];
+      }
+      else if kind = COMPANION_PALADIN
+      {
+         lWanted = [ [SID_MINOR_HEAL,4,CSUP_HEAL], [SID_BLESS,6,CSUP_BUFF], [SID_MAGIC_SHIELD,9,CSUP_BUFF],
+                     [SID_ARMOR_OF_GORT,10,CSUP_BUFF], [SID_MAJOR_HEAL,10,CSUP_HEAL] ];
+      }
+      else if kind = COMPANION_ELEMENTALIST
+      {
+         lWanted = [ [SID_MANA_FOCUS,0,CSUP_FOCUS], [SID_MINOR_HEAL,4,CSUP_HEAL], [SID_MAGIC_SHIELD,9,CSUP_BUFF],
+                     [SID_MYSTIC_TOUCH,6,CSUP_BATTERY] ];
+      }
+      else
+      {
+         lWanted = [ [SID_BLESS,6,CSUP_BUFF], [SID_MAGIC_SHIELD,9,CSUP_BUFF] ];
+      }
+
+      lKit = $;
+      foreach i in lWanted
+      {
+         if Send(self,@CompPct,#lAbil=lAbil,#bSkill=FALSE,#num=First(i)) > 0
+         {
+            lKit = Cons(i,lKit);
+         }
+      }
+
+      return lKit;
+   }
+
+   CompApply(who = $, comp = $)
+   "Hook in CompanionBook.Rescale for a class companion or bot: health, fighting numbers, spells, mana and gear, from the owner's own numbers."
+   {
+      local iKind, iHealth, lProf;
+
+      iKind = Send(comp,@GetKind);
+      iHealth = Send(self,@CompHealth,#who=who,#kind=iKind);
+      lProf = Send(self,@CompProfile,#who=who,#kind=iKind);
+      Send(self,@CompApplyWith,#comp=comp,#health=iHealth,#lProf=lProf);
+
+      return;
+   }
+
+   CompIntellect(kind = 0)
+   "The intellect of a class's characters (the class stats): it helps a level to open. Tweak here."
+   {
+      if kind = COMPANION_WARRIOR
+      {
+         return 1;
+      }
+
+      if kind = COMPANION_PALADIN
+      {
+         return 30;
+      }
+
+      return 50;
+   }
+
+   CompApplyIdentity(comp = $, health = 20, points = 0, nocap = FALSE)
+   "A playerbot's body: the numbers of its identity (health up to its class's cap, the ability percent it has) instead of an owner's."
+   {
+      local iKind, lProf, iHealth;
+
+      iKind = Send(comp,@GetKind);
+      lProf = Send(self,@CompProfile,#who=$,#kind=iKind,#points=points,#intellect=Send(self,@CompIntellect,#kind=iKind));
+      iHealth = health;
+      if NOT nocap
+      {
+         iHealth = Bound(health,20,100 + Send(self,@CompStamina,#kind=iKind));
+      }
+
+      Send(self,@CompApplyWith,#comp=comp,#health=iHealth,#lProf=lProf);
+
+      return;
+   }
+
+   CompApplyWith(comp = $, health = 20, lProf = $)
+   "Health, fighting numbers, spells, mana and gear of a class companion from its health and its abilities."
+   {
+      local iKind, iHealth, iLevel, lFight, iChance, iPower, n, i;
+
+      iKind = Send(comp,@GetKind);
+      iHealth = health;
+      iLevel = Send(self,@CompTopLevel,#lAbil=lProf);
+      lFight = Send(self,@CompFight,#kind=iKind,#health=iHealth,#lAbil=lProf);
+      Send(comp,@ApplyScale,#level=iHealth,#health=iHealth,
+           #offense=First(lFight),
+           #defense=Nth(lFight,2),
+           #min_damage=Nth(lFight,3),
+           #max_damage=Nth(lFight,4));
+      if Send(comp,@GetGearTier) <> Bound(iLevel,1,5)
+      {
+         Send(comp,@SetTier,#tier=Bound(iLevel,1,5));
+      }
+
+      iChance = 0;
+      if iKind = COMPANION_ELEMENTALIST
+      {
+         iChance = 55 + 3 * iLevel;
+      }
+
+      // a spell power for the rare spells that have no percent of their own: the average of its spells
+      iPower = 0;
+      n = 0;
+      foreach i in lProf
+      {
+         if NOT First(i)
+         {
+            iPower += Nth(i,3);
+            ++n;
+         }
+      }
+
+      if n > 0
+      {
+         iPower = iPower / n;
+      }
+
+      Send(comp,@ApplyKit,#lSpells=Send(self,@CompKitBook,#kind=iKind,#lAbil=lProf),
+           #support=Send(self,@CompKitSupport,#kind=iKind,#lAbil=lProf),#chance=iChance,
+           #maxmana=15 + Send(self,@CompMysticism,#kind=iKind) / 5,#lAbil=lProf,#power=Bound(iPower,10,99));
+
+      return;
+   }
+
+   CompGear(kind = 0, tier = 1)
+   "What it wears and wields at a bond tier 1-5 (gear levels: monk and elementalist cloth and leather, paladin up to nerudite). The Paladin's spirit weapon comes with tier 2."
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return [ &DiscipleRobe ];
+      }
+
+      if kind = COMPANION_MONK
+      {
+         if tier <= 1
+         {
+            return [ &DiscipleRobe ];
+         }
+
+         return [ &LeatherArmor ];
+      }
+
+      if tier <= 1
+      {
+         return [ &LongSword, &MetalShield, &ChainArmor ];
+      }
+
+      if tier = 2
+      {
+         return [ &SpiritualSword, &MetalShield, &ChainArmor, &SteelHelm ];
+      }
+
+      if tier = 3
+      {
+         return [ &SpiritualSword, &Knightshield, &ScaleArmor, &SteelHelm ];
+      }
+
+      if tier = 4
+      {
+         return [ &SpiritualSword, &Knightshield, &PlateArmor, &WarHelm ];
+      }
+
+      return [ &SpiritualSword, &NeruditeShield, &NeruditeArmor, &KnightsHelm ];
+   }
+
+   CompPalette(kind = 0)
+   {
+      if kind = COMPANION_ELEMENTALIST
+      {
+         return [ XLAT_TO_RED, XLAT_TO_ORANGE, XLAT_TO_PURPLE, XLAT_TO_SKY, XLAT_TO_YELLOW ];
+      }
+
+      if kind = COMPANION_MONK
+      {
+         return [ XLAT_TO_GRAY, XLAT_TO_YELLOW, XLAT_TO_ORANGE, XLAT_TO_DGREEN, XLAT_TO_BLUE ];
+      }
+
+      return [ XLAT_TO_GRAY, XLAT_TO_BLUE, XLAT_TO_YELLOW, XLAT_TO_BLACK, XLAT_TO_SKY ];
+   }
+
+   CallKind(words = $)
+   "The kind named in `companion call <kind>` (words: companion, call, kind); the warrior without one."
+   {
+      local sKind;
+
+      if words <> $ AND Length(words) >= 3
+      {
+         sKind = Nth(words,3);
+         if StringEqual(sKind,"monk")
+         {
+            return COMPANION_MONK;
+         }
+
+         if StringEqual(sKind,"paladin")
+         {
+            return COMPANION_PALADIN;
+         }
+
+         if StringEqual(sKind,"elementalist")
+         {
+            return COMPANION_ELEMENTALIST;
+         }
+      }
+
+      return COMPANION_WARRIOR;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // The group, and who can be reached
+
+   CompGroup(comp = $)
+   "The companion's group: its owner's party (just the owner without one), each player's active companion, and itself."
+   {
+      local oOwner, lParty, lAll, i, oComp;
+
+      oOwner = Send(comp,@GetSworn);
+      if oOwner = $
+      {
+         return [comp];
+      }
+
+      lParty = Send(self,@PartyOf,#who=oOwner);
+      if lParty = $
+      {
+         lParty = [oOwner];
+      }
+
+      lAll = $;
+      foreach i in lParty
+      {
+         lAll = Cons(i,lAll);
+         foreach oComp in Send(self,@CompanionsOf,#who=i)
+         {
+            lAll = Cons(oComp,lAll);
+         }
+      }
+
+      if FindListElem(lAll,comp) = 0
+      {
+         lAll = Cons(comp,lAll);
+      }
+
+      return lAll;
+   }
+
+   CompHealthPct(who = $)
+   {
+      local iMax;
+
+      iMax = Send(who,@GetMaxHealth);
+      if iMax <= 0
+      {
+         return 100;
+      }
+
+      return Send(who,@GetHealth) * 100 / iMax;
+   }
+
+   CompManaPct(who = $)
+   {
+      local iMax;
+
+      iMax = Send(who,@GetMaxMana);
+      if iMax <= 0
+      {
+         return 100;
+      }
+
+      return Send(who,@GetMana) * 100 / iMax;
+   }
+
+   CompCanReach(comp = $, who = $)
+   "Is who in the companion's room, alive, in sight and within spell range?"
+   {
+      local oRoom, iRange;
+
+      oRoom = Send(comp,@GetOwner);
+      if oRoom = $ OR who = $ OR Send(who,@GetOwner) <> oRoom OR Send(who,@GetHealth) <= 0
+      {
+         return FALSE;
+      }
+
+      if who = comp
+      {
+         return TRUE;
+      }
+
+      iRange = Send(comp,@GetSpellRange);
+
+      return Send(comp,@SquaredFineDistanceTo3D,#what=who) <= iRange * iRange
+         AND Send(oRoom,@LineOfSight,#obj1=comp,#obj2=who);
+   }
+
+   CompFought(comp = $)
+   "Has it struck or been struck in the last few seconds?"
+   {
+      return GetTime() - Send(comp,@GetLastFight) < piCompMeleeSeconds;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // What it does
+
+   CompTick(comp = $)
+   "Every COMPANION_SUPPORT_MS (Companion.SupportTimer): the supports that do not wait for the next swing."
+   {
+      if comp = $ OR Send(comp,@GetCompanionState) <> COMP_ACTIVE OR Send(comp,@GetOwner) = $
+         OR Send(comp,@GetSworn) = $
+      {
+         return;
+      }
+
+      Send(self,@CompAct,#comp=comp,#bFight=FALSE);
+      Send(self,@CompSpiritWeapon,#comp=comp);
+
+      return;
+   }
+
+   CompBeforeAttack(comp = $)
+   "Hook in Companion.TryAttack: TRUE if it used this swing to heal, buff or give mana, so it does not attack now."
+   {
+      if comp = $ OR Send(comp,@GetOwner) = $ OR Send(comp,@GetSworn) = $
+      {
+         return FALSE;
+      }
+
+      return Send(self,@CompAct,#comp=comp,#bFight=TRUE);
+   }
+
+   CompAct(comp = $, bFight = FALSE)
+   "One decision, in the order of the file's header. TRUE if it cast something."
+   {
+      local lGroup, lSup, i, m, oWorst, iWorst, iPct, lHeal, oSpell, iMana, iMax, iFocus;
+
+      lSup = Send(comp,@GetSupportList);
+      if lSup = $
+      {
+         return FALSE;
+      }
+
+      lGroup = Send(self,@CompGroup,#comp=comp);
+
+      // 1. the one in most danger
+      oWorst = $;
+      iWorst = 100;
+      foreach m in lGroup
+      {
+         iPct = Send(self,@CompHealthPct,#who=m);
+         if iPct < iWorst AND Send(self,@CompCanReach,#comp=comp,#who=m)
+         {
+            oWorst = m;
+            iWorst = iPct;
+         }
+      }
+
+      if oWorst <> $ AND iWorst < piCompEmergencyPct
+      {
+         if Send(self,@CompHeal,#comp=comp,#lSup=lSup,#target=oWorst)
+         {
+            return TRUE;
+         }
+      }
+
+      // 2. buffs, before the fight and between blows
+      foreach m in lGroup
+      {
+         if NOT Send(self,@CompCanReach,#comp=comp,#who=m)
+         {
+            continue;
+         }
+
+         foreach i in lSup
+         {
+            if Nth(i,3) = CSUP_BUFF
+            {
+               oSpell = Send(SYS,@FindSpellByNum,#num=First(i));
+               if oSpell <> $ AND NOT Send(m,@IsEnchanted,#what=oSpell)
+                  AND Send(comp,@CastAt,#sid=First(i),#mana=Nth(i,2),#target=m)
+               {
+                  return TRUE;
+               }
+            }
+         }
+      }
+
+      // 3. mana for the players who are low
+      foreach i in lSup
+      {
+         if Nth(i,3) = CSUP_BATTERY AND Send(self,@CompManaPct,#who=comp) >= 40
+         {
+            foreach m in lGroup
+            {
+               if m <> comp AND IsClass(m,&User) AND Send(self,@CompCanReach,#comp=comp,#who=m)
+                  AND Send(self,@CompManaPct,#who=m) < piCompBatteryPct
+                  AND Send(self,@CompGiveMana,#comp=comp,#target=m,#mana=Nth(i,2))
+               {
+                  return TRUE;
+               }
+            }
+         }
+      }
+
+      // 4. Mana Focus, only when nothing is on it
+      if Send(self,@CompManaPct,#who=comp) < piCompFocusPct AND NOT Send(self,@CompFought,#comp=comp)
+      {
+         foreach i in lSup
+         {
+            if Nth(i,3) = CSUP_FOCUS
+            {
+               oSpell = Send(SYS,@FindSpellByNum,#num=First(i));
+               if oSpell <> $ AND NOT Send(comp,@IsEnchanted,#what=oSpell)
+                  AND Send(comp,@CastAt,#sid=First(i),#mana=Nth(i,2),#target=comp)
+               {
+                  return TRUE;
+               }
+            }
+         }
+      }
+
+      // 5. an ordinary heal
+      if oWorst <> $ AND iWorst < piCompHealPct
+      {
+         if Send(self,@CompHeal,#comp=comp,#lSup=lSup,#target=oWorst)
+         {
+            return TRUE;
+         }
+      }
+
+      return FALSE;
+   }
+
+   CompHeal(comp = $, lSup = $, target = $)
+   "Its strongest heal it can pay for, on target. TRUE if it cast."
+   {
+      local i;
+
+      if Send(self,@HealClaimed,#target=target,#comp=comp)
+      {
+         return FALSE;
+      }
+
+      foreach i in lSup
+      {
+         if Nth(i,3) = CSUP_HEAL AND Send(comp,@CastAt,#sid=First(i),#mana=Nth(i,2),#target=target)
+         {
+            Send(self,@HealClaim,#target=target,#comp=comp);
+
+            return TRUE;
+         }
+      }
+
+      return FALSE;
+   }
+
+   HealClaimed(target = $, comp = $)
+   "Has another companion just started a heal on target?"
+   {
+      local i;
+
+      foreach i in plHealClaims
+      {
+         if First(i) = target AND Nth(i,2) <> comp AND Nth(i,3) > GetTime()
+         {
+            return TRUE;
+         }
+      }
+
+      return FALSE;
+   }
+
+   HealClaim(target = $, comp = $)
+   "comp has started a heal on target: for the next 3 seconds it is spoken for."
+   {
+      local i, lKeep;
+
+      lKeep = $;
+      foreach i in plHealClaims
+      {
+         if First(i) <> target AND Nth(i,3) > GetTime()
+         {
+            lKeep = Cons(i,lKeep);
+         }
+      }
+
+      plHealClaims = Cons([target,comp,GetTime() + 3],lKeep);
+
+      return;
+   }
+
+   CompGiveMana(comp = $, target = $, mana = 6)
+   "Mystic Touch from a companion: part of its mana (10 to 55 percent, by its spell power) to a player, as the spell moves it (a player holds 75 at most, or half as much again as their maximum)."
+   {
+      local iAmount, iMyMana, iPower;
+
+      iMyMana = Send(comp,@GetMana);
+      if iMyMana <= mana + 5 OR GetTime() < Send(comp,@GetNextCast)
+      {
+         return FALSE;
+      }
+
+      iPower = Send(comp,@GetSpellPower);
+      iAmount = Bound(iMyMana * Bound(iPower / 2,10,55) / 100,1,$);
+      if iAmount > iMyMana - mana
+      {
+         iAmount = iMyMana - mana;
+      }
+
+      if iAmount + Send(target,@GetMana) > Send(target,@GetMaxMana) * 3 / 2
+      {
+         iAmount = Send(target,@GetMaxMana) * 3 / 2 - Send(target,@GetMana);
+      }
+
+      if iAmount + Send(target,@GetMana) > 75
+      {
+         iAmount = 75 - Send(target,@GetMana);
+      }
+
+      if iAmount < 1
+      {
+         return FALSE;
+      }
+
+      Send(comp,@LoseMana,#amount=iAmount + mana);
+      Send(comp,@SetNextCast);
+      Send(comp,@MonsterCastAnimation,#iSpellNum=SID_MYSTIC_TOUCH);
+      Send(target,@GainMana,#amount=iAmount);
+      Send(target,@MsgSendUser,#message_rsc=pc_gave_mana,#parm1=Send(comp,@GetName));
+
+      return TRUE;
+   }
+
+   // ---------------------------------------------------------------------------------------------
+   // The Paladin's spirit weapon
+
+   CompSpiritHit(comp = $)
+   "Hook in Companion.DidDamage: a paladin companion's spirit weapon returns mana on a hit, as a player's does."
+   {
+      local oWeapon;
+
+      if comp = $ OR piSpiritManaPerHit <= 0
+      {
+         return;
+      }
+
+      oWeapon = Send(comp,@GetWeapon);
+      if Send(self,@IsSpiritWeapon,#oWeapon=oWeapon)
+      {
+         Send(comp,@GainMana,#amount=piSpiritManaPerHit,#bCapped=TRUE);
+      }
+
+      return;
+   }
+
+   CompSpiritWeapon(comp = $)
+   "A paladin companion of bond tier 4 and over (Spiritual Hammer) holds the weapon its target resists less: the sword (thrust) or the hammer (crushing)."
+   {
+      local oTarget, oWeapon, bWantHammer, bHasHammer, iThrust, iCrush;
+
+      if Send(comp,@GetKind) <> COMPANION_PALADIN OR Send(comp,@GetGearTier) < 4
+      {
+         return;
+      }
+
+      oTarget = Send(comp,@GetTarget);
+      oWeapon = Send(comp,@GetWeapon);
+      if oTarget = $ OR NOT Send(self,@IsSpiritWeapon,#oWeapon=oWeapon)
+      {
+         return;
+      }
+
+      iThrust = Send(oTarget,@ResistanceCheck,#atype=ATCK_WEAP_THRUST);
+      iCrush = Send(oTarget,@ResistanceCheck,#atype=ATCK_WEAP_BLUDGEON);
+      bHasHammer = IsClass(oWeapon,&SpiritualHammer);
+      bWantHammer = (iCrush < iThrust);
+      if bWantHammer = bHasHammer
+      {
+         return;
+      }
+
+      Send(comp,@SwapWeapon,#oldWeapon=oWeapon,#bHammer=bWantHammer);
+
+      return;
+   }
+
+end

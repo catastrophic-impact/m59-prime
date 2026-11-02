@@ -1,0 +1,309 @@
+--- a/kod/include/blakston.khd
++++ b/kod/include/blakston.khd
+@@ -159,7 +159,11 @@
+    COMPANION_REBEL = 3
+    // Prime: our warrior companion (no faction, no leader: called with `companion call`)
+    COMPANION_WARRIOR = 4
+-   COMPANION_KINDS = 4
++   // Prime: the other class companions (PrimeCompanions): all of them are called, from the warrior on
++   COMPANION_MONK = 5
++   COMPANION_PALADIN = 6
++   COMPANION_ELEMENTALIST = 7
++   COMPANION_KINDS = 7
+ 
+    // A companion's health is this much of its owner's base health (percent)
+    COMPANION_HEALTH_PCT = 70
+--- a/kod/util/companionkinds.kod
++++ b/kod/util/companionkinds.kod
+@@ -174,6 +174,11 @@
+ 
+    GetKindName(kind = 0)
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompKindName,#kind=kind);
++      }
++
+       if kind = COMPANION_WARRIOR
+       {
+          return companion_kind_warrior;
+@@ -195,6 +200,11 @@
+    GetSchool(kind = 0)
+    "The school (SS_*) its robe and spells are of."
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompSchool,#kind=kind);
++      }
++
+       if kind = COMPANION_WARRIOR
+       {
+          return SS_KRAANAN;
+@@ -234,6 +244,11 @@
+    "mana, cumulative chance ]. Fireball turns to Ice Shard against a target that resists cold "
+    "less (GetColdTwin)."
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompSpellBook,#kind=kind,#health=health);
++      }
++
+       if kind = COMPANION_DUKE
+       {
+          if Send(self,@SpellsKnown,#health=health) = 1
+@@ -263,6 +278,11 @@
+    {
+       local iKnown;
+ 
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompSupport,#kind=kind,#health=health);
++      }
++
+       // Prime: the warrior companion only fights
+       if kind = COMPANION_WARRIOR
+       {
+@@ -333,11 +353,21 @@
+    GetCasterNumbers(kind = 0,tier = 1,health = 50)
+    "[ chance to cast in a fight (percent), spell power, maximum mana ]."
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompCaster,#kind=kind,#tier=tier,#health=health);
++      }
++
+       return [ 30 + 2 * tier, Bound(health * 2 / 3 + 3 * tier,10,99), 60 + health * 2 / 3 ];
+    }
+ 
+    GetNames(kind = 0,gender = GENDER_MALE)
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompNames,#kind=kind,#gender=gender);
++      }
++
+       if kind = COMPANION_WARRIOR
+       {
+          if gender = GENDER_MALE
+@@ -387,6 +417,11 @@
+    GetDamage(kind = 0)
+    "[ least, most ] damage, in thousandths of the owner's base health."
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompDamage,#kind=kind);
++      }
++
+       // A monster of the owner's level hits for about 8 per 100 levels (Monster.GetDamage)
+       if kind = COMPANION_WARRIOR
+       {
+@@ -408,6 +443,11 @@
+    "Its weapon and headgear at a bond tier (1-5), made and worn in turn. Its school's robe and "
+    "its faction's herald shield come with every tier (Companion.SetTier)."
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompGear,#kind=kind,#tier=tier);
++      }
++
+       // Prime: the warrior companion wears armour and its own shield (no robe, no herald shield): a longsword,
+       // plate and a knight's shield from the start, better helms and, at the top, the nerudite set
+       if kind = COMPANION_WARRIOR
+@@ -543,6 +583,11 @@
+    GetPalette(kind = 0)
+    "The colours its clothes may be given (XLAT_TO_*); the first two are its own at first."
+    {
++      if kind >= COMPANION_MONK
++      {
++         return Send(Send(SYS,@GetPrime),@CompPalette,#kind=kind);
++      }
++
+       if kind = COMPANION_WARRIOR
+       {
+          return [ XLAT_TO_GRAY, XLAT_TO_BLUE, XLAT_TO_BLACK, XLAT_TO_RED, XLAT_TO_DGREEN ];
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -169,7 +169,7 @@
+       // Prime: our warrior companion, called at any time (no leader, no faction, no minimum health)
+       if StringEqual(sVerb,"call")
+       {
+-         Send(self,@Call,#who=who);
++         Send(self,@Call,#who=who,#words=words);
+ 
+          return;
+       }
+@@ -264,21 +264,23 @@
+       return;
+    }
+ 
+-   Call(who = $)
++   Call(who = $, words = $)
+    "Prime: the warrior companion. None yet: a new one. Waiting, fallen or recovering: it comes at once, "
+    "healed. With us already: it comes to our side."
+    {
+-      local oComp, iState;
++      local oComp, iState, iKind;
+ 
++      // Prime: `companion call [warrior|monk|paladin|elementalist]`
++      iKind = Send(Send(SYS,@GetPrime),@CallKind,#words=words);
+       oComp = Send(who,@GetCompanion);
+       if oComp = $
+       {
+-         Send(self,@Grant,#who=who,#kind=COMPANION_WARRIOR);
++         Send(self,@Grant,#who=who,#kind=iKind);
+ 
+          return;
+       }
+ 
+-      if Send(oComp,@GetKind) <> COMPANION_WARRIOR
++      if Send(oComp,@GetKind) <> iKind
+       {
+          Send(who,@MsgSendUser,#message_rsc=cbook_have_one);
+ 
+@@ -412,7 +414,7 @@
+       Send(comp,@SetMaster,#oMaster=$);
+       iKind = Send(comp,@GetKind);
+       // Prime: the warrior companion has no hall: it waits out of the world until called
+-      if iKind = COMPANION_WARRIOR
++      if iKind >= COMPANION_WARRIOR
+       {
+          Send(self,@ToLimbo,#comp=comp);
+ 
+@@ -810,7 +812,7 @@
+ 
+       iKind = Send(oComp,@GetKind);
+       oRoom = $;
+-      if iKind <> COMPANION_WARRIOR
++      if iKind < COMPANION_WARRIOR
+       {
+          oRoom = Send(SYS,@FindRoomByNum,#num=Send(self,@GetHallRoom,#kind=iKind));
+       }
+@@ -862,7 +864,7 @@
+       }
+ 
+       if Send(oComp,@GetOwner) <> Send(who,@GetOwner)
+-         AND Send(oComp,@GetKind) <> COMPANION_WARRIOR
++         AND Send(oComp,@GetKind) < COMPANION_WARRIOR
+       {
+          Send(who,@MsgSendUser,#message_rsc=cbook_not_here,#parm1=Send(oComp,@GetName));
+ 
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -258,7 +258,7 @@
+       }
+ 
+       // Prime: the warrior companion's armour and shield are in its gear (CompanionKinds.GetGear)
+-      if piKind <> COMPANION_WARRIOR
++      if piKind < COMPANION_WARRIOR
+       {
+          Send(self,@AddEquipmentObject,
+               #what=Create(&DiscipleRobe,#school=iSchool,
+@@ -747,6 +747,13 @@
+    "It tries a spell before its weapon."
+    {
+       Send(self,@MarkFight);
++      // Prime: a class companion first heals, buffs or gives mana if it can (PrimeCompanions)
++      if piKind >= COMPANION_MONK AND NOT (piBehavior & AI_NOFIGHT)
++         AND Send(Send(SYS,@GetPrime),@CompBeforeAttack,#comp=self)
++      {
++         return TRUE;
++      }
++
+       if plSpellBook <> $
+          AND NOT (piBehavior & AI_NOFIGHT)
+          AND Send(self,@MonsterCanCastSpell)
+@@ -758,6 +765,79 @@
+       propagate;
+    }
+ 
++   ////////////////////////////////////////////////////////////// Prime: for PrimeCompanions
++
++   DidDamage(what = $, amount = 0)
++   "A paladin companion's spirit weapon returns mana on each hit."
++   {
++      if piKind = COMPANION_PALADIN
++      {
++         Send(Send(SYS,@GetPrime),@CompSpiritHit,#comp=self);
++      }
++
++      propagate;
++   }
++
++   GetSupportList()
++   {
++      return plSupport;
++   }
++
++   GetSpellRange()
++   {
++      return piSpellRange;
++   }
++
++   GetLastFight()
++   {
++      return piLastFight;
++   }
++
++   GetNextCast()
++   {
++      return piNextCast;
++   }
++
++   SetNextCast()
++   {
++      piNextCast = GetTime() + COMPANION_CAST_SECONDS;
++
++      return;
++   }
++
++   GetSpellPower()
++   {
++      return piSpellPower;
++   }
++
++   SwapWeapon(oldWeapon = $, bHammer = FALSE)
++   "The paladin changes its spirit sword for a hammer, or back."
++   {
++      if oldWeapon = $
++      {
++         return;
++      }
++
++      Send(self,@UnuseItem,#what=oldWeapon);
++      Send(oldWeapon,@Delete);
++      if bHammer
++      {
++         Send(self,@AddEquipmentObject,#what=Create(&SpiritualHammer));
++      }
++      else
++      {
++         Send(self,@AddEquipmentObject,#what=Create(&SpiritualSword));
++      }
++
++      piAttackRange = Send(self,@GetAttackRange);
++      if poOwner <> $
++      {
++         Send(poOwner,@SomethingChanged,#what=self);
++      }
++
++      return;
++   }
++
+    ////////////////////////////////////////////////////////////// supporting its owner
+ 
+    MarkFight()
+@@ -817,6 +897,14 @@
+ 
+          return;
+       }
++
++      // Prime: the class companions heal, buff and give mana to their whole group (PrimeCompanions)
++      if piKind >= COMPANION_MONK
++      {
++         Send(Send(SYS,@GetPrime),@CompTick,#comp=self);
++
++         return;
++      }
+ 
+       Send(self,@SupportOwner);
+       if piStance = COMP_PASSIVE

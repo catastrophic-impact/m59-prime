@@ -1,0 +1,22 @@
+--- a/kod/object/active/holder/room/monsroom/e5.kod
++++ b/kod/object/active/holder/room/monsroom/e5.kod
+@@ -16,8 +16,8 @@
+ 
+    E5_A = 6
+    E5_B = 7
+-   C = 8
+-   D = 9
++   E5_C = 8
++   E5_D = 9
+    EEE = 10  ///E and F were taken.
+    FFF = 11
+    G = 12
+@@ -95,7 +95,7 @@
+ 
+    Constructed()
+    {
+-      plRowNums = [G,FFF,EEE,D,C,E5_B,E5_A];
++      plRowNums = [G,FFF,EEE,E5_D,E5_C,E5_B,E5_A];
+       plColNums = [GG,FF,EE,DD,E5_CC,BB,AA];
+       poSnitch = create(&ladypheonix);
+       Send(self,@NewHold,#what=poSnitch,#new_row=9,#new_col=3,#fine_col=16);

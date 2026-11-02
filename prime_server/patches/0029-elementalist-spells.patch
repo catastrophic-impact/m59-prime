@@ -1,0 +1,55 @@
+--- a/kod/object/passive/spell/persench/focus.kod
++++ b/kod/object/passive/spell/persench/focus.kod
+@@ -45,7 +45,7 @@
+    vrSuccess = manafocus_on
+ 
+    viSpell_num = SID_MANA_FOCUS
+-   viMana = 1
++   viMana = 0                    // Prime: Mana Focus costs no mana (and no reagents)
+    viSchool = SS_FAREN
+    viSpell_level = 3
+ 
+--- a/kod/object/passive/spell/mysttch.kod
++++ b/kod/object/passive/spell/mysttch.kod
+@@ -30,7 +30,7 @@
+    MysticTouch_desc_rsc = \
+       "Draws upon the magic of Faren to transfer magical energy from caster to "
+       "target.  "
+-      "Requires mushrooms to cast."
++      "Requires no reagents."
+    
+    MysticTouch_cast_rsc = \
+       "You feel the magical energies of another filling your body."
+@@ -59,7 +59,7 @@
+    viSpell_num = SID_MYSTIC_TOUCH
+    viSchool = SS_FAREN
+    viSpell_level = 1
+-   viMana = 3
++   viMana = 6                    // Prime: no reagents, so the mana cost is doubled (was 3)
+    viSpellExertion = 1
+    viChance_To_Increase = 20
+    viMeditate_ratio = 10
+@@ -72,10 +72,8 @@
+ 
+    ResetReagents()
+    {
+-      // separate message so can change, then set from admin mode
+-
++      // Prime: no reagents
+       plReagents = $;
+-      plReagents = Cons([&Mushroom,1],plReagents);
+ 
+       return;
+    }
+--- a/kod/object/active/holder/nomoveon/battler/monster/temples/farnprst.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/temples/farnprst.kod
+@@ -88,6 +88,9 @@
+          ],
+       $];
+ 
++      // Prime: the god of a class teaches that class everything in its table (PrimeClasses.ClassGodSchool / ClassAbilityTable)
++      plFor_Sale = Send(Send(SYS,@GetPrime),@TrainerStock,#iSchool=SS_FAREN,#lStock=plFor_Sale);
++
+       return;
+    }
+ 

@@ -1,0 +1,84 @@
+# What we changed in code that is not ours (kept short; the full list of Prime changes is wiki/changes.txt)
+
+UPSTREAM (pinned, never edited in place: our work = patches + overlay applied on top; see prime_server/UPSTREAM.txt for the exact commits):
+  server : jboullion/shards-server (Server 104 + the Meridian Shards fork), GPL v2.  Also watched for ideas/updates: Meridian59/Meridian59.
+  client : the Meridian Shards web client (prime_client/).
+HOW TO TAKE AN UPSTREAM UPDATE: change the pin in prime_server/UPSTREAM.txt, rebuild with prime_server/scripts/prepare_tree.sh (applies the patches in order), fix the patches that no longer apply (docs/BUILDING.md), then run the tests (docs/TESTING.md, claude_tools/walkcheck.py).
+
+OUR PATCHES TO UPSTREAM SERVER FILES (prime_server/patches/, applied in this order). Server C code and engine changes are marked [C]; the rest are Blakod/kod/data files.
+
+  0001 [C] linux 64bit build                                makefile.linux, makefile.linux, thdmsgqueue_linux.c, common.mak.linux
+  0002     prime root                                       makefile
+  0003     system getprime                                  system.kod
+  0004     player class hooks                               player.kod
+  0005     trainers                                         monster.kod, kranprst.kod, shalprst.kod
+  0006     khd constants                                    blakston.khd
+  0007     khd skills                                       blakston.khd
+  0008     crowd control                                    monster.kod, player.kod, spell.kod, system.kod
+  0009     second wind                                      player.kod, user.kod, secwind.kod
+  0010     class spells                                     player.kod, creaweap.kod, touchatk.kod, holytch.kod
+  0011     threat                                           monster.kod, brain.kod
+  0012     robes                                            player.kod, robedisc.kod
+  0013     user hooks                                       user.kod
+  0014     prime rules                                      player.kod, ranged.kod, fire.kod, spell.kod
+  0015     warrior companion                                blakston.khd, companion.kod, companionbook.kod, companionkinds.kod
+  0016     groups                                           user.kod, room.kod
+  0017     warrior ecl                                      companionbook.kod, companionkinds.kod
+  0018     friendly fire and numbers                        monster.kod, player.kod, room.kod
+  0019     dagger                                           giftweapon.kod, shrtswrd.kod, profshsw.kod, creaweap.kod
+  0020     companion kill xp                                monster.kod
+  0021     no dagger creation                               creaweap.kod
+  0022     dagger text                                      tempkra.kod, ornobj.kod
+  0023     gear numbers                                     chain.kod, leather.kod, neruarmr.kod, plate.kod, robebase.kod ...
+  0024     monk combat                                      player.kod
+  0025     dagger double                                    player.kod
+  0026     mana focus free                                  focus.kod
+  0027     class gods teach                                 kranprst.kod, shalprst.kod
+  0028     class trainers only                              monster.kod
+  0029     elementalist spells                              farnprst.kod, mysttch.kod, focus.kod
+  0030     freeze snare                                     monster.kod, user.kod, atakspel.kod, iceshard.kod, icenova.kod
+  0031     robes vigor riija                                player.kod, robedisc.kod, riijaswd.kod, spell.kod
+  0032     snare property                                   battler.kod
+  0033     dodge by armor                                   player.kod
+  0034 [C] loadbof twice                                    loadkod.c
+  0035     dm prime                                         dm.kod
+  0036 [C] md5 64bit                                        md5.h, global.h
+  0037     touch weak                                       touchatk.kod
+  0038     brax auto solve                                  g9.kod
+  0039 [C] class system switch                              game.c, user.kod, system.kod
+  0040     spirit weapons                                   monster.kod, player.kod
+  0041     class companions                                 blakston.khd, companion.kod, companionbook.kod, companionkinds.kod
+  0042     companion bots                                   companion.kod, user.kod, companionbook.kod
+  0043     bot names                                        companionkinds.kod
+  0044     bot looks split xp                               player.kod, companionbook.kod
+  0045     admin tools                                      user.kod
+  0046 [C] admin fixes                                      adminfn.c, tosdeatharena.kod
+  0047 [C] delete account                                   adminfn.c
+  0048     companion orders                                 companion.kod, companionbook.kod
+  0049     companion melee floor                            companionbook.kod
+  0050     class companions from player                     companion.kod, companionbook.kod
+  0051     companion quiet                                  companion.kod
+  0052     locked door voice                                room.kod
+  0053     touch of flame                                   companion.kod
+  0054     faction companion off                            companionbook.kod, questbook.kod
+  0055     touch hands and move log                         companion.kod
+  0056     follow straight                                  companion.kod
+  0057     murder not permanent                             player.kod
+  0058     playerbots who                                   user.kod
+  0059     town life option                                 shardssocial.kod
+  0061     playerbot minimap dot                            user.kod
+  0062     councilor no spam                                fourcon.kod
+  0064     attack spell damage range                        atakspel.kod
+  0065     room e5 identifier collision                     e5.kod
+  0066     bots keep rooms alive                            room.kod
+  0067 [C] no builtin daenks account                        builtin.c
+  0068 [C] server crash log and sigpipe                     main.c
+  0069     mob leash and aggro los                          monster.kod, brain.kod
+  0070     room e5 identifier collision 2                   e5.kod
+  0071     mob aggro scan and path                          monster.kod, brain.kod
+  0072 [C] bsp find path step                               function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
+  0073 [C] explain move bsp                                 function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
+  0074 [C] body radius bsp                                  function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
+  0075 [C] grid planner + avoid exit squares                             function.c, blakdeco.c, adminfn.c, ccode.c, ccode.h ...
+
+Server binary: the one patched C server (blakserv) is built from the tree; built from patches 0001-0075.

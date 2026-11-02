@@ -1,0 +1,71 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -47,6 +47,9 @@
+ resources:
+ 
+    companion_name_rsc = "companion"
++   // Prime: Touch of Flame, as a player's: the cast sound and the thump of a touch that lands
++   companion_touch_cast_wav = fflame.ogg
++   companion_touch_hit_wav = patk.ogg
+    companion_desc_rsc = "%s, a %s sworn to %q."
+    companion_alone_desc_rsc = "%s, a %s."
+    companion_dead_name_rsc = "fallen companion"
+@@ -777,13 +780,28 @@
+          piMana = piMana - iCost;
+          piTouchUntil = GetTime() + COMPANION_TOUCH_SECONDS;
+          Send(self,@NewMana);
++         // both hands come up, with the spell's own sound and the touch's
++         Send(self,@DoCast);
++         Send(oSpell,@PlaySpellSound,#room_obj=poOwner,#what=self);
++         Send(poOwner,@SomethingWaveRoom,#what=self,#wave_rsc=companion_touch_cast_wav);
+       }
+ 
+-      Send(self,@MonsterCastAnimation,#iSpellNum=SID_TOUCH_OF_FLAME);
+-
+       return;
+    }
+ 
++   MonsterAttack(what = $)
++   "Prime: while its Touch of Flame burns, a blow raises both hands (the cast animation), as a player's touch does, not a fist."
++   {
++      if piTouchUntil > GetTime()
++      {
++         Send(self,@DoCast);
++
++         return;
++      }
++
++      propagate;
++   }
++
+    ApplyKit(lSpells = $,support = $,chance = 0,maxmana = 0,lAbil = $,power = 30)
+    "Prime: a class companion's spells, support, chance to cast, mana and abilities (PrimeCompanions.CompApply). It keeps the share of its mana it had."
+    {
+@@ -924,8 +942,13 @@
+    ////////////////////////////////////////////////////////////// Prime: for PrimeCompanions
+ 
+    DidDamage(what = $, amount = 0)
+-   "A paladin companion's spirit weapon returns mana on each hit."
++   "A paladin companion's spirit weapon returns mana on each hit; a touch that lands thumps."
+    {
++      if piTouchUntil > GetTime() AND poOwner <> $ AND what <> $
++      {
++         Send(poOwner,@SomethingWaveRoom,#what=what,#wave_rsc=companion_touch_hit_wav);
++      }
++
+       if piKind = COMPANION_PALADIN
+       {
+          Send(Send(SYS,@GetPrime),@CompSpiritHit,#comp=self);
+@@ -934,6 +957,12 @@
+       propagate;
+    }
+ 
++   GetMoveDebug()
++   "Prime: for the bots' movement log (PrimeBots.BotMoveLog): [ state bits, target, behaviour bits, stance, companion state ]."
++   {
++      return [ piState, poTarget, piBehavior, piStance, piCompState ];
++   }
++
+    GetSupportList()
+    {
+       return plSupport;

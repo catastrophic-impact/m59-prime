@@ -1,0 +1,3194 @@
+// Meridian 59 Prime: a playerbot's body. The Companion body (fighting, gear, looks, numbers from PrimeCompanions) with no owner: a persistent character that
+// lives in the world, shows in "who", answers tells and lives a town life. Its identity (name, gender, class, numbers) is kept by PrimePlayerBots; this object
+// is only its body while it is "logged in". Town life uses the baked graphs of PrimeNavData (nodes, doors) to choose where to go; the way there is its own: it plans a
+// path over the room's real floor (the server's A*, WalkTo) and walks it one step a tick like a player (PathStep). The registry (PrimePlayerBots) chooses the activity and where; this body only carries it out.
+// STATE MODEL: piDoing says what it is doing (and what its info window shows), piPhase how it is doing it right now (PBH_IDLE: standing, PBH_WALK:
+// walking the planner's way, PBH_TALK: in a talk). Every route to standing still goes through StopMoving, every walk starts in GoToNode / GoToDoor, and
+// every walk ends in Arrived, GiveUp or an interruption (StopMoving), so no state is left half set. A relaxed bot parks at a spot and only turns
+// to look about; the registry's activity timer, not a local timer, decides when it goes somewhere. What it is doing is shown in its info window while piBotShowDoing is on.
+
+PlayerBot is Companion
+
+constants:
+
+   include blakston.khd
+   include protocol.khd
+   include prime.khd
+   HUMAN_TRANSLATION_LEGS_MASK = 0xff
+   HUMAN_TRANSLATION_LEGS_MUL = 1
+   HUMAN_TRANSLATION_BODY_MASK = 0xff00
+   HUMAN_TRANSLATION_BODY_MUL = 0x100
+
+
+   // Pace (squares per 10 s, see Monster.GetMoveTime). It walks (viSpeed, the companions' pace) unless in danger; then it runs at half a
+   // player's sprint: halfway between walking and the companion's full run. Grouped, it runs as fast as the group's leader (Companion).
+   PB_PANIC_SPEED = 34
+   // fine units a walking bot moves per WalkStep tick: 16, the step width of the server's own monster walk (Monster.GetMoveTime: 16 fine units every 10000 / (speed * 4) ms). The client animates each step at the pace of the speed it is given, so any other step size makes it stop and go (11 did, 2026-10-31)
+   PB_WALK_STEP = 16
+   // TRAVEL BODY RADIUS (roo units, 1024 = one square): a bot that walks like a player is blocked by creatures and other bots only within this (the client's 0.25 square), not the server's 0.75 monster rule (owner decision 2026-11-01)
+   PB_TRAVEL_BODY_RADIUS = 256
+   // FIGHT A BLOCKER (owner's rule, 2026-11-01): the bot fights a creature that blocks its way only when it can kill it: the time it needs to kill it, times this percent, is less than the time the creature needs to kill the bot (PathCanKill)
+   PB_FIGHT_MARGIN = 140
+   // a hunter only picks a foe whose time to kill times this percent is still under its own time to die (200: it must win in half the time it would take to lose): measured 2026-11-01, hunters started fights they lost 9 times in 10 in rooms 593/2901 and died while fleeing
+   PB_HUNT_MARGIN = 200
+   // below this percent of its health a bot that fights a blocker gives the fight up and flees (rescue)
+   PB_FIGHT_FLEE_PCT = 35
+   // a walk that gets no measurably closer to its goal for this many ticks (150 ms each) is given up (GiveUp): 200 = 30 seconds; going round a wall or a creature takes a while
+   PB_WALK_STALL_TICKS = 200
+
+   // What it is doing (piDoing; the info window's "Currently")
+   PBD_IDLE = 1
+   PBD_HANG = 2
+   PBD_WALK = 3
+   PBD_ERRAND = 4
+   PBD_TALK = 5
+   PBD_TRANSIT = 6
+   PBD_GLOBE = 7
+   PBD_LEAVE = 8
+   PBD_INN = 9
+   PBD_SHOP = 10
+   PBD_HUNT = 11
+   PBD_DEAD = 12
+
+   // Its phase: standing until piPhaseEnd, walking its path, or in a talk
+   PBH_IDLE = 0
+   PBH_WALK = 1
+   PBH_TALK = 2
+
+   // What a parked bot is up to in a street or inn (piMood): hanging about (a look now and then, a word rarely), reading the globe, away from
+   // the keyboard (stands still, never turns), or chatty
+   PBM_NORMAL = 0
+   PBM_GLOBE = 1
+   PBM_AFK = 2
+   PBM_CHAT = 3
+
+   // What the registry wants of it (piWant): nothing, to be in an inn, to be in the street
+   PBW_NONE = 0
+   PBW_INN = 1
+   PBW_STREET = 2
+
+   // Purpose numbers of doors (navbake.ts)
+   PBP_BANK = 1
+   PBP_SMITH = 2
+   PBP_APOTH = 3
+   PBP_HALL = 4
+   PBP_STORE = 5
+   PBP_HEAL = 6
+
+resources:
+
+   pbot_slain = "%s has been slain by %s."
+   // the cries a player makes when hit, by how much health is left (player.kod: GetOuchSound)
+   pbot_ouch_m1 = ouchm1.ogg
+   pbot_ouch_m2 = ouchm2.ogg
+   pbot_ouch_m3 = ouchm3.ogg
+   pbot_ouch_m4 = ouchm4.ogg
+   pbot_ouch_f1 = ouchf1.ogg
+   pbot_ouch_f2 = ouchf2.ogg
+   pbot_ouch_f3 = ouchf3.ogg
+   pbot_ouch_f4 = ouchf4.ogg
+   pbot_greet1 = "Well met."
+   pbot_greet2 = "Good day to you."
+   pbot_greet3 = "Hello there."
+   pbot_greet4 = "Fine weather for a walk."
+   pbot_greet5 = "Mind how you go."
+   pbot_chat1 = "The roads are quiet today."
+   pbot_chat2 = "I could do with a rest at the inn."
+   pbot_chat3 = "Anyone seen a good trader about?"
+   pbot_chat4 = "The mummies in the crypt are stirring again, they say."
+   pbot_chat5 = "My sword wants sharpening."
+   pbot_chat6 = "I have been out hunting since dawn."
+   pbot_chat7 = "Watch yourself near the graveyard."
+   pbot_chat8 = "Prices are not what they were."
+   pbot_reply1 = "Hello! I cannot talk long, I am busy right now."
+   pbot_reply2 = "Hm? Good to hear from you. Find me in town some time."
+   pbot_reply3 = "Sorry, I am in the middle of something. Another time?"
+   pbot_reply4 = "Well met. I am not much for conversation today."
+   pbot_reply5 = "Thanks for the word. Safe travels!"
+
+   pbd_look1 = "A broad-shouldered traveler with a sun-browned face."
+   pbd_look2 = "Slight and quick-eyed, with ink-stained fingers."
+   pbd_look3 = "Tall and lean, a faded scar running along one jaw."
+   pbd_look4 = "Round-faced and rosy, dressed for a long road."
+   pbd_look5 = "Grey streaks in the hair and a patient, watchful gaze."
+   pbd_look6 = "A well-worn pack and boots that have seen many roads."
+   pbd_look7 = "Neatly kept, with a polished buckle and a careful smile."
+   pbd_look8 = "Wind-tousled and freckled, grinning at nothing in particular."
+   pbd_look9 = "Dark eyes under a heavy brow; not easily startled."
+   pbd_look10 = "Muddy to the knees and quite unbothered by it."
+   pbd_look11 = "Stands like someone who once drilled with the town guard."
+   pbd_look12 = "A weathered cloak patched in three different colours."
+   pbd_look13 = "Bright-eyed and restless, forever shifting from foot to foot."
+   pbd_look14 = "Steady hands, calloused from rope and steel."
+   pbd_look15 = "A crooked nose, badly healed, above a very good-natured smile."
+   pbd_look16 = "Plainly dressed, but the blade at the hip is cared for."
+   pbd_look17 = "Soft-spoken, with a tired look around the eyes."
+   pbd_look18 = "A little sunburnt and smelling faintly of woodsmoke."
+   pbd_look19 = "Keeps glancing at the sky as if reading the weather."
+   pbd_look20 = "Hair tied back with a scrap of green ribbon."
+   pbd_manner1 = "Friendly enough, but quick to change the subject when asked about the past."
+   pbd_manner2 = "Listens far more than speaking."
+   pbd_manner3 = "Laughs easily and loudly, and is forgiven for it."
+   pbd_manner4 = "Cautious with strangers, generous with friends."
+   pbd_manner5 = "Always seems to be counting something under the breath."
+   pbd_manner6 = "Hums old tavern songs, mostly off key."
+   pbd_manner7 = "Fond of a wager, if the odds are reasonable."
+   pbd_manner8 = "Tells tall tales about monsters that grow with each telling."
+   pbd_manner9 = "Dry humour and a slow, deliberate way of talking."
+   pbd_manner10 = "Never passes a stray cat without a kind word."
+   pbd_manner11 = "Prefers the company of a good map to the company of a crowd."
+   pbd_manner12 = "Collects rumours and trades them like coin."
+   pbd_manner13 = "Careful about prices and quick to haggle."
+   pbd_manner14 = "Proud of the gear on display, and polite about it."
+   pbd_manner15 = "Brisk and businesslike, always a little behind schedule."
+   pbd_manner16 = "Quietly devout, with a small holy symbol tucked under the collar."
+   pbd_manner17 = "Gruff on the outside, a soft touch underneath."
+   pbd_manner18 = "Curious about everything and everyone."
+   pbd_manner19 = "Takes a long time to answer, and means every word."
+   pbd_manner20 = "Whistles when nervous, and is nervous surprisingly often."
+   pbd_back1 = "Grew up near Marion and still misses the quiet of the fields."
+   pbd_back2 = "Has worked the docks at Barloque, and it shows in the arms."
+   pbd_back3 = "Learned the trade from an old sword-for-hire who never gave a name."
+   pbd_back4 = "Left a family farm to see the world, and has seen most of it twice."
+   pbd_back5 = "Once guarded a merchant caravan all the way to Cor Noth."
+   pbd_back6 = "Studied a while with a hedge wizard before taking to the road."
+   pbd_back7 = "Saving for a house in Jasper, one coin at a time."
+   pbd_back8 = "Owes the Tos blacksmith a favour and has not forgotten."
+   pbd_back9 = "Has a brother somewhere in Ko'catan and writes when able."
+   pbd_back10 = "Sailed in once from the southern islands with nothing but a bedroll."
+   pbd_back11 = "Spent a winter in Raza, and speaks of it with great fondness."
+   pbd_back12 = "Fought through the mummies of the old crypt and lived to boast."
+   pbd_back13 = "Hunts for the pleasure of it and sells what the hunt provides."
+   pbd_back14 = "Keeps a journal of every road walked."
+   pbd_back15 = "Was a baker's apprentice once and can still bake a fine loaf."
+   pbd_back16 = "Wants to be remembered in the songs, whatever it takes."
+   pbd_back17 = "Fled a bad bargain in the city and found a better life out here."
+   pbd_back18 = "Looks after a retired war-horse stabled on the edge of town."
+   pbd_back19 = "Trained in the arena, and has stories about it."
+   pbd_back20 = "Came to Meridian looking for a lost sibling and stayed for the people."
+   pbot_talk1 = "Did you hear? Something stirs in the old crypt again."
+   pbot_talk2 = "I swear the prices at the smithy go up every week."
+   pbot_talk3 = "Have you tried the stew here? Better than yesterday's."
+   pbot_talk4 = "I took a bad fall in the caves last week, still limping."
+   pbot_talk5 = "They say the next full moon brings trouble."
+   pbot_talk6 = "I could use a good night's sleep for once."
+   pbot_talk7 = "Mind the roads after dark, my friend."
+   pbot_talk8 = "I heard a new trader set up shop by the gate."
+   pbot_talk9 = "My boots are ruined, and the cobbler wants a fortune."
+   pbot_talk10 = "Quiet today, is it not?"
+   pbot_talk11 = "I met a fine adventurer on the road, they shared their water."
+   pbot_talk12 = "My pack has never felt heavier."
+   pbot_talk13 = "I miss the old days, when the roads were safer."
+   pbot_talk14 = "Anyone know a good place to hunt for a few hours?"
+   pbot_talk15 = "I once saw a troll the size of a cottage, I swear."
+   pbot_talk16 = "Is it me, or is it getting colder each evening?"
+   pbot_talk17 = "I owe a drink to a friend, if I can find them."
+   pbot_talk18 = "That armor looks like fine work. Where did you get it?"
+   pbot_talk19 = "I am saving up for a better blade."
+   pbot_talk20 = "Well, I should not keep you. Safe roads!"
+   pbot_talk21 = "True enough. It was good to talk."
+   pbot_talk22 = "Ha! I will remember that one."
+   pbot_talk23 = "I had better be going soon. Take care."
+   pbot_talk24 = "You always say that, and you are always right."
+   pbc_warrior = "Warrior"
+   pbc_monk = "Monk"
+   pbc_paladin = "Paladin"
+   pbc_elementalist = "Elementalist"
+   pbc_adventurer = "Adventurer"
+   pbd_plain = "%s %s %s\n\nClass: %s."
+   pbs_idle = "%s %s %s\n\nClass: %s.\nCurrently: looking around in %s."
+   pbs_hang = "%s %s %s\n\nClass: %s.\nCurrently: passing the time in %s."
+   pbs_shop = "%s %s %s\n\nClass: %s.\nCurrently: browsing in %s."
+   pbs_walk = "%s %s %s\n\nClass: %s.\nCurrently: walking through %s."
+   pbs_bank = "%s %s %s\n\nClass: %s.\nCurrently: heading to the bank in %s."
+   pbs_smith = "%s %s %s\n\nClass: %s.\nCurrently: on the way to the blacksmith in %s."
+   pbs_apoth = "%s %s %s\n\nClass: %s.\nCurrently: heading to the apothecary for reagents in %s."
+   pbs_hall = "%s %s %s\n\nClass: %s.\nCurrently: going to read the news globes at the adventurers' hall in %s."
+   pbs_store = "%s %s %s\n\nClass: %s.\nCurrently: off to the shops in %s."
+   pbs_heal = "%s %s %s\n\nClass: %s.\nCurrently: heading to the healer in %s."
+   pbs_talk = "%s %s %s\n\nClass: %s.\nCurrently: chatting with %s in %s."
+   pbs_inn = "%s %s %s\n\nClass: %s.\nCurrently: relaxing in %s."
+   pbs_globe = "%s %s %s\n\nClass: %s.\nCurrently: reading the announcements globe in %s."
+   pbs_transit = "%s %s %s\n\nClass: %s.\nCurrently: on the way from %s to %s."
+   pbs_leave = "%s %s %s\n\nClass: %s.\nCurrently: heading out of %s."
+   pbs_errand = "%s %s %s\n\nClass: %s.\nCurrently: running an errand in %s."
+   pbs_hunt = "%s %s %s\n\nClass: %s.\nCurrently: hunting in %s."
+   pbs_rest = "%s %s %s\n\nClass: %s.\nCurrently: resting after a fight in %s."
+
+classvars:
+
+properties:
+
+   // Which identity of PrimePlayerBots this body is
+   piBotId = 0
+   // The room it is in (its graph) and the node it stands at or last passed (0: not known)
+   piNavRid = 0
+   piNavNode = 0
+   // the goal node, and the door (a PrimeNavData door list) it is going to, if any
+   piGoalNode = 0
+   // The room it is travelling to, door by door through the world (0: not on a journey)
+   piJourneyRid = 0
+   plNavDoor = $
+   piPhase = 0
+   // GetTime() when it stops standing
+   piPhaseEnd = 0
+   piDoing = 1
+   piDoingArg = 0
+   // The bot it talks with, how many lines are left, whether it is its turn, and GetTime() of its next line
+   poTalkWith = $
+   piTalkLeft = 0
+   pbTalkTurn = FALSE
+   piTalkNext = 0
+   // Walk ticks without getting closer to the waypoint it heads for, and how many walks in a row it gave up
+   // (piBestDist2: the closest it has been to that waypoint, squared fine units; 0 = not set)
+   piStuck = 0
+   // GetTime() of the last PBOT-TRACE step line (one per second)
+   piTraceSec = 0
+   // FLIGHT RECORDER: the last 40 trace lines of this bot ([time, what, a..f] per slot, oldest overwritten), readable over admin at once
+   // (the debug log is buffered for minutes). Only written while the bot trace is on for this bot (rule piPBotTrace), so it costs nothing otherwise.
+   plTraceRing = $
+   piTraceHead = 0
+   // Failed attempts in a row to find or reach a foe (reset by a kill): the rule piBotHuntFailLimit of them and it gives the hunt up (HuntAttemptFailed)
+   piHuntFails = 0
+   // The closest it has been to the foe it fights (squared fine units) and since when: a foe it cannot get any closer to is let be (HuntFight)
+   piHuntDistBest = 0
+   piHuntDistAt = 0
+   piAbandon = 0
+   // Stuck for good: give-ups in the room it stands in, since when; the Rescue timer
+   piGiveRid = 0
+   piGiveUps = 0
+   piGiveSince = 0
+   ptRescue = $
+   piBestDist2 = 0
+   // Test mode (scripts/bot_scenarios.py): no quiet fixes (door placement, node placement, Rescue); a stuck bot stays where it is, pbFailed set, so the test sees the fault
+   pbStrict = FALSE
+   pbFailed = FALSE
+   // The registry wants it out of the town (it goes to a door and is gone), or in an inn / the street
+   pbLeaving = FALSE
+   // Has it chosen its own spot to stand at in this town street or inn (so bots do not stack at the door)
+   pbParked = FALSE
+   // Its mood while parked and GetTime() when it picks a new one
+   // the room number for which pbSafe was worked out, and whether that room is a town street or inn (IsSafeHere)
+   // PATH PROTOTYPE (TestPathTo): the goal (square and fine position), the next point on the way, how it went (0 not walking, 1 walking, 2 arrived, 3 no way, 4 stuck),
+   // steps taken, steps the server refused (in a row, and all together)
+   // test driver speed: twelve steps a tick instead of one (TestPathTo)
+   pbPathFast = FALSE
+   piPathRow = 0
+   piPathCol = 0
+   piPathFr = 0
+   piPathFc = 0
+   piPathWpR = 0
+   piPathWpC = 0
+   piPathWpFr = 0
+   piPathWpFc = 0
+   piPathState = 0
+   piPathSteps = 0
+   piPathRefusedRow = 0
+   piPathRefused = 0
+   // WALL SLIDING (patch 0073 reason): steps made along a wall (slide) or away from it (nudge) after the server refused a step because of a wall; capped per walk
+   piPathSlides = 0
+   piPathPlans = 0
+   plPathDbg = $
+   piSafeRid = 0
+   pbSafe = FALSE
+   piMood = 0
+   piMoodEnd = 0
+   // Hunting: hurt and resting at a door of the hunting room until healed
+   pbFleeing = FALSE
+   // Travelling: hurt on the way, it runs (half sprint) until it zones into the next map, then rests; the health it last had on the way
+   pbPanic = FALSE
+   piTravelHp = 0
+   // Hunting: the foe it is on, since when, and the health of both then; foes it gave up on (could not be reached)
+   poHuntFoe = $
+   piHuntSince = 0
+   piHuntFoeHp = 0
+   piHuntMyHp = 0
+   piHuntLook = 0
+   poWalkFoe = $
+   plHuntSkip = $
+   // Hunting: foes beaten on this hunt; where the last one fell and until when (GetTime()) its drops are worth picking up; ticks spent on that
+   piKills = 0
+   piLootRow = 0
+   piLootCol = 0
+   piLootUntil = 0
+   piLootTries = 0
+   piWant = 0
+   ptWander = $
+   ptAway = $
+   ptReply = $
+   poReplyTo = $
+   // GetTime() before which it does not speak in the room again
+   piNextChat = 0
+   // Where it is while inside a shop (it is in limbo): room and node it comes out at, and what for
+   piAwayRid = 0
+   piAwayNode = 0
+
+messages:
+
+   SetIdentity(id = 0,name = $,gender = GENDER_MALE)
+   "Its name and gender are its identity's (a man has a man's name, a woman a woman's); its face is made again for the gender."
+   {
+      piBotId = id;
+      prName = name;
+      Send(self,@ApplyGender,#gender=gender);
+      Send(self,@SetHair);
+      Send(self,@SetFace);
+      Send(self,@SetClothes);
+
+      return;
+   }
+
+   SetStrict(value = TRUE)
+   "Test driver: strict mode on or off (see pbStrict); a failed walk is cleared."
+   {
+      pbStrict = value;
+      pbFailed = FALSE;
+
+      return;
+   }
+
+   IsStrict()
+   {
+      return pbStrict;
+   }
+
+   GetGoalNode()
+   {
+      return piGoalNode;
+   }
+
+   GetFailed()
+   {
+      return pbFailed;
+   }
+
+   GetBotId()
+   {
+      return piBotId;
+   }
+
+   GetNavRid()
+   {
+      return piNavRid;
+   }
+
+   GetNavNode()
+   {
+      return piNavNode;
+   }
+
+   PlayerIsImmortal()
+   "Upstream items ask this of whoever holds them: a bot is not a god."
+   {
+      return FALSE;
+   }
+
+   GetDoing()
+   {
+      return piDoing;
+   }
+
+   GetStuck()
+   {
+      return piStuck;
+   }
+
+   GetJourneyRid()
+   {
+      return piJourneyRid;
+   }
+
+   Trace(what = $,a = $,b = $,c = $,d = $,e = $,f = $)
+   "Debug trace of this bot's walk (PBOT-TRACE lines in the debug log), only while the rule piPBotTrace names this bot (or -1): see PBotTraceOn."
+   {
+      local i;
+
+      if Send(Send(SYS,@GetPrime),@PBotTraceOn,#id=piBotId)
+      {
+         Debug("PBOT-TRACE bot",piBotId,"t",GetTime(),what,a,b,c,d,e,f);
+
+         if plTraceRing = $
+         {
+            i = 0;
+            while i < 40
+            {
+               plTraceRing = Cons($,plTraceRing);
+               ++i;
+            }
+
+            piTraceHead = 0;
+         }
+
+         SetNth(plTraceRing,piTraceHead + 1,[GetTime(),what,a,b,c,d,e,f]);
+         ++piTraceHead;
+         if piTraceHead >= 40
+         {
+            piTraceHead = 0;
+         }
+      }
+
+      return;
+   }
+
+   ExplainStep(iAr = 0,iAc = 0,iNr = 0,iNc = 0,bAvoid = FALSE)
+   "DEBUG (patch 0073): why does the server's move check allow or refuse a step of this body in its room? Positions in Kod fine units (square * 64 + fine). Returns [code, o1, o2, o3, o4]: 0 allowed, 1 a wall (its end points in roo units), 2 a body (object, x, y in roo units), 3 no room, 4 a door square it may not enter (row, col; only with bAvoid)."
+   {
+      local iEx, iO1, iO2, iO3, iO4;
+
+      iO1 = 0;
+      iO2 = 0;
+      iO3 = 0;
+      iO4 = 0;
+      if poOwner = $
+      {
+         return [3,0,0,0,0];
+      }
+
+      if bAvoid
+      {
+         Send(self,@PathAvoidDoors);
+      }
+
+      iEx = ExplainMoveBSP(Send(poOwner,@GetRoomData),iAr / FINENESS,iAc / FINENESS,iAr - (iAr / FINENESS) * FINENESS,iAc - (iAc / FINENESS) * FINENESS,
+                           iNr / FINENESS,iNc / FINENESS,iNr - (iNr / FINENESS) * FINENESS,iNc - (iNc / FINENESS) * FINENESS,self,*iO1,*iO2,*iO3,*iO4);
+      if bAvoid
+      {
+         ClearAvoidBSP();
+      }
+
+      return [iEx,iO1,iO2,iO3,iO4];
+   }
+
+   TraceRing()
+   "FLIGHT RECORDER (read over admin by claude_tools/botevents.py): the ring of the last 40 trace entries and the slot written next. $ when the trace never ran for this bot."
+   {
+      return [piTraceHead,plTraceRing];
+   }
+
+   StopMoving(bHold = TRUE)
+   "The one way out of a walk: no door, standing; bHold keeps it from the inherited monster movement (a hunter that has a foe passes FALSE)."
+   {
+      Send(self,@Trace,#what="stop moving: was phase",#a=piPhase,#b="doing",#c=piDoing,#d="at",#e=Send(self,@GetRow),#f=Send(self,@GetCol));
+      plNavDoor = $;
+      piPhase = PBH_IDLE;
+      piStuck = 0;
+      piBestDist2 = 0;
+      Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=bHold);
+      
+      return;
+   }
+
+   ResetLocation()
+   "Its body is somewhere unknown again (back from the underworld): the registry sets it down in its home town."
+   {
+      piNavRid = 0;
+      piNavNode = 0;
+      piJourneyRid = 0;
+      pbFleeing = FALSE;
+      pbPanic = FALSE;
+      piDoing = PBD_IDLE;
+
+      return;
+   }
+
+   Journey(rid = 0)
+   "Travel to a room: out of the door the risk-checked route names, and on in every room it comes to."
+   {
+      pbLeaving = FALSE;
+      piWant = PBW_NONE;
+      if piPhase = PBH_TALK
+      {
+         Send(self,@EndTalk);
+      }
+
+      pbFleeing = FALSE;
+      if poTarget <> $
+      {
+         Send(self,@EnterStateWait,#actnow=TRUE);
+      }
+
+      piJourneyRid = rid;
+      Send(self,@JourneyStep);
+
+      return;
+   }
+
+   JourneyStep()
+   "In a room on a journey: arrived, or the next door of the route (planned again in each room, from where it stands and how hurt it is)."
+   {
+      local oPrime, lRoute, rDest;
+
+      if piJourneyRid = 0
+      {
+         return;
+      }
+
+      oPrime = Send(SYS,@GetPrime);
+      // standing in a room of the route: the danger of the last leg is behind it (it zoned), so it stops running
+      pbPanic = FALSE;
+      if piNavRid = piJourneyRid
+      {
+         rDest = piJourneyRid;
+         piJourneyRid = 0;
+         piDoing = PBD_IDLE;
+         if Send(oPrime,@NavIsInn,#rid=piNavRid)
+         {
+            piDoing = PBD_INN;
+         }
+
+         pbParked = FALSE;
+         Send(oPrime,@PBotJourneyEnd,#id=piBotId,#rid=rDest);
+
+         return;
+      }
+
+      // safe for now (nothing on it): it rests to full health and mana before the next leg, then walks on
+      if poTarget = $ AND Send(self,@RestUp,#iSecs=3)
+      {
+         return;
+      }
+
+      lRoute = Send(oPrime,@PBotRouteEstimate,#fromRid=piNavRid,#fromNode=piNavNode,#toRid=piJourneyRid,#iHealth=Send(self,@GetHealth));
+      if lRoute = $ OR First(lRoute) = $
+      {
+         rDest = piJourneyRid;
+         piJourneyRid = 0;
+         Send(oPrime,@PBotJourneyFailed,#id=piBotId,#rid=rDest);
+
+         return;
+      }
+
+      Send(self,@GoToDoor,#lDoor=First(lRoute),#doing=PBD_TRANSIT);
+
+      return;
+   }
+
+   CheckPlayerFlag(flag = 0)
+   "Monsters ask a target's player flags (newbie safety): a bot has no owner, so it is fair game like a player who has left the newbie safe state."
+   {
+      if flag = PFLAG_PKILL_ENABLE
+      {
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   Ouch()
+   "Hook (PrimeGroups.CombatNumber, when it takes damage): the cry a player of its gender makes when hit, the more pained the less health it has left (as Player.GetOuchSound)."
+   {
+      local iPct, rSound;
+
+      if poOwner = $ OR piHit_points <= 0
+      {
+         return;
+      }
+
+      iPct = Send(Send(SYS,@GetPrime),@CompHealthPct,#who=self);
+      if viGender = GENDER_FEMALE
+      {
+         rSound = pbot_ouch_f4;
+         if iPct > 75
+         {
+            rSound = pbot_ouch_f1;
+         }
+         else if iPct > 50
+         {
+            rSound = pbot_ouch_f2;
+         }
+         else if iPct > 25
+         {
+            rSound = pbot_ouch_f3;
+         }
+      }
+      else
+      {
+         rSound = pbot_ouch_m4;
+         if iPct > 75
+         {
+            rSound = pbot_ouch_m1;
+         }
+         else if iPct > 50
+         {
+            rSound = pbot_ouch_m2;
+         }
+         else if iPct > 25
+         {
+            rSound = pbot_ouch_m3;
+         }
+      }
+
+      Send(poOwner,@SomethingWaveRoom,#what=self,#wave_rsc=rSound,#flags=SOUND_RANDOM_PITCH);
+
+      return;
+   }
+
+   Killed(what = $)
+   "Beaten: the registry sends it to the underworld (it is not a companion that is simply gone)."
+   {
+      local oRoom, oBody, oKiller, i, o;
+
+      oRoom = poOwner;
+      if oRoom <> $ AND IsClass(oRoom,&Room)
+      {
+         // a corpse where it fell (a plain DeadBody, so nothing about it touches the companion book), the death cry, and the room is told
+         oKiller = what;
+         if oKiller = $
+         {
+            oKiller = self;
+         }
+
+         oBody = Create(&DeadBody,#victim=self,#killer=oKiller,#PlayerBodyOverlay=vrDead_Legs,
+                        #BodyTranslation=(piBody_translations & HUMAN_TRANSLATION_BODY_MASK)/HUMAN_TRANSLATION_BODY_MUL,
+                        #LegsTranslation=(piBody_translations & HUMAN_TRANSLATION_LEGS_MASK)/HUMAN_TRANSLATION_LEGS_MUL);
+         Send(oRoom,@NewHold,#what=oBody,#new_row=piRow,#new_col=piCol,
+              #fine_row=piFine_row,#fine_col=piFine_col,#new_angle=Send(self,@GetAngle));
+         if vrSound_death <> $
+         {
+            Send(oRoom,@SomethingWaveRoom,#what=oBody,#wave_rsc=vrSound_death,#flags=SOUND_RANDOM_PITCH);
+         }
+
+         foreach i in Send(oRoom,@GetHolderActive)
+         {
+            o = First(i);
+            if IsClass(o,&User)
+            {
+               Send(o,@MsgSendUser,#message_rsc=pbot_slain,#parm1=Send(self,@GetName),#parm2=Send(oKiller,@GetName));
+            }
+         }
+      }
+
+      Post(Send(SYS,@GetPrime),@PBotDied,#id=piBotId);
+
+      return;
+   }
+
+   WalkTo(iRow = 0,iCol = 0,iFr = FINENESS_HALF,iFc = FINENESS_HALF)
+   "THE WALK: the bot plans its own way over the room's floor to a square (A* in the server, FindPathStepBSP: every link judged by the client's walk rules) and takes one step of it every tick (PathStep). Its callers set what it is doing (piDoing) before; the outcome comes back as Arrived (there), PathNoWay (no way), GiveUp (stuck), or the fight / flee of PathBlocked."
+   {
+      piPathRow = iRow;
+      piPathCol = iCol;
+      piPathFr = iFr;
+      piPathFc = iFc;
+      piPathWpR = 0;
+      piPathState = 1;
+      piPathSteps = 0;
+      piPathRefusedRow = 0;
+      piPathRefused = 0;
+      piPathSlides = 0;
+      piPathPlans = 0;
+      piPhase = PBH_WALK;
+      piStuck = 0;
+      piBestDist2 = 0;
+      Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=FALSE);
+      Send(self,@WalkStep);
+
+      return;
+   }
+
+   TestPathTo(iRow = 0,iCol = 0)
+   "TEST DRIVER (PrimePlayerBots.PBotTestPath): walk to a square at test speed (twelve steps a tick). Read the outcome with PathState."
+   {
+      pbPathFast = TRUE;
+      plNavDoor = $;
+      piDoing = PBD_WALK;
+      piDoingArg = PBD_IDLE;
+      Send(self,@WalkTo,#iRow=iRow,#iCol=iCol);
+
+      return;
+   }
+
+   PathState()
+   "[ state (0 not walking, 1 walking, 2 arrived, 3 no way, 4 stuck, 5 stopped next to the goal, 6 fighting a creature that blocked the way, 7 fled from one: rescue), steps taken, steps refused in all, plans made, row, col ]"
+   {
+      return [piPathState,piPathSteps,piPathRefused,piPathPlans,Send(self,@GetRow),Send(self,@GetCol)];
+   }
+
+   PathCanKill(oFoe = $,iMargin = PB_FIGHT_MARGIN)
+   "A ROUGH estimate (the owner's 'can take on'): can this bot, with its hit points and skills, kill the creature before the creature kills it? Both are Monsters, so the same numbers are read from both: hit chance = offense against the other's defense (10-95 percent), damage = the average of three GetDamage samples (hundredths of a hit point), time between blows = the average of three GetAttackTime samples. Time to kill = its health / my damage per second; time to die = my health / its damage per second. TRUE when time to kill times iMargin (default PB_FIGHT_MARGIN) percent is less than time to die. Armour, spells and other attackers are not counted."
+   {
+      local iMyHp, iFoeHp, iMyDmg, iFoeDmg, iMyTime, iFoeTime, iK, iMyHit, iFoeHit, iMyDps, iFoeDps, iMyOff, iFoeOff, iTkill, iTdie, bOk;
+
+      if oFoe = $
+      {
+         return FALSE;
+      }
+
+      iMyHp = Send(self,@GetHealth);
+      iFoeHp = Send(oFoe,@GetHealth);
+      iMyDmg = 0;
+      iFoeDmg = 0;
+      iMyTime = 0;
+      iFoeTime = 0;
+      iK = 0;
+      while iK < 3
+      {
+         iMyDmg = iMyDmg + Send(self,@GetDamage,#what=oFoe);
+         iFoeDmg = iFoeDmg + Send(oFoe,@GetDamage,#what=self);
+         iMyTime = iMyTime + Send(self,@GetAttackTime);
+         iFoeTime = iFoeTime + Send(oFoe,@GetAttackTime);
+         ++iK;
+      }
+
+      iMyDmg = iMyDmg / 3;
+      iFoeDmg = iFoeDmg / 3;
+      iMyTime = Bound(iMyTime / 3,300,$);
+      iFoeTime = Bound(iFoeTime / 3,300,$);
+
+      iMyOff = Send(self,@GetOffense);
+      iFoeOff = Send(oFoe,@GetOffense);
+      iMyHit = Bound(iMyOff * 100 / Bound(iMyOff + Send(oFoe,@GetDefense),1,$),10,95);
+      iFoeHit = Bound(iFoeOff * 100 / Bound(iFoeOff + Send(self,@GetDefense),1,$),10,95);
+
+      // damage per second in hundredths of a hit point
+      iMyDps = iMyDmg * iMyHit / 100 * 1000 / iMyTime;
+      iFoeDps = iFoeDmg * iFoeHit / 100 * 1000 / iFoeTime;
+      if iMyDps <= 0
+      {
+         Send(self,@Trace,#what="PLANNER can kill? no: my damage is 0");
+
+         return FALSE;
+      }
+
+      iTkill = iFoeHp * 100 / iMyDps;
+      iTdie = 999999;
+      if iFoeDps > 0
+      {
+         iTdie = iMyHp * 100 / iFoeDps;
+      }
+
+      bOk = (iTkill * iMargin / 100 < iTdie);
+      Send(self,@Trace,#what="PLANNER can kill? my hp",#a=iMyHp,#b="its hp",#c=iFoeHp,#d="s to kill",#e=iTkill,#f=iTdie);
+      Send(self,@Trace,#what="PLANNER can kill? answer",#a=bOk,#b="my dps",#c=iMyDps,#d="its dps",#e=iFoeDps);
+
+      return bOk;
+   }
+
+   PathFindBlocker()
+   "The nearest creature that could be what stops the walk: a fighting monster that is no companion, minion or townsperson, within one and a half squares ($ if none)."
+   {
+      local i, o, oBest, iBest, iDist;
+
+      oBest = $;
+      iBest = (FINENESS + FINENESS_HALF) * (FINENESS + FINENESS_HALF);
+      foreach i in Send(poOwner,@GetHolderActive)
+      {
+         o = First(i);
+         if o <> self AND IsClass(o,&Monster) AND NOT Send(o,@IsCompanion) AND Send(o,@GetMaster) = $ AND Send(o,@CanMonsterFight)
+         {
+            iDist = Send(self,@SquaredFineDistanceTo3D,#what=o);
+            if iDist < iBest
+            {
+               iBest = iDist;
+               oBest = o;
+            }
+         }
+      }
+
+      return oBest;
+   }
+
+   PathBlocked()
+   "A creature stands in the way and going round it did not work (owner's options 3 and 4): fight it if the bot can kill it (state 6), else flee: it casts Rescue, is taken home and picks a new activity (state 7). FALSE when no creature is near enough to be the cause."
+   {
+      local oFoe;
+
+      oFoe = Send(self,@PathFindBlocker);
+      if oFoe = $
+      {
+         return FALSE;
+      }
+
+      if Send(self,@PathCanKill,#oFoe=oFoe)
+      {
+         piPathState = 6;
+         Send(self,@Trace,#what="PLANNER fights the creature that blocks the way",#a=oFoe);
+         Send(self,@MarkFight);
+         Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=FALSE);
+         Send(self,@TargetSwitch,#what=oFoe,#iHatred=100);
+         Send(self,@EnterStateChase,#target=oFoe,#actnow=TRUE);
+
+         return TRUE;
+      }
+
+      piPathState = 7;
+      pbFleeing = TRUE;
+      Send(self,@Trace,#what="PLANNER cannot beat the creature that blocks the way: flees, rescue");
+      Send(self,@CastRescue);
+
+      return TRUE;
+   }
+
+   PathMoveTo(iNr = 0,iNc = 0)
+   "PATH PROTOTYPE: one step to a position (Kod fine units, square * 64 + fine) with the server's wall check ON. TRUE when it was made."
+   {
+      local iFr, iFc;
+
+      iFr = iNr - (iNr / FINENESS) * FINENESS;
+      iFc = iNc - (iNc / FINENESS) * FINENESS;
+      if Send(poOwner,@ReqSomethingMoved,#what=self,#new_row=iNr / FINENESS,#new_col=iNc / FINENESS,
+              #new_finerow=iFr,#new_finecol=iFc,#server_validate=TRUE)
+      {
+         Send(poOwner,@SomethingMoved,#what=self,#new_row=iNr / FINENESS,#new_col=iNc / FINENESS,
+              #fine_row=iFr,#fine_col=iFc,#speed=(0x80|Send(self,@GetMoveSpeed)),#non_monsters_only=TRUE);
+         ++piPathSteps;
+
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   PathSidestep(iAr = 0,iAc = 0,iNr = 0,iNc = 0,iBodyX = 0,iBodyY = 0)
+   "GO ROUND A BODY (owner order of options, step 1): a creature or bot (at iBodyX,iBodyY in roo units) refused the step from (iAr,iAc) to (iNr,iNc) (Kod fine units). The server lets a body move to any place that is not closer to the body than it is now, so: step sideways round it (the side the intended direction favours, then the other side), and if both are refused straight away from it. The walk then plans again from the new place with the creature as an obstacle. TRUE when a step was made."
+   {
+      local iVr, iVc, iM, iPr, iPc, iDot, iKr, iKc, iTry;
+
+      if piPathSlides >= 300
+      {
+         return FALSE;
+      }
+
+      // from the body to the bot, the larger component scaled to 64
+      iVr = iAr - (iBodyY / 16 + FINENESS);
+      iVc = iAc - (iBodyX / 16 + FINENESS);
+      iM = Abs(iVr);
+      if Abs(iVc) > iM
+      {
+         iM = Abs(iVc);
+      }
+
+      if iM = 0
+      {
+         // exactly on it: any direction away from the way it wanted to go
+         iVr = iAr - iNr;
+         iVc = iAc - iNc;
+         iM = Abs(iVr);
+         if Abs(iVc) > iM
+         {
+            iM = Abs(iVc);
+         }
+
+         if iM = 0
+         {
+            return FALSE;
+         }
+      }
+
+      iVr = iVr * 64 / iM;
+      iVc = iVc * 64 / iM;
+
+      // the sideways directions: (-vc, vr) and (vc, -vr); the first is the one more in the direction the bot wanted to go
+      iPr = 0 - iVc;
+      iPc = iVr;
+      iDot = (iNr - iAr) * iPr + (iNc - iAc) * iPc;
+      if iDot < 0
+      {
+         iPr = iVc;
+         iPc = 0 - iVr;
+      }
+
+      iTry = 0;
+      while iTry < 3
+      {
+         // 0: sideways (preferred side), 1: sideways (other side), 2: straight away
+         if iTry = 0
+         {
+            iKr = iPr;
+            iKc = iPc;
+         }
+         else
+         {
+            if iTry = 1
+            {
+               iKr = 0 - iPr;
+               iKc = 0 - iPc;
+            }
+            else
+            {
+               iKr = iVr;
+               iKc = iVc;
+            }
+         }
+
+         if Send(self,@PathMoveTo,#iNr=iAr + iKr * 12 / 64,#iNc=iAc + iKc * 12 / 64)
+         {
+            ++piPathSlides;
+            Send(self,@Trace,#what="PLANNER sidestep round body, way",#a=iTry,#b=iKr * 12 / 64,#c=iKc * 12 / 64);
+
+            return TRUE;
+         }
+
+         ++iTry;
+      }
+
+      return FALSE;
+   }
+
+   PathSlide(iAr = 0,iAc = 0,iNr = 0,iNc = 0,iO1 = 0,iO2 = 0,iO3 = 0,iO4 = 0)
+   "WALL SLIDING: a wall refused the step from (iAr,iAc) to (iNr,iNc) (Kod fine units; iO1..iO4 = the wall's end points x1,y1,x2,y2 in roo units, from ExplainMoveBSP). Do what the client does: slide along the wall (the step projected on the wall's direction); if that is refused too, step away from the wall (along its normal, towards the side the bot is on) to get out of the wall's margin. TRUE when a step was made."
+   {
+      local iWr, iWc, iM, iN2, iDot, iSr, iSc, iPr, iPc, iSide, iKr, iKc;
+
+      if piPathSlides >= 300
+      {
+         return FALSE;
+      }
+
+      // the wall's direction in rows and cols, the larger component scaled to 64 (keeps every product far below the integer limit)
+      iWr = (iO4 - iO2) / 16;
+      iWc = (iO3 - iO1) / 16;
+      iM = Abs(iWr);
+      if Abs(iWc) > iM
+      {
+         iM = Abs(iWc);
+      }
+
+      if iM = 0
+      {
+         return FALSE;
+      }
+
+      iWr = iWr * 64 / iM;
+      iWc = iWc * 64 / iM;
+      iN2 = iWr * iWr + iWc * iWc;
+
+      // 1) slide: the intended step projected on the wall
+      iDot = (iNr - iAr) * iWr + (iNc - iAc) * iWc;
+      iSr = iWr * iDot / iN2;
+      iSc = iWc * iDot / iN2;
+      if Abs(iSr) + Abs(iSc) >= 4
+      {
+         if Send(self,@PathMoveTo,#iNr=iAr + iSr,#iNc=iAc + iSc)
+         {
+            ++piPathSlides;
+            Send(self,@Trace,#what="PLANNER slide along wall by",#a=iSr,#b=iSc);
+
+            return TRUE;
+         }
+      }
+
+      // 2) nudge: away from the wall, to the side the bot stands on (the wall's points are in roo units: /16 and +64 gives the planner's frame)
+      iPr = iAr - (iO2 / 16 + FINENESS);
+      iPc = iAc - (iO1 / 16 + FINENESS);
+      iSide = iPr * iWc - iPc * iWr;
+      if iSide > 0
+      {
+         iKr = iWc;
+         iKc = 0 - iWr;
+      }
+      else
+      {
+         iKr = 0 - iWc;
+         iKc = iWr;
+      }
+
+      if Send(self,@PathMoveTo,#iNr=iAr + iKr * 8 / 64,#iNc=iAc + iKc * 8 / 64)
+      {
+         ++piPathSlides;
+         Send(self,@Trace,#what="PLANNER nudge away from wall by",#a=iKr * 8 / 64,#b=iKc * 8 / 64);
+
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   PathAvoidDoors()
+   "EXIT AWARENESS (patch 0075): tell the server's move check that the door squares of this room are squares not to enter (stepping on one leaves the room), unless the walk's goal is that very square. The caller clears the list with ClearAvoidBSP."
+   {
+      local lEntry, lDoor;
+
+      lEntry = Send(Send(SYS,@GetPrime),@PBotDoorsOf,#rid=piNavRid);
+      if lEntry <> $
+      {
+         foreach lDoor in First(lEntry)
+         {
+            // (a room-edge exit, field 9, is a landing on the real floor where the floor meets that side, not a door square: it is walked on freely)
+            if Nth(lDoor,9) = 0 AND NOT (First(lDoor) = piPathRow AND Nth(lDoor,2) = piPathCol)
+            {
+               AvoidSquareBSP(First(lDoor),Nth(lDoor,2));
+            }
+         }
+      }
+
+      return;
+   }
+
+   PathStep()
+   "PATH PROTOTYPE: the walking step with the PLAYER-LIKE body radius (patch 0074) and EXIT AWARENESS (patch 0075): sets the radius that creatures and bots block with to PB_TRAVEL_BODY_RADIUS and lists the room's door squares as squares not to enter, runs PathStepInner, and puts everything back (the server's Blakod is single threaded: nobody else sees it)."
+   {
+      local iOld;
+
+      iOld = SetBodyRadiusBSP(PB_TRAVEL_BODY_RADIUS);
+      Send(self,@PathAvoidDoors);
+      Send(self,@PathStepInner);
+      ClearAvoidBSP();
+      SetBodyRadiusBSP(iOld);
+
+      return;
+   }
+
+   PathStepInner()
+   "PATH PROTOTYPE (test speed): twelve steps (16 fine units each) towards the next point of the planned way; the way is planned again when there is none, the point is reached, or the server refused a step."
+   {
+      local iAr, iAc, iBr, iBc, iDr, iDc, iDist, iNr, iNc, iFr, iFc, iTry, iMax, iGr, iGc, iGfr, iGfc, iOk, iMoved, iEx, iO1, iO2, iO3, iO4;
+
+      if piPathState = 6 AND poOwner <> $
+      {
+         // fighting the creature that blocked the way: when it is dead (no target) walk on; badly hurt: flee
+         if Send(Send(SYS,@GetPrime),@CompHealthPct,#who=self) < PB_FIGHT_FLEE_PCT
+         {
+            piPathState = 7;
+            pbFleeing = TRUE;
+            Send(self,@Trace,#what="PLANNER hurt in the fight: flees, rescue");
+            Send(self,@CastRescue);
+
+            return;
+         }
+
+         if poTarget = $
+         {
+            piPathState = 1;
+            piPathWpR = 0;
+            piPathRefusedRow = 0;
+            Send(self,@Trace,#what="PLANNER fight over, walks on");
+         }
+         else
+         {
+            return;
+         }
+      }
+
+      if poOwner = $ OR piPathState <> 1
+      {
+         return;
+      }
+
+      iTry = 0;
+      iMax = Send(Send(SYS,@GetPrime),@PBotWalkSteps);
+      if pbPathFast
+      {
+         iMax = 12;
+      }
+
+      while iTry < iMax
+      {
+         ++iTry;
+         iAr = Send(self,@GetRow) * FINENESS + Send(self,@GetFineRow);
+         iAc = Send(self,@GetCol) * FINENESS + Send(self,@GetFineCol);
+
+         // at the goal (within half a square)?
+         iDr = piPathRow * FINENESS + piPathFr - iAr;
+         iDc = piPathCol * FINENESS + piPathFc - iAc;
+         if Abs(iDr) <= FINENESS_HALF AND Abs(iDc) <= FINENESS_HALF
+         {
+            piPathState = 2;
+            Send(self,@Arrived);
+
+            return;
+         }
+
+         // plan: no point to walk to, or this one is reached
+         iBr = piPathWpR * FINENESS + piPathWpFr;
+         iBc = piPathWpC * FINENESS + piPathWpFc;
+         if piPathWpR = 0 OR (Abs(iBr - iAr) <= 8 AND Abs(iBc - iAc) <= 8)
+         {
+            iGr = piPathRow;
+            iGc = piPathCol;
+            iGfr = piPathFr;
+            iGfc = piPathFc;
+            ++piPathPlans;
+            iOk = FindPathStepBSP(Send(poOwner,@GetRoomData),Send(self,@GetRow),Send(self,@GetCol),Send(self,@GetFineRow),Send(self,@GetFineCol),
+                                  *iGr,*iGc,*iGfr,*iGfc,self);
+            if iOk <> 1
+            {
+               Send(self,@Trace,#what="PLANNER no way from",#a=Send(self,@GetRow),#b=Send(self,@GetCol),#c="to",#d=piPathRow,#e=piPathCol);
+               Send(self,@PathNoWay);
+
+               return;
+            }
+
+            piPathWpR = iGr;
+            piPathWpC = iGc;
+            piPathWpFr = iGfr;
+            piPathWpFc = iGfc;
+            iBr = piPathWpR * FINENESS + piPathWpFr;
+            iBc = piPathWpC * FINENESS + piPathWpFc;
+         }
+
+         // one step towards the point
+         iDr = iBr - iAr;
+         iDc = iBc - iAc;
+         iDist = Abs(iDr);
+         if Abs(iDc) > iDist
+         {
+            iDist = Abs(iDc);
+         }
+
+         if iDist = 0
+         {
+            piPathWpR = 0;
+
+            return;
+         }
+
+         iNr = iAr + iDr;
+         iNc = iAc + iDc;
+         if iDist > PB_WALK_STEP
+         {
+            iNr = iAr + iDr * PB_WALK_STEP / iDist;
+            iNc = iAc + iDc * PB_WALK_STEP / iDist;
+         }
+
+         iFr = iNr - (iNr / FINENESS) * FINENESS;
+         iFc = iNc - (iNc / FINENESS) * FINENESS;
+         iMoved = Send(self,@PathMoveTo,#iNr=iNr,#iNc=iNc);
+         if iMoved
+         {
+            piPathRefusedRow = 0;
+         }
+
+         if NOT iMoved
+         {
+            // the server said no: ask why (patch 0073); a WALL: slide along it / step away from it like the client does; otherwise plan again from here; too many refusals in a row and it is stuck
+            ++piPathRefused;
+            iO1 = 0;
+            iO2 = 0;
+            iO3 = 0;
+            iO4 = 0;
+            // the reason: 0 allowed, 1 a wall (o1..o4 = its two end points, roo units), 2 a body (o1 = object, o2/o3 = its position), 3 no room data
+            iEx = ExplainMoveBSP(Send(poOwner,@GetRoomData),iAr / FINENESS,iAc / FINENESS,iAr - (iAr / FINENESS) * FINENESS,iAc - (iAc / FINENESS) * FINENESS,
+                                 iNr / FINENESS,iNc / FINENESS,iFr,iFc,self,*iO1,*iO2,*iO3,*iO4);
+            if (iEx = 1 AND Send(self,@PathSlide,#iAr=iAr,#iAc=iAc,#iNr=iNr,#iNc=iNc,#iO1=iO1,#iO2=iO2,#iO3=iO3,#iO4=iO4))
+               OR (iEx = 2 AND Send(self,@PathSidestep,#iAr=iAr,#iAc=iAc,#iNr=iNr,#iNc=iNc,#iBodyX=iO2,#iBodyY=iO3))
+            {
+               // made a step along or away from the wall, or round the body: plan again from here
+               piPathRefusedRow = 0;
+            }
+            else
+            {
+               ++piPathRefusedRow;
+               // a creature refuses the step again and again: going round did not work: fight it or flee (PathBlocked)
+               if iEx = 2 AND (piPathRefusedRow >= 4 OR piPathSlides >= 40) AND Send(self,@PathBlocked)
+               {
+                  return;
+               }
+            }
+
+            if piPathRefusedRow = 1
+            {
+               plPathDbg = [iAr,iAc,iNr,iNc,iBr,iBc,
+                     CanMoveInRoomBSP(Send(poOwner,@GetRoomData),iAr / FINENESS,iAc / FINENESS,iAr - (iAr / FINENESS) * FINENESS,iAc - (iAc / FINENESS) * FINENESS,
+                                      iNr / FINENESS,iNc / FINENESS,iFr,iFc,self,FALSE),
+                     iEx,iO1,iO2,iO3,iO4];
+
+               Send(self,@Trace,#what="PLANNER step refused at fine",#a=iAr,#b=iAc,#c="to",#d=iNr,#e=iNc,#f=Nth(plPathDbg,7));
+               Send(self,@Trace,#what="PLANNER reason 1=wall 2=body:",#a=iEx,#b=iO1,#c=iO2,#d=iO3,#e=iO4);
+            }
+
+            piPathWpR = 0;
+            if piPathRefusedRow >= 12
+            {
+               // refused again and again within two squares of the goal: something (a creature, a bot) stands on it or round it; next to it is as good as there
+               iDr = piPathRow * FINENESS + piPathFr - iAr;
+               iDc = piPathCol * FINENESS + piPathFc - iAc;
+               piPathState = 4;
+               if Abs(iDr) <= 2 * FINENESS AND Abs(iDc) <= 2 * FINENESS
+               {
+                  piPathState = 5;
+               }
+
+               Send(self,@Trace,#what="PLANNER gave up, state",#a=piPathState,#b="steps",#c=piPathSteps,#d="refused",#e=piPathRefused,#f=piPathPlans);
+
+               if piPathState = 5 OR piDoing = PBD_DEAD
+               {
+                  Send(self,@Arrived);
+               }
+               else
+               {
+                  Send(self,@GiveUp);
+               }
+            }
+
+            return;
+         }
+      }
+
+      return;
+   }
+
+   BeginHunt()
+   "It has come to the room it hunts in: it looks for foes here until its activity ends."
+   {
+      pbFleeing = FALSE;
+      poHuntFoe = $;
+      poWalkFoe = $;
+      plHuntSkip = $;
+      piKills = 0;
+      piHuntFails = 0;
+      piLootUntil = 0;
+      piDoing = PBD_HUNT;
+      Send(self,@StopMoving);
+      piPhaseEnd = GetTime();
+
+      return;
+   }
+
+   HuntFoeCount()
+   "Test driver: how many fightable foes (as HuntFoe counts them, skip list ignored) are in its room now."
+   {
+      local i, o, iCount;
+
+      iCount = 0;
+      if poOwner = $
+      {
+         return 0;
+      }
+
+      foreach i in Send(poOwner,@GetHolderActive)
+      {
+         o = First(i);
+         if IsClass(o,&Monster) AND NOT Send(o,@IsCompanion) AND Send(o,@GetMaster) = $
+            AND Send(o,@CanMonsterFight)
+         {
+            ++iCount;
+         }
+      }
+
+      return iCount;
+   }
+
+   HuntInSight(what = $)
+   "Is the foe near enough for a monster's chase to keep it (the brain drops a target beyond its vision + 5 squares, which left a bot standing at a foe it picked from far off)?"
+   {
+      local iVis;
+
+      iVis = Send(self,@GetVisionDistance) + 3;
+
+      return (Send(self,@SqFineDistToVision,#what=what) / FINENESS_SQUARED) <= (iVis * iVis);
+   }
+
+   HuntFoeFree(what = $)
+   "Is the monster nobody else's: it targets no one, or this bot (a foe another player or playerbot is fighting is theirs; the bot never steals it)."
+   {
+      local oTarget;
+
+      oTarget = Send(what,@GetTarget);
+
+      return oTarget = $ OR oTarget = self;
+   }
+
+   HuntFoe()
+   "The nearest foe in its room (within 120 squares: the far ones it walks to first, see HuntStep) ($ if none): a fighting monster that is no companion, minion or townsperson."
+   {
+      local i, o, oBest, iBest, iDist;
+
+      oBest = $;
+      iBest = (120 * FINENESS) * (120 * FINENESS);
+      foreach i in Send(poOwner,@GetHolderActive)
+      {
+         o = First(i);
+         if IsClass(o,&Monster) AND NOT Send(o,@IsCompanion) AND Send(o,@GetMaster) = $
+            AND Send(o,@CanMonsterFight) AND FindListElem(plHuntSkip,o) = 0
+            AND Send(self,@HuntFoeFree,#what=o)
+         {
+            iDist = Send(self,@SquaredFineDistanceTo3D,#what=o);
+            // (only a foe nearer than the best so far is weighed: the estimate costs a few calls)
+            if iDist < iBest AND Send(self,@PathCanKill,#oFoe=o,#iMargin=PB_HUNT_MARGIN)
+            {
+               iBest = iDist;
+               oBest = o;
+            }
+         }
+      }
+
+      return oBest;
+   }
+
+   TargetSwitch(what = $,iHatred = 0)
+   "Prime: a hunting bot keeps the foe it chose until that foe is dead or gone. The monster AI re-aims at every new attacker; against a group of foes (zombies and skeletons in a graveyard) the bot then turned back and forth between them and looked like it could not decide (found with claude_tools/botflip.py). A bot that is fleeing, or not hunting, switches as a monster does."
+   {
+      if piDoing = PBD_HUNT
+         AND poTarget <> $
+         AND what <> poTarget
+         AND poOwner <> $
+         AND Send(poTarget,@GetOwner) = poOwner
+         AND NOT pbFleeing
+      {
+         return;
+      }
+
+      propagate;
+   }
+
+   KilledSomething(what = $,use_weapon = $)
+   "Prime: a hunter counts the foe it beat and notes where it fell, so it can pick up what the foe dropped."
+   {
+      if what <> $ AND piDoing = PBD_HUNT AND IsClass(what,&Monster)
+      {
+         ++piKills;
+         piHuntFails = 0;
+         piLootRow = Send(what,@GetRow);
+         piLootCol = Send(what,@GetCol);
+         piLootUntil = GetTime() + 25;
+         piLootTries = 0;
+      }
+
+      propagate;
+   }
+
+   GetHuntKills()
+   {
+      return piKills;
+   }
+
+   HuntStep()
+   "Every second in its hunting room: fight what is on it; else pick up what its last kill dropped, rest until whole, and look for the next foe."
+   {
+      local oPrime, iPct, oFoe, lRoom, lNodes;
+
+      oPrime = Send(SYS,@GetPrime);
+      iPct = Send(oPrime,@CompHealthPct,#who=self);
+
+      if poTarget <> $
+      {
+         Send(self,@HuntFight,#iPct=iPct);
+
+         return;
+      }
+
+      // nothing is on it: drops first (if it is not badly hurt), then rest until whole
+      if iPct >= 50 AND Send(self,@HuntLoot)
+      {
+         return;
+      }
+
+      if Send(self,@RestUp,#iSecs=1)
+      {
+         return;
+      }
+
+      oFoe = Send(self,@HuntFoe);
+      if GetTime() <> piTraceSec
+      {
+         piTraceSec = GetTime();
+         if oFoe = $
+         {
+            Send(self,@Trace,#what="hunt: no foe, at",#a=Send(self,@GetRow),#b=Send(self,@GetCol),#c="skip list",#d=Length(plHuntSkip));
+         }
+         else
+         {
+            Send(self,@Trace,#what="hunt: foe at",#a=Send(oFoe,@GetRow),#b=Send(oFoe,@GetCol),#c="me",#d=Send(self,@GetRow),#e=Send(self,@GetCol),#f=Send(self,@HuntInSight,#what=oFoe));
+         }
+      }
+
+      if oFoe <> $
+      {
+         // the same foe picked again and again for 25 s while nobody is hurt: it cannot be got at from here (it is behind a wall or a gate, the
+         // chase drops it every second). It goes on the skip list and the bot roams on to another spot of the room instead of standing at the door.
+         if oFoe <> poHuntFoe OR Send(oFoe,@GetHealth) < piHuntFoeHp OR Send(self,@GetHealth) < piHuntMyHp
+         {
+            poHuntFoe = oFoe;
+            piHuntSince = GetTime();
+            piHuntFoeHp = Send(oFoe,@GetHealth);
+            piHuntMyHp = Send(self,@GetHealth);
+         }
+         else if GetTime() - piHuntSince >= 25
+         {
+            plHuntSkip = Cons(oFoe,plHuntSkip);
+            if Length(plHuntSkip) > 8
+            {
+               plHuntSkip = Cons(oFoe,$);
+            }
+
+            poHuntFoe = $;
+            piHuntSince = 0;
+            Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+            piPhaseEnd = GetTime();
+            piNavNode = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(self,@GetRow),#col=Send(self,@GetCol),#oWho=self);
+            Send(self,@HuntAttemptFailed,#why="the same foe picked for 25 s");
+
+            return;
+         }
+
+         if NOT Send(self,@HuntInSight,#what=oFoe)
+         {
+            // too far for the chase to hold: walk the baked graph to the node nearest to it first, then fight (HuntStep picks again on arrival)
+            poHuntFoe = $;
+            piHuntSince = 0;
+            lNodes = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(oFoe,@GetRow),#col=Send(oFoe,@GetCol));
+            if lNodes = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(self,@GetRow),#col=Send(self,@GetCol))
+            {
+               // already at the node nearest to that foe and still too far: walking there goes nowhere, so the foe is skipped (the bot roams on)
+               // instead of being picked again every second for ever
+               plHuntSkip = Cons(oFoe,plHuntSkip);
+               if Length(plHuntSkip) > 8
+               {
+                  plHuntSkip = Cons(oFoe,$);
+               }
+
+               Send(self,@HuntAttemptFailed,#why="no nearer node to a far foe");
+
+               return;
+            }
+
+            poWalkFoe = oFoe;
+            Send(self,@GoToNode,#node=lNodes,#doing=PBD_HUNT);
+
+            return;
+         }
+
+         Send(self,@Trace,#what="hunt: chase, state",#a=piState,#b="behavior",#c=piBehavior,#d="target",#e=poTarget);
+         Send(self,@MarkFight);
+         Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=FALSE);
+         Send(self,@TargetSwitch,#what=oFoe,#iHatred=100);
+         Send(self,@EnterStateChase,#target=oFoe,#actnow=TRUE);
+         if piKills = 0 AND poTarget = $
+         {
+            Debug("PBOT-FAIL hunt: chase did not take, bot",piBotId,"foe",oFoe,"row",Send(oFoe,@GetRow),"col",Send(oFoe,@GetCol),"me",Send(self,@GetRow),Send(self,@GetCol),"state",piState,"behavior",piBehavior);
+         }
+
+         return;
+      }
+
+      Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+      if Send(oPrime,@PBotNightRoomClosed,#rid=piNavRid)
+      {
+         // a night-only room by day (the Tos graveyard): nothing spawns, the bot does not stay
+         Send(self,@HuntAttemptFailed,#why="a night-only room by day");
+
+         return;
+      }
+
+      if GetTime() >= piPhaseEnd
+      {
+         // an empty roam (no foe anywhere in the room) is a failed attempt: after the rule piBotHuntFailLimit of them in a row the bot gives the hunt up instead of roaming for ever
+         Send(self,@HuntAttemptFailed,#why="no foe in the room");
+         // foes it gave up on are tried again after a roam (with few monsters in a room every one was on the list for ever and the bot only roamed)
+         plHuntSkip = $;
+         lRoom = Send(oPrime,@NavRoom,#rid=piNavRid);
+         if lRoom <> $
+         {
+            lNodes = First(lRoom);
+            if lNodes <> $
+            {
+               Send(self,@GoToNode,#node=Random(1,Length(lNodes)),#doing=PBD_HUNT);
+            }
+         }
+
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(6,15));
+      }
+
+      return;
+   }
+
+   RestUp(iSecs = 1)
+   "Rest where it stands until health and mana are full (iSecs: the seconds since the last call). TRUE while it is resting, FALSE once it is whole."
+   {
+      if Send(Send(SYS,@GetPrime),@CompHealthPct,#who=self) >= 100 AND Send(self,@GetMana) >= Send(self,@GetMaxMana)
+      {
+         pbFleeing = FALSE;
+
+         return FALSE;
+      }
+
+      pbFleeing = TRUE;
+      Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+      Send(self,@GainHealthNormal,#amount=Bound(Send(self,@GetMaxHealth) * iSecs / 25,1,$),#precision=FALSE);
+      Send(self,@GainMana,#amount=Bound(Send(self,@GetMaxMana) * iSecs / 25,1,$),#bCapped=TRUE);
+
+      return TRUE;
+   }
+
+   HuntAttemptFailed(why = "")
+   "One failed attempt to find or reach a foe or a spot (the foe went on the skip list): after the rule piBotHuntFailLimit of them in a row, without a kill between, the bot gives this hunt up and the next activity is chosen (a bot in a strict test keeps its activity)."
+   {
+      local oPrime;
+
+      ++piHuntFails;
+      Send(self,@Trace,#what="hunt attempt failed:",#a=why,#b="in a row",#c=piHuntFails);
+      oPrime = Send(SYS,@GetPrime);
+      if piHuntFails >= Send(oPrime,@PBotHuntFailLimit) AND NOT pbStrict
+      {
+         Debug("PBOT-GIVEUP hunt: bot",piBotId,"room",piNavRid,"after",piHuntFails,"failed attempts in a row, last:",why);
+         piHuntFails = 0;
+         Send(oPrime,@PBotHuntGiveUp,#id=piBotId);
+      }
+
+      return;
+   }
+
+   HuntLetBe(why = "")
+   "The foe it fights cannot be got at (behind a wall, across water, it will not come): it goes on the skip list, the bot stands down and looks for another."
+   {
+      local oPrime;
+
+      oPrime = Send(SYS,@GetPrime);
+      plHuntSkip = Cons(poTarget,plHuntSkip);
+      if Length(plHuntSkip) > 8
+      {
+         plHuntSkip = Cons(poTarget,$);
+      }
+
+      poHuntFoe = $;
+      Send(self,@EnterStateWait,#actnow=TRUE);
+      Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+      piPhaseEnd = GetTime();
+      // wedged against a wall or a statue it could not see past: the next walk starts from the graph node nearest to where it
+      // really stands, not from the one it left long ago (a leaderless bot has no master to jump to, as a companion does)
+      piNavNode = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(self,@GetRow),#col=Send(self,@GetCol),#oWho=self);
+      Send(self,@HuntAttemptFailed,#why=why);
+
+      return;
+   }
+
+   HuntFight(iPct = 100)
+   "Something is on it: give up a foe it cannot reach, run for a door when badly hurt (it fights back if followed)."
+   {
+      local oPrime, lRoom, lDoors, lDoor, lBest, iBest, iDist, lPos;
+
+      oPrime = Send(SYS,@GetPrime);
+      if pbFleeing
+      {
+         // followed to its resting place: it fights back
+         return;
+      }
+
+      iDist = Send(self,@SquaredFineDistanceTo3D,#what=poTarget);
+      if GetTime() <> piTraceSec
+      {
+         piTraceSec = GetTime();
+         Send(self,@Trace,#what="fight: my health %",#a=iPct,#b="foe health",#c=Send(poTarget,@GetHealth),#d="distance squared (squares)",#e=iDist / FINENESS_SQUARED);
+      }
+
+      if poTarget <> poHuntFoe OR GetTime() - piHuntSince < 0
+      {
+         poHuntFoe = poTarget;
+         piHuntSince = GetTime();
+         piHuntFoeHp = Send(poTarget,@GetHealth);
+         piHuntMyHp = Send(self,@GetHealth);
+         piHuntDistBest = iDist;
+         piHuntDistAt = GetTime();
+      }
+      else if Send(poTarget,@GetHealth) < piHuntFoeHp OR Send(self,@GetHealth) < piHuntMyHp
+      {
+         piHuntSince = GetTime();
+         piHuntFoeHp = Send(poTarget,@GetHealth);
+         piHuntMyHp = Send(self,@GetHealth);
+         piHuntDistBest = iDist;
+         piHuntDistAt = GetTime();
+      }
+      else if iDist + FINENESS_SQUARED < piHuntDistBest
+      {
+         // getting closer (by more than a square)
+         piHuntDistBest = iDist;
+         piHuntDistAt = GetTime();
+      }
+      else if GetTime() - piHuntDistAt >= 8 AND iDist > 9 * FINENESS_SQUARED
+      {
+         // 8 seconds and no closer to a foe more than 3 squares away: it cannot get at that one (across water, a ledge it cannot jump)
+         Send(self,@HuntLetBe,#why="no closer to its foe in 8 s");
+
+         return;
+      }
+      else if GetTime() - piHuntSince >= 20
+      {
+         // 20 seconds and nobody hurt: it cannot get at that one (behind a wall, across water); it lets it be for a while
+         Send(self,@HuntLetBe,#why="foe not hurt in 20 s");
+
+         return;
+      }
+
+      // it flees when badly hurt (PB_FIGHT_FLEE_PCT) or as soon as the fight turns losing (it cannot kill the foe before the foe kills it any more): at 35 percent there was no time left, a foe takes
+      // about a fifth of a bot's health a second
+      if iPct >= PB_FIGHT_FLEE_PCT AND Send(self,@PathCanKill,#oFoe=poTarget)
+      {
+         return;
+      }
+
+      // too hurt: it drops the fight and runs to the nearest door of the room
+      Send(self,@Trace,#what="fight: too hurt, flees at health %",#a=iPct);
+      pbFleeing = TRUE;
+      Send(self,@EnterStateWait,#actnow=TRUE);
+      lRoom = Send(oPrime,@NavRoom,#rid=piNavRid);
+      lDoors = $;
+      if lRoom <> $
+      {
+         lDoors = Nth(lRoom,3);
+      }
+
+      lBest = $;
+      iBest = 99999999;
+      foreach lDoor in lDoors
+      {
+         lPos = Send(oPrime,@NavNodePos,#rid=piNavRid,#node=Nth(lDoor,3));
+         if lPos <> $
+         {
+            iDist = (First(lPos) - Send(self,@GetRow)) * (First(lPos) - Send(self,@GetRow))
+                  + (Nth(lPos,2) - Send(self,@GetCol)) * (Nth(lPos,2) - Send(self,@GetCol));
+            if iDist < iBest
+            {
+               iBest = iDist;
+               lBest = lDoor;
+            }
+         }
+      }
+
+      if lBest <> $
+      {
+         Send(self,@GoToNode,#node=Nth(lBest,3),#doing=PBD_HUNT);
+      }
+      else
+      {
+         Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+      }
+
+      return;
+   }
+
+   HuntLoot()
+   "Walk to the nearest drop of its last kill and pick it up: gold and reagents are counted for its character, everything else is cleared away. TRUE while it is busy with it."
+   {
+      local i, o, oBest, iBest, iDist, iGold, iReagents;
+
+      if GetTime() >= piLootUntil
+      {
+         return FALSE;
+      }
+
+      oBest = $;
+      iBest = (6 * FINENESS) * (6 * FINENESS);
+      foreach i in Send(poOwner,@GetHolderPassive)
+      {
+         o = First(i);
+         if IsClass(o,&Item) AND Send(o,@GetRow) <> $
+            AND (Send(o,@GetRow) - piLootRow) * (Send(o,@GetRow) - piLootRow) + (Send(o,@GetCol) - piLootCol) * (Send(o,@GetCol) - piLootCol) <= 16
+         {
+            iDist = Send(self,@SquaredFineDistanceTo3D,#what=o);
+            if iDist < iBest
+            {
+               iBest = iDist;
+               oBest = o;
+            }
+         }
+      }
+
+      ++piLootTries;
+      if oBest = $ OR piLootTries > 15
+      {
+         piLootUntil = 0;
+         Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+
+         return FALSE;
+      }
+
+      // within a square and a half: it takes it
+      if iBest <= (FINENESS * 3 / 2) * (FINENESS * 3 / 2)
+      {
+         iGold = 0;
+         iReagents = 0;
+         if IsClass(oBest,&Money)
+         {
+            iGold = Send(oBest,@GetNumber);
+         }
+         else if IsClass(oBest,&Reagent)
+         {
+            iReagents = Send(oBest,@GetNumber);
+         }
+
+         if iGold > 0 OR iReagents > 0
+         {
+            Send(Send(SYS,@GetPrime),@PBotAddLoot,#id=piBotId,#gold=iGold,#reagents=iReagents);
+         }
+
+         Send(oBest,@Delete);
+         Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=TRUE);
+
+         return TRUE;
+      }
+
+      Send(self,@SetBehaviorFlag,#flag=AI_NOMOVE,#value=FALSE);
+      Send(self,@GotoCoords,#iRow=Send(oBest,@GetRow),#iCol=Send(oBest,@GetCol));
+
+      return TRUE;
+   }
+
+   GetParkNode()
+   "The node it stands at, or is walking to."
+   {
+      if piPhase = PBH_WALK AND piGoalNode <> 0
+      {
+         return piGoalNode;
+      }
+
+      return piNavNode;
+   }
+
+   ParkSpot()
+   "Once per arrival in a street or inn: walk to the least occupied node of the room, then stay there."
+   {
+      local oPrime, lRoom, lNodes, iNode, iLoad, iBest, lBest;
+
+      pbParked = TRUE;
+      piMoodEnd = 0;
+      oPrime = Send(SYS,@GetPrime);
+      lRoom = Send(oPrime,@NavRoom,#rid=piNavRid);
+      if lRoom = $
+      {
+         return;
+      }
+
+      lNodes = First(lRoom);
+      iBest = 9999;
+      lBest = $;
+      iNode = 0;
+      while iNode < Length(lNodes)
+      {
+         ++iNode;
+         iLoad = Send(oPrime,@PBotNodeLoad,#rid=piNavRid,#node=iNode,#oExcept=self);
+         if iLoad < iBest
+         {
+            iBest = iLoad;
+            lBest = [iNode];
+         }
+         else if iLoad = iBest
+         {
+            lBest = Cons(iNode,lBest);
+         }
+      }
+
+      if lBest = $
+      {
+         return;
+      }
+
+      // already on one of the emptiest nodes: stay
+      iNode = Nth(lBest,Random(1,Length(lBest)));
+      foreach iLoad in lBest
+      {
+         if iLoad = piNavNode
+         {
+            return;
+         }
+      }
+
+      Send(self,@GoToNode,#node=iNode,#doing=piDoing);
+
+      return;
+   }
+
+   NewMood()
+   "Parked in a street or inn: pick what it is up to for the next few minutes (real time). In an inn with a globe a fifth of the bots read it."
+   {
+      local oPrime, lRoom, lGlobes, iRoll, iNode, bInn;
+
+      oPrime = Send(SYS,@GetPrime);
+      piMoodEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(120,360));
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(5,20));
+      lRoom = Send(oPrime,@NavRoom,#rid=piNavRid);
+      lGlobes = $;
+      if lRoom <> $
+      {
+         lGlobes = Nth(lRoom,4);
+      }
+
+      bInn = Send(oPrime,@NavIsInn,#rid=piNavRid);
+      iRoll = Random(1,100);
+      piMood = PBM_NORMAL;
+      if lGlobes <> $ AND bInn
+      {
+         // 20 % globe, 20 % away, 20 % chatty, 40 % hanging about
+         if iRoll <= 20
+         {
+            piMood = PBM_GLOBE;
+         }
+         else if iRoll <= 40
+         {
+            piMood = PBM_AFK;
+         }
+         else if iRoll <= 60
+         {
+            piMood = PBM_CHAT;
+         }
+      }
+      else
+      {
+         if iRoll <= 25
+         {
+            piMood = PBM_AFK;
+         }
+         else if iRoll <= 50
+         {
+            piMood = PBM_CHAT;
+         }
+      }
+
+      if piMood = PBM_GLOBE
+      {
+         iNode = Nth(First(lGlobes),3);
+         // two readers at a globe at most
+         if Send(oPrime,@PBotNodeLoad,#rid=piNavRid,#node=iNode,#oExcept=self) >= 2
+         {
+            piMood = PBM_NORMAL;
+         }
+         else if iNode = piNavNode
+         {
+            piDoing = PBD_GLOBE;
+            Send(self,@FaceGlobe);
+         }
+         else
+         {
+            Send(self,@GoToNode,#node=iNode,#doing=PBD_GLOBE);
+         }
+      }
+
+      if piMood <> PBM_GLOBE AND piDoing = PBD_GLOBE
+      {
+         // done reading: it stays where it is, now only relaxing
+         piDoing = PBD_HANG;
+         if bInn
+         {
+            piDoing = PBD_INN;
+         }
+      }
+
+      return;
+   }
+
+   FaceGlobe()
+   "Turn to the first globe of the room."
+   {
+      local lRoom, lGlobes;
+
+      lRoom = Send(Send(SYS,@GetPrime),@NavRoom,#rid=piNavRid);
+      if lRoom <> $ AND poOwner <> $
+      {
+         lGlobes = Nth(lRoom,4);
+         if lGlobes <> $
+         {
+            Send(self,@MonsterOrient,#new_row=First(First(lGlobes)),#new_col=Nth(First(lGlobes),2));
+         }
+      }
+
+      return;
+   }
+
+   SocialStep()
+   "Parked: every 10 to 30 seconds a look about (often at another bot) or, in a chatty mood, a walk over to someone for a word. Away from the keyboard it never moves; reading the globe it keeps its eyes on it."
+   {
+      local oPrime, oLook, iChance;
+
+      if GetTime() < piPhaseEnd OR piMood = PBM_AFK
+      {
+         return;
+      }
+
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+      if piMood = PBM_GLOBE
+      {
+         Send(self,@FaceGlobe);
+
+         return;
+      }
+
+      oPrime = Send(SYS,@GetPrime);
+      iChance = 5;
+      if piMood = PBM_CHAT
+      {
+         iChance = 30;
+      }
+
+      if Random(1,100) <= iChance
+      {
+         Send(self,@ChatWith);
+
+         return;
+      }
+
+      oLook = $;
+      if Random(1,100) <= 50
+      {
+         oLook = Send(oPrime,@PBotChatPartner,#oBot=self);
+      }
+
+      if oLook <> $
+      {
+         Send(self,@FaceBot,#oWho=oLook);
+      }
+      else
+      {
+         Send(poOwner,@SomethingTurned,#what=self,#new_angle=Random(0,MAX_ANGLE - 1));
+      }
+
+      return;
+   }
+
+   InDanger()
+   "True while it should run: hurt on the way between maps, or running from a fight it is losing. One place to add more reasons (PVP, a hunt it flees)."
+   {
+      return pbPanic OR (pbFleeing AND piDoing = PBD_HUNT);
+   }
+
+   GetMoveSpeed()
+   "Walking pace, half a sprint in danger, and the group leader's pace when it has a master (a grouped bot keeps up with the player as a companion does)."
+   {
+      local iSpeed, iSnare;
+
+      if poMaster <> $
+      {
+         propagate;
+      }
+
+      iSpeed = viSpeed;
+      if Send(self,@InDanger)
+      {
+         iSpeed = PB_PANIC_SPEED;
+      }
+
+      iSnare = Send(Send(SYS,@GetPrime),@SnarePercent,#what=self);
+
+      return Bound((iSpeed * iSnare) / 100,1,$);
+   }
+
+   GetGuild()
+   {
+      return $;
+   }
+
+   // ---- what a player sees when looking at it ----
+
+   ShowDesc()
+   "A description of its own (three parts picked from lists by its identity, so no two read alike), and, with the rule piBotShowDoing, what it is doing."
+   {
+      local lStat, a;
+
+      lStat = Send(Send(SYS,@GetPrime),@PBotStatus,#id=piBotId,#oBot=self);
+      if lStat = $
+      {
+         AddPacket(4,pbd_plain,4,Send(self,@DescPart,#kind=1),4,Send(self,@DescPart,#kind=2),4,Send(self,@DescPart,#kind=3),4,Send(self,@ClassName));
+
+         return;
+      }
+
+      AddPacket(4,First(lStat),4,Send(self,@DescPart,#kind=1),4,Send(self,@DescPart,#kind=2),4,Send(self,@DescPart,#kind=3),4,Send(self,@ClassName));
+      foreach a in Rest(lStat)
+      {
+         AddPacket(4,a);
+      }
+
+      return;
+   }
+
+   ClassName()
+   "The class it plays (its companion kind), as the info window names it."
+   {
+      local iKind;
+
+      iKind = Send(self,@GetKind);
+      if iKind = COMPANION_WARRIOR
+      {
+         return pbc_warrior;
+      }
+
+      if iKind = COMPANION_MONK
+      {
+         return pbc_monk;
+      }
+
+      if iKind = COMPANION_PALADIN
+      {
+         return pbc_paladin;
+      }
+
+      if iKind = COMPANION_ELEMENTALIST
+      {
+         return pbc_elementalist;
+      }
+
+      return pbc_adventurer;
+   }
+
+   DescPart(kind = 1)
+   "One of the 20 looks (1), manners (2) or backgrounds (3), chosen from its identity number."
+   {
+      local lList, iPick;
+
+      if kind = 1
+      {
+         lList = [pbd_look1,pbd_look2,pbd_look3,pbd_look4,pbd_look5,pbd_look6,pbd_look7,pbd_look8,pbd_look9,pbd_look10,pbd_look11,pbd_look12,pbd_look13,pbd_look14,pbd_look15,pbd_look16,pbd_look17,pbd_look18,pbd_look19,pbd_look20];
+         iPick = (piBotId * 7 + 3) % 20;
+      }
+      else if kind = 2
+      {
+         lList = [pbd_manner1,pbd_manner2,pbd_manner3,pbd_manner4,pbd_manner5,pbd_manner6,pbd_manner7,pbd_manner8,pbd_manner9,pbd_manner10,pbd_manner11,pbd_manner12,pbd_manner13,pbd_manner14,pbd_manner15,pbd_manner16,pbd_manner17,pbd_manner18,pbd_manner19,pbd_manner20];
+         iPick = (piBotId * 11 + 5) % 20;
+      }
+      else
+      {
+         lList = [pbd_back1,pbd_back2,pbd_back3,pbd_back4,pbd_back5,pbd_back6,pbd_back7,pbd_back8,pbd_back9,pbd_back10,pbd_back11,pbd_back12,pbd_back13,pbd_back14,pbd_back15,pbd_back16,pbd_back17,pbd_back18,pbd_back19,pbd_back20];
+         iPick = (piBotId * 13 + 1) % 20;
+      }
+
+      return Nth(lList,iPick + 1);
+   }
+
+   // ---- life ----
+
+   StartLife(rid = 0,row = 0,col = 0)
+   "It lives here now (a room of the graphs, at a place): it stands a few seconds, then goes about its day."
+   {
+      local oPrime;
+
+      oPrime = Send(SYS,@GetPrime);
+      piNavRid = rid;
+      pbParked = FALSE;
+      piMoodEnd = 0;
+      piNavNode = Send(Send(SYS,@GetPrime),@NavNearest,#rid=rid,#row=row,#col=col,#oWho=self);
+      Send(self,@Trace,#what="enter room",#a=rid,#b="at",#c=row,#d=col,#e="start node",#f=piNavNode);
+      Send(self,@SetBehaviorFlag,#flag=AI_HAS_TARGET_LOCATION,#value=FALSE);
+      Send(self,@SetBehaviorFlag,#flag=AI_MOVE_RANDOM,#value=FALSE);
+      Send(self,@StopMoving);
+      piDoing = PBD_IDLE;
+      if Send(oPrime,@PBotIsShopping,#id=piBotId)
+      {
+         piDoing = PBD_SHOP;
+      }
+      else if Send(oPrime,@NavIsInn,#rid=rid)
+      {
+         piDoing = PBD_INN;
+      }
+      poTalkWith = $;
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(3,10));
+      if piDoing = PBD_INN
+      {
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+      }
+      if piNextChat < GetTime()
+      {
+         piNextChat = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(20,90));
+      }
+
+      if ptWander <> $
+      {
+         DeleteTimer(ptWander);
+         ptWander = $;
+      }
+
+      if piJourneyRid <> 0
+      {
+         // on a journey it goes straight on
+         ptWander = CreateTimer(self,@BotTimer,300);
+      }
+      else
+      {
+         ptWander = CreateTimer(self,@BotTimer,Random(1500,4000));
+      }
+
+      return;
+   }
+
+   Delete()
+   {
+      if ptWander <> $
+      {
+         DeleteTimer(ptWander);
+         ptWander = $;
+      }
+
+      if ptAway <> $
+      {
+         DeleteTimer(ptAway);
+         ptAway = $;
+      }
+
+      if ptReply <> $
+      {
+         DeleteTimer(ptReply);
+         ptReply = $;
+      }
+
+      if ptRescue <> $
+      {
+         DeleteTimer(ptRescue);
+         ptRescue = $;
+      }
+
+      propagate;
+   }
+
+   BotTimer()
+   "Runs the step for its phase, then arms itself again with the delay of the phase it is in then."
+   {
+      ptWander = $;
+      if poOwner = $
+      {
+         return;
+      }
+
+      if pbFailed
+      {
+         // strict test mode: it stays where its walk failed, for the test to read
+         ptWander = CreateTimer(self,@BotTimer,3000);
+
+         return;
+      }
+
+      if piDoing = PBD_DEAD AND piPhase <> PBH_WALK
+      {
+         // in the underworld: it waits for the portal timer
+         ptWander = CreateTimer(self,@BotTimer,3000);
+
+         return;
+      }
+
+      if piPhase = PBH_WALK
+      {
+         Send(self,@WalkStep);
+      }
+      else if piPhase = PBH_TALK
+      {
+         Send(self,@TalkStep);
+      }
+      else
+      {
+         Send(self,@IdleStep);
+      }
+
+      // a step may have ended its life, or armed the timer itself (StartLife)
+      if poOwner = $ OR ptWander <> $
+      {
+         return;
+      }
+
+      // walking: faster than a square of movement takes, so the bot gets its next goal before it stops at the previous one
+      if piPhase = PBH_WALK
+      {
+         ptWander = CreateTimer(self,@BotTimer,150);
+      }
+      else if piPhase = PBH_TALK
+      {
+         ptWander = CreateTimer(self,@BotTimer,1500);
+      }
+      else if piDoing = PBD_HUNT
+      {
+         ptWander = CreateTimer(self,@BotTimer,1000);
+      }
+      else
+      {
+         ptWander = CreateTimer(self,@BotTimer,3000);
+      }
+
+      return;
+   }
+
+   IdleStep()
+   "Standing: now and then a look about or a word to the room; when its time is up it decides what next."
+   {
+      local rLine;
+
+      if piJourneyRid <> 0
+      {
+         Send(self,@JourneyStep);
+
+         return;
+      }
+
+      if piDoing = PBD_HUNT
+      {
+         Send(self,@HuntStep);
+
+         return;
+      }
+
+      if piDoing = PBD_SHOP
+      {
+         if Random(1,20) = 1
+         {
+            Send(poOwner,@SomethingTurned,#what=self,#new_angle=Random(0,MAX_ANGLE - 1));
+         }
+
+         return;
+      }
+
+      if GetTime() >= piNextChat
+      {
+         piNextChat = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(120,420));
+         if Send(self,@IsSafeHere) AND Send(poOwner,@CountHoldingHowMany,#class=&User) > 0
+         {
+            rLine = Nth([pbot_chat1,pbot_chat2,pbot_chat3,pbot_chat4,pbot_chat5,pbot_chat6,pbot_chat7,pbot_chat8],Random(1,8));
+            Send(poOwner,@SomeoneSaid,#what=self,#type=SAY_RESOURCE,#string=rLine);
+         }
+      }
+
+      // passing the time, moods and talk are for the towns' streets and inns; elsewhere (a hunting ground) it only looks about
+      if (piDoing = PBD_INN OR piDoing = PBD_HANG OR piDoing = PBD_GLOBE) AND Send(self,@IsSafeHere)
+      {
+         if piWant <> PBW_NONE OR pbLeaving
+         {
+            Send(self,@DecideNext);
+
+            return;
+         }
+
+         if NOT pbParked
+         {
+            Send(self,@ParkSpot);
+
+            return;
+         }
+
+         if GetTime() >= piMoodEnd
+         {
+            Send(self,@NewMood);
+
+            return;
+         }
+
+         Send(self,@SocialStep);
+
+         return;
+      }
+
+      if GetTime() < piPhaseEnd
+      {
+         if Random(1,20) = 1
+         {
+            // a look about
+            Send(poOwner,@SomethingTurned,#what=self,#new_angle=Random(0,MAX_ANGLE - 1));
+         }
+
+         return;
+      }
+
+      Send(self,@DecideNext);
+
+      return;
+   }
+
+   IsSafeHere()
+   "Is the room it stands in a street or an inn of a town (worked out once per room)? Only there does it pass the time, talk or chat."
+   {
+      if piSafeRid <> piNavRid
+      {
+         piSafeRid = piNavRid;
+         pbSafe = Send(Send(SYS,@GetPrime),@PBotIsSafeRoom,#rid=piNavRid);
+      }
+
+      return pbSafe;
+   }
+
+   DecideNext()
+   "Handle a requested room change or departure. Relaxing in town or an inn never causes a local move; the registry activity timer chooses map changes."
+   {
+      local oPrime, lRoom, lDoors, lPick, i, bInn;
+
+      oPrime = Send(SYS,@GetPrime);
+      lRoom = Send(oPrime,@NavRoom,#rid=piNavRid);
+      if lRoom = $
+      {
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(60,180));
+
+         return;
+      }
+
+      lDoors = Nth(lRoom,3);
+      bInn = Send(oPrime,@NavIsInn,#rid=piNavRid);
+
+      if pbLeaving
+      {
+         // any door: it goes out of town through it
+         if lDoors = $
+         {
+            Send(oPrime,@PBotLimbo,#id=piBotId);
+            pbLeaving = FALSE;
+
+            return;
+         }
+
+         Send(self,@GoToDoor,#lDoor=Nth(lDoors,Random(1,Length(lDoors))),#doing=PBD_LEAVE);
+
+         return;
+      }
+
+      if piWant = PBW_INN AND NOT bInn
+      {
+         lPick = $;
+         foreach i in lDoors
+         {
+            if Nth(i,4) = 1 AND Send(oPrime,@NavIsInn,#rid=Nth(i,6))
+            {
+               lPick = Cons(i,lPick);
+            }
+         }
+
+         if lPick = $
+         {
+            foreach i in lDoors
+            {
+               if Nth(i,4) = 1
+               {
+                  lPick = Cons(i,lPick);
+               }
+            }
+         }
+
+         if lPick <> $
+         {
+            Send(self,@GoToDoor,#lDoor=Nth(lPick,Random(1,Length(lPick))),#doing=PBD_TRANSIT);
+
+            return;
+         }
+      }
+
+      if piWant = PBW_STREET AND bInn
+      {
+         lPick = $;
+         foreach i in lDoors
+         {
+            if Nth(i,4) = 1
+            {
+               lPick = Cons(i,lPick);
+            }
+         }
+
+         if lPick <> $
+         {
+            Send(self,@GoToDoor,#lDoor=Nth(lPick,Random(1,Length(lPick))),#doing=PBD_TRANSIT);
+
+            return;
+         }
+      }
+
+      if (piWant = PBW_INN AND bInn) OR (piWant = PBW_STREET AND NOT bInn)
+      {
+         piWant = PBW_NONE;
+      }
+
+      if bInn
+      {
+         piDoing = PBD_INN;
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+
+         return;
+      }
+
+      // Street bots relax in place too. Only an activity change or departure
+      // requested by the registry should start travel.
+      piDoing = PBD_HANG;
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+
+      return;
+   }
+
+   PathNoWay()
+   "The planner found no way to its goal (or the goal does not exist): the bot stands and thinks again later; a hunter puts the foe it walked to on the skip list and tries another."
+   {
+      Send(self,@Trace,#what="NO WAY in room",#a=piNavRid,#b="to",#c=piPathRow,#d=piPathCol);
+      piPathState = 3;
+      if piPathSteps = 0
+      {
+         // no way from the very first step: the bot stands where nothing leads out (a walled platform, a closed pocket the room's entrance put it in)
+         Debug("PBOT-SEALED bot",piBotId,"room",piNavRid,"at",Send(self,@GetRow),Send(self,@GetCol),"no way to",piPathRow,piPathCol);
+      }
+
+      Send(self,@StopMoving);
+      if piDoing = PBD_DEAD
+      {
+         // a ghost whose portal cannot be reached (measured: the Cor portal lies 2.3 squares beyond the floor) tries another portal soon; nothing else would ever send it again
+         if ptAway <> $
+         {
+            DeleteTimer(ptAway);
+         }
+
+         ptAway = CreateTimer(self,@PortalTimer,Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(3,8)) * 1000);
+
+         return;
+      }
+
+      if Send(self,@CountGiveUp)
+      {
+         return;
+      }
+
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(60,180));
+      if plNavDoor <> $
+      {
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(5,15));
+      }
+
+      if piDoing = PBD_HUNT AND poWalkFoe <> $
+      {
+         // the foe lies in a part of the room the bot cannot walk to (measured, room 2115: the bot stood 60-180 s per foe and never fought): that foe goes on the skip list
+         // and the next hunt step picks another
+         plHuntSkip = Cons(poWalkFoe,plHuntSkip);
+         if Length(plHuntSkip) > 8
+         {
+            plHuntSkip = Cons(poWalkFoe,$);
+         }
+
+         poWalkFoe = $;
+         poHuntFoe = $;
+         piPhaseEnd = GetTime();
+         Send(self,@HuntAttemptFailed,#why="no way to a foe");
+      }
+
+      return;
+   }
+
+   GoToNode(node = 0,doing = 1)
+   "Walk to a node of this room (a square of its baked graph: where it hunts, hangs about, goes to talk): the way there is the planner's."
+   {
+      local lPos;
+
+      lPos = Send(Send(SYS,@GetPrime),@NavNodePos,#rid=piNavRid,#node=node);
+      if doing = PBD_HANG OR doing = PBD_INN
+      {
+         piDoingArg = doing;
+         piDoing = PBD_WALK;
+      }
+      else
+      {
+         piDoing = doing;
+      }
+
+      piGoalNode = node;
+      plNavDoor = $;
+      if lPos = $
+      {
+         piDoing = doing;
+         Send(self,@PathNoWay);
+
+         return;
+      }
+
+      Send(self,@WalkTo,#iRow=First(lPos),#iCol=Nth(lPos,2));
+
+      return;
+   }
+
+   GoToDoor(lDoor = $,doing = 1)
+   "Walk to a door of this room: to its square (it never steps on it: within a square and a half the walk is over, WalkStep, and the registry puts it through)."
+   {
+      piDoing = doing;
+      if doing = PBD_ERRAND
+      {
+         piDoingArg = Nth(lDoor,5);
+      }
+
+      if doing = PBD_TRANSIT
+      {
+         piDoingArg = Nth(lDoor,6);
+      }
+
+      piGoalNode = Nth(lDoor,3);
+      plNavDoor = lDoor;
+      piTravelHp = Send(self,@GetHealth);
+      Send(self,@Trace,#what="walk to door",#a=First(lDoor),#b=Nth(lDoor,2),#c="from",#d=Send(self,@GetRow),#e=Send(self,@GetCol));
+      Send(self,@WalkTo,#iRow=First(lDoor),#iCol=Nth(lDoor,2));
+
+      return;
+   }
+
+   WalkStep()
+   "Walking, every tick: hunters stop for a foe, a hurt traveller runs, at a door the walk ends within a square and a half, else one step of the planner (PathStep). A walk that gets no closer for PB_WALK_STALL_TICKS ticks is given up."
+   {
+      local iDr, iDc, iDist2, oFoe;
+
+      if piPathState <> 1 AND piPathState <> 6
+      {
+         // no walk to make
+         Send(self,@Arrived);
+
+         return;
+      }
+
+      // hunting: set upon on the way between two spots, it stops and fights
+      if piDoing = PBD_HUNT AND poTarget <> $ AND NOT pbFleeing
+      {
+         Send(self,@StopMoving,#bHold=FALSE);
+
+         return;
+      }
+
+      // hunting, on the way to a far foe or round the room: a foe in sight ends the walk (HuntStep then fights it)
+      if piDoing = PBD_HUNT AND poTarget = $ AND NOT pbFleeing AND GetTime() <> piHuntLook
+      {
+         piHuntLook = GetTime();
+         oFoe = Send(self,@HuntFoe);
+         if oFoe <> $ AND Send(self,@HuntInSight,#what=oFoe)
+         {
+            Send(self,@StopMoving,#bHold=FALSE);
+
+            return;
+         }
+      }
+
+      // on the way between maps, hurt since the last look: it runs until the next zone
+      if piDoing = PBD_TRANSIT OR piDoing = PBD_LEAVE
+      {
+         if Send(self,@GetHealth) < piTravelHp
+         {
+            pbPanic = TRUE;
+         }
+
+         piTravelHp = Send(self,@GetHealth);
+      }
+
+      // a door's square lies in the room's wall line and is not floor to the planner: within a square and a half of its middle the walk is over
+      if plNavDoor <> $
+      {
+         iDr = (Send(self,@GetRow) * FINENESS + Send(self,@GetFineRow)) - (First(plNavDoor) * FINENESS + FINENESS_HALF);
+         iDc = (Send(self,@GetCol) * FINENESS + Send(self,@GetFineCol)) - (Nth(plNavDoor,2) * FINENESS + FINENESS_HALF);
+         if iDr * iDr + iDc * iDc <= (FINENESS + FINENESS_HALF) * (FINENESS + FINENESS_HALF)
+         {
+            piPathState = 2;
+            Send(self,@Arrived);
+
+            return;
+         }
+      }
+
+      // progress: getting measurably closer to the goal; going round a wall or a creature takes a while, so the watch is long (a fight does not count)
+      if piPathState = 1
+      {
+         iDr = (Send(self,@GetRow) * FINENESS + Send(self,@GetFineRow)) - (piPathRow * FINENESS + piPathFr);
+         iDc = (Send(self,@GetCol) * FINENESS + Send(self,@GetFineCol)) - (piPathCol * FINENESS + piPathFc);
+         iDist2 = iDr * iDr + iDc * iDc;
+         if piBestDist2 = 0 OR iDist2 + 400 < piBestDist2
+         {
+            piBestDist2 = iDist2;
+            piStuck = 0;
+         }
+         else
+         {
+            ++piStuck;
+         }
+
+         if piStuck >= PB_WALK_STALL_TICKS
+         {
+            piPathState = 4;
+            Send(self,@Trace,#what="WALK stalled: no progress for",#a=piStuck,#b="ticks");
+            if piDoing = PBD_DEAD
+            {
+               // the underworld: it simply steps through the portal
+               Send(self,@Arrived);
+
+               return;
+            }
+
+            Send(self,@GiveUp);
+
+            return;
+         }
+      }
+
+      if GetTime() <> piTraceSec
+      {
+         piTraceSec = GetTime();
+         Send(self,@Trace,#what="step at",#a=Send(self,@GetRow),#b=Send(self,@GetCol),#c="to",#d=piPathRow,#e=piPathCol);
+      }
+
+      Send(self,@PathStep);
+
+      return;
+   }
+
+   CastRescue()
+   "The one jump a bot may make: truly stuck (or without any way on), it casts Rescue, whatever its class; players in the room hear the cast and five to nine seconds later it is taken home (RescueTimer)."
+   {
+      if ptRescue <> $
+      {
+         return;
+      }
+
+      Send(self,@StopMoving);
+      piDoing = PBD_IDLE;
+      piJourneyRid = 0;
+      if poOwner <> $ AND Send(poOwner,@CountHoldingHowMany,#class=&User) > 0
+      {
+         Send(poOwner,@SomethingWaveRoom,#what=self,#wave_rsc=Send(Send(SYS,@FindSpellByNum,#num=SID_RESCUE),@GetSpellSound));
+      }
+
+      ptRescue = CreateTimer(self,@RescueTimer,Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(5,9)) * 1000);
+
+      return;
+   }
+
+   RescueTimer()
+   "The Rescue the stuck bot cast (the spell takes five to nine seconds): it is taken home."
+   {
+      ptRescue = $;
+      if poOwner = $
+      {
+         return;
+      }
+
+      piGiveUps = 0;
+      piGiveRid = 0;
+      piJourneyRid = 0;
+      pbLeaving = FALSE;
+      pbFleeing = FALSE;
+      poHuntFoe = $;
+      poWalkFoe = $;
+      plNavDoor = $;
+      Send(Send(SYS,@GetPrime),@PBotRescueHome,#id=piBotId);
+
+      return;
+   }
+
+   RescueRestart()
+   "A server restart: like the Rescue the stuck bot casts, at once (the registry's PBotRestartReset): stale timers and walks dropped, taken home to an inn of its home town, a new activity chosen after 20-60 s. Also revives a bot that was dead."
+   {
+      if ptRescue <> $
+      {
+         DeleteTimer(ptRescue);
+         ptRescue = $;
+      }
+
+      if ptAway <> $
+      {
+         DeleteTimer(ptAway);
+         ptAway = $;
+      }
+
+      piGiveUps = 0;
+      piGiveRid = 0;
+      piJourneyRid = 0;
+      piPathState = 0;
+      pbLeaving = FALSE;
+      pbFleeing = FALSE;
+      poHuntFoe = $;
+      poWalkFoe = $;
+      plNavDoor = $;
+      Send(Send(SYS,@GetPrime),@PBotRescueHome,#id=piBotId);
+
+      return;
+   }
+
+   CountGiveUp()
+   "One more failed walk in this room (a give-up, or no way at all): six of them in two minutes and the bot is truly stuck (some places are easy to enter and impossible to leave: a walled platform an entrance puts it on): it casts Rescue, whatever its class. TRUE when it did."
+   {
+      if piGiveRid <> piNavRid
+      {
+         piGiveRid = piNavRid;
+         piGiveUps = 0;
+         piGiveSince = GetTime();
+      }
+
+      ++piGiveUps;
+      if piGiveUps >= 6 AND GetTime() - piGiveSince >= 120 AND ptRescue = $
+      {
+         Debug("PBOT-FIX stuck for good, casting Rescue: bot",piBotId,"room",piNavRid,"at",Send(self,@GetRow),Send(self,@GetCol),"give-ups",piGiveUps,"since",GetTime() - piGiveSince,"s");
+         Send(self,@CastRescue);
+
+         return TRUE;
+      }
+
+      return FALSE;
+   }
+
+   GiveUp()
+   "Stuck (the walk made no progress or the planner is stuck): it stands and thinks again; six give-ups in one room within two minutes and it casts Rescue."
+   {
+      local oPrime, iFrom;
+
+      oPrime = Send(SYS,@GetPrime);
+      Send(self,@Trace,#what="GIVE UP at",#a=Send(self,@GetRow),#b=Send(self,@GetCol),#c="goal",#d=piPathRow,#e=piPathCol);
+      if pbStrict
+      {
+         iFrom = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(self,@GetRow),#col=Send(self,@GetCol),#oWho=self);
+         Debug("PBOT-FAIL strict stuck: bot",piBotId,"room",piNavRid,"at node",iFrom,"goal node",piGoalNode,"doing",piDoing,"journey",piJourneyRid,"row",Send(self,@GetRow),"col",Send(self,@GetCol),"door",plNavDoor,"goal",piPathRow,piPathCol);
+         pbFailed = TRUE;
+         Send(self,@StopMoving);
+
+         return;
+      }
+
+      if Send(self,@CountGiveUp)
+      {
+         return;
+      }
+
+      // it was walking to a far foe and the way is blocked: that foe goes on the skip list
+      if poWalkFoe <> $ AND piDoing = PBD_HUNT
+      {
+         plHuntSkip = Cons(poWalkFoe,plHuntSkip);
+         if Length(plHuntSkip) > 8
+         {
+            plHuntSkip = Cons(poWalkFoe,$);
+         }
+
+         Debug("PBOT-FAIL hunt: walk to a far foe blocked, bot",piBotId,"room",piNavRid,"row",Send(self,@GetRow),"col",Send(self,@GetCol),"goal node",piGoalNode);
+         Send(self,@HuntAttemptFailed,#why="walk to a far foe blocked");
+      }
+
+      poWalkFoe = $;
+      iFrom = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(self,@GetRow),#col=Send(self,@GetCol),#oWho=self);
+      Debug("PBOT-FAIL stuck: bot",piBotId,"room",piNavRid,"at",iFrom,"goal",piGoalNode,"doing",piDoing,"journey",piJourneyRid,"row",Send(self,@GetRow),"col",Send(self,@GetCol),"goal square",piPathRow,piPathCol);
+      Send(self,@StopMoving);
+      piDoing = PBD_IDLE;
+      if Send(oPrime,@NavIsInn,#rid=piNavRid)
+      {
+         piDoing = PBD_INN;
+      }
+
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(3,8));
+      if piDoing = PBD_INN
+      {
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+      }
+
+      piNavNode = iFrom;
+
+      return;
+   }
+
+   Arrived()
+   "The end of its path: at a door it goes through (a shop: inside a while; the next street; out of town), at a spot it stands, or it begins a talk."
+   {
+      local oPrime, lDoor, oWith, bDead;
+
+      oPrime = Send(SYS,@GetPrime);
+      bDead = (piDoing = PBD_DEAD);
+      piAbandon = 0;
+      poWalkFoe = $;
+      lDoor = plNavDoor;
+      plNavDoor = $;
+      piNavNode = piGoalNode;
+
+      if lDoor <> $
+      {
+         if pbLeaving
+         {
+            pbLeaving = FALSE;
+            Send(oPrime,@PBotLimbo,#id=piBotId);
+
+            return;
+         }
+
+         if Nth(lDoor,4) = 2
+         {
+            // a shop, the bank, the hall: inside for a while, then out of the same door
+            piAwayRid = piNavRid;
+            piAwayNode = Nth(lDoor,3);
+            Send(oPrime,@PBotLimbo,#id=piBotId);
+            if ptAway <> $
+            {
+               DeleteTimer(ptAway);
+            }
+
+            ptAway = CreateTimer(self,@AwayTimer,Send(oPrime,@PBotScale,#seconds=Random(30,150)) * 1000);
+
+            return;
+         }
+
+         // into the next street or an inn
+         Send(oPrime,@PBotPlace,#id=piBotId,#rid=Nth(lDoor,6),#row=Nth(lDoor,7),#col=Nth(lDoor,8));
+         if bDead
+         {
+            Send(oPrime,@PBotRevived,#id=piBotId);
+         }
+
+         return;
+      }
+
+      Send(self,@StopMoving);
+      if piDoing = PBD_WALK
+      {
+         piDoing = piDoingArg;
+      }
+
+      if piDoing = PBD_TALK
+      {
+         oWith = Send(oPrime,@PBotChatPartner,#oBot=self);
+         if oWith <> $
+         {
+            Send(self,@BeginTalk,#oWith=oWith);
+
+            return;
+         }
+
+         piDoing = PBD_HANG;
+      }
+
+      piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(60,180));
+      if piDoing = PBD_HANG OR piDoing = PBD_INN OR piDoing = PBD_GLOBE
+      {
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+      }
+
+      // it faces some way (the globe, when it came to read it)
+      if piDoing = PBD_GLOBE
+      {
+         Send(self,@FaceGlobe);
+      }
+      else
+      {
+         Send(poOwner,@SomethingTurned,#what=self,#new_angle=Random(0,MAX_ANGLE - 1));
+      }
+
+      return;
+   }
+
+   EnterUnderworld()
+   "Beaten: the body stands in the underworld (a real body in a real room) a minute or two, then walks to a portal and goes through it to an inn."
+   {
+      Send(self,@StopMoving);
+      piNavRid = RID_UNDERWORLD;
+      piNavNode = 0;
+      piDoing = PBD_DEAD;
+      if ptAway <> $
+      {
+         DeleteTimer(ptAway);
+      }
+
+      ptAway = CreateTimer(self,@PortalTimer,Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(60,150)) * 1000);
+      if ptWander <> $
+      {
+         DeleteTimer(ptWander);
+      }
+
+      ptWander = CreateTimer(self,@BotTimer,3000);
+
+      return;
+   }
+
+   PortalTimer()
+   "Rested in the underworld: it walks to the main portal (the HellPortal, which sends a ghost to one of the six town inns at random) and goes through it to an inn. (It used to pick one of the six town portals: the two northern ones, Tos and Cor, cannot be reached on foot.)"
+   {
+      local lPortal, lPortals;
+
+      ptAway = $;
+      if poOwner = $ OR piDoing <> PBD_DEAD
+      {
+         return;
+      }
+
+      // the inns it can come out in: row, col of the town portal (not walked to any more), inn room, arrival row, arrival col (the portals of uworld.kod)
+      lPortals = [ [3,7,RID_TOS_INN,8,7], [2,25,RID_COR_INN,5,5], [21,30,RID_BAR_INN,5,6], [32,16,RID_MAR_INN,12,6], [21,2,RID_JAS_INN,4,10], [11,3,RID_RAZA_INN,3,8] ];
+      lPortal = Nth(lPortals,Random(1,Length(lPortals)));
+      plNavDoor = [ 10,6,0,1,0,Nth(lPortal,3),Nth(lPortal,4),Nth(lPortal,5) ];
+      Send(self,@WalkTo,#iRow=10,#iCol=6);
+
+      return;
+   }
+
+   AwayTimer()
+   "Out of the shop: at the door it went in by."
+   {
+      ptAway = $;
+      Send(Send(SYS,@GetPrime),@PBotPlaceNode,#id=piBotId,#rid=piAwayRid,#node=piAwayNode);
+
+      return;
+   }
+
+   // ---- the registry's wishes ----
+
+   Leave()
+   "The registry wants it out of the world (a hunt, a shop, a rest): it goes to a door and is gone, however long that takes."
+   {
+      pbLeaving = TRUE;
+      if piPhase <> PBH_TALK
+      {
+         Send(self,@StopMoving);
+         piPhaseEnd = 0;
+      }
+
+      return;
+   }
+
+   Want(what = 0)
+   "The registry would have it in an inn (PBW_INN) or in the street (PBW_STREET) when its time comes."
+   {
+      piWant = what;
+      pbLeaving = FALSE;
+
+      return;
+   }
+
+   // ---- talk between two bots ----
+
+   ChatWith()
+   "Go to another bot of this room that is standing about, to talk."
+   {
+      local oPrime, oWith, lPos, iNode;
+
+      oPrime = Send(SYS,@GetPrime);
+      oWith = Send(oPrime,@PBotChatPartner,#oBot=self);
+      if oWith = $
+      {
+         return;
+      }
+
+      iNode = Send(oPrime,@NavNearest,#rid=piNavRid,#row=Send(oWith,@GetRow),#col=Send(oWith,@GetCol));
+      if iNode = piNavNode
+      {
+         Send(self,@BeginTalk,#oWith=oWith);
+
+         return;
+      }
+
+      Send(self,@GoToNode,#node=iNode,#doing=PBD_TALK);
+
+      return;
+   }
+
+   IsStandingAbout()
+   "Can it be talked to now: standing, not talking, not about to leave."
+   {
+      return piPhase = PBH_IDLE AND poTalkWith = $ AND NOT pbLeaving AND poOwner <> $;
+   }
+
+   BeginTalk(oWith = $)
+   "It and another bot face each other and talk, a line each in turn, three to six lines."
+   {
+      Send(self,@FaceBot,#oWho=oWith);
+      Send(oWith,@FaceBot,#oWho=self);
+      piPhase = PBH_TALK;
+      piDoing = PBD_TALK;
+      poTalkWith = oWith;
+      piTalkLeft = Random(3,6);
+      pbTalkTurn = TRUE;
+      piTalkNext = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(1,3));
+      Send(oWith,@JoinTalk,#oWith=self,#left=piTalkLeft);
+
+      return;
+   }
+
+   JoinTalk(oWith = $,left = 0)
+   {
+      Send(self,@StopMoving);
+      piPhase = PBH_TALK;
+      piDoing = PBD_TALK;
+      poTalkWith = oWith;
+      piTalkLeft = left;
+      pbTalkTurn = FALSE;
+
+      return;
+   }
+
+   FaceBot(oWho = $)
+   {
+      if poOwner <> $ AND oWho <> $
+      {
+         Send(self,@MonsterOrient,#new_row=Send(oWho,@GetRow),#new_col=Send(oWho,@GetCol));
+      }
+
+      return;
+   }
+
+   TalkStep()
+   "In a talk: on its turn, a line to the room, then the turn goes to the other; when the lines are spent, both go back to standing about."
+   {
+      local rLine;
+
+      if poTalkWith = $ OR Send(poTalkWith,@GetOwner) <> poOwner OR poOwner = $
+      {
+         Send(self,@EndTalk);
+
+         return;
+      }
+
+      if NOT pbTalkTurn OR GetTime() < piTalkNext
+      {
+         return;
+      }
+
+      rLine = Nth([pbot_talk1,pbot_talk2,pbot_talk3,pbot_talk4,pbot_talk5,pbot_talk6,pbot_talk7,pbot_talk8,pbot_talk9,pbot_talk10,pbot_talk11,pbot_talk12,pbot_talk13,pbot_talk14,pbot_talk15,pbot_talk16,pbot_talk17,pbot_talk18,pbot_talk19,pbot_talk20,pbot_talk21,pbot_talk22,pbot_talk23,pbot_talk24],Random(1,24));
+      Send(poOwner,@SomeoneSaid,#what=self,#type=SAY_RESOURCE,#string=rLine);
+      --piTalkLeft;
+      pbTalkTurn = FALSE;
+      if piTalkLeft <= 0
+      {
+         Send(poTalkWith,@EndTalk);
+         Send(self,@EndTalk);
+
+         return;
+      }
+
+      Send(poTalkWith,@TalkTurn,#left=piTalkLeft);
+
+      return;
+   }
+
+   TalkTurn(left = 0)
+   {
+      piTalkLeft = left;
+      pbTalkTurn = TRUE;
+      piTalkNext = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(4,8));
+
+      return;
+   }
+
+   EndTalk()
+   {
+      poTalkWith = $;
+      piTalkLeft = 0;
+      pbTalkTurn = FALSE;
+      if piPhase = PBH_TALK
+      {
+         piPhase = PBH_IDLE;
+         piDoing = PBD_HANG;
+         if Send(Send(SYS,@GetPrime),@NavIsInn,#rid=piNavRid)
+         {
+            piDoing = PBD_INN;
+         }
+
+         // after a word it goes back to a spot of its own (so two bots do not stand on one square)
+         piPhaseEnd = GetTime() + Send(Send(SYS,@GetPrime),@PBotScale,#seconds=Random(10,30));
+         pbParked = FALSE;
+      }
+
+      return;
+   }
+
+   // ---- the info window ----
+
+   StatusList()
+   "[ frame resource, arguments ... ] for the info window (the description parts go first): what it is doing, with the names of the places."
+   {
+      local oPrime, oRoom, rRoom, oDest;
+
+      oPrime = Send(SYS,@GetPrime);
+      oRoom = Send(SYS,@FindRoomByNum,#num=piNavRid);
+      rRoom = $;
+      if oRoom <> $
+      {
+         rRoom = Send(oRoom,@GetName);
+      }
+
+      if piDoing = PBD_HUNT
+      {
+         if pbFleeing
+         {
+            return [pbs_rest,rRoom];
+         }
+
+         return [pbs_hunt,rRoom];
+      }
+
+      if piDoing = PBD_HANG
+      {
+         if NOT Send(self,@IsSafeHere)
+         {
+            return [pbs_idle,rRoom];
+         }
+
+         return [pbs_hang,rRoom];
+      }
+
+      if piDoing = PBD_WALK
+      {
+         return [pbs_walk,rRoom];
+      }
+
+      if piDoing = PBD_INN
+      {
+         return [pbs_inn,rRoom];
+      }
+
+      if piDoing = PBD_SHOP
+      {
+         return [pbs_shop,rRoom];
+      }
+
+      if piDoing = PBD_GLOBE
+      {
+         return [pbs_globe,rRoom];
+      }
+
+      if piDoing = PBD_LEAVE
+      {
+         return [pbs_leave,rRoom];
+      }
+
+      if piDoing = PBD_TALK AND poTalkWith <> $
+      {
+         return [pbs_talk,Send(poTalkWith,@GetName),rRoom];
+      }
+
+      if piDoing = PBD_TRANSIT
+      {
+         oDest = Send(SYS,@FindRoomByNum,#num=piDoingArg);
+         if oDest <> $
+         {
+            return [pbs_transit,rRoom,Send(oDest,@GetName)];
+         }
+
+         return [pbs_walk,rRoom];
+      }
+
+      if piDoing = PBD_ERRAND
+      {
+         if piDoingArg = PBP_BANK
+         {
+            return [pbs_bank,rRoom];
+         }
+
+         if piDoingArg = PBP_SMITH
+         {
+            return [pbs_smith,rRoom];
+         }
+
+         if piDoingArg = PBP_APOTH
+         {
+            return [pbs_apoth,rRoom];
+         }
+
+         if piDoingArg = PBP_HALL
+         {
+            return [pbs_hall,rRoom];
+         }
+
+         if piDoingArg = PBP_HEAL
+         {
+            return [pbs_heal,rRoom];
+         }
+
+         if piDoingArg = PBP_STORE
+         {
+            return [pbs_store,rRoom];
+         }
+
+         return [pbs_errand,rRoom];
+      }
+
+      return [pbs_idle,rRoom];
+   }
+
+   // ---- tells ----
+
+   SomeoneSaid(what = $,type = $,string = $)
+   "A tell to it is answered a few seconds later, by a line as a busy player might give; what is said near it is not (yet)."
+   {
+      if type = SAY_GROUP_ONE AND what <> $ AND IsClass(what,&User) AND ptReply = $
+      {
+         poReplyTo = what;
+         ptReply = CreateTimer(self,@ReplyTimer,Random(2500,7000));
+      }
+
+      return;
+   }
+
+   ReplyTimer()
+   {
+      local rLine, sLine;
+
+      ptReply = $;
+      if poReplyTo = $ OR NOT Send(poReplyTo,@IsLoggedOn)
+      {
+         poReplyTo = $;
+
+         return;
+      }
+
+      rLine = Nth([pbot_reply1,pbot_reply2,pbot_reply3,pbot_reply4,pbot_reply5],Random(1,5));
+      sLine = SetString($,rLine);
+      Send(poReplyTo,@SomeoneSaid,#what=self,#type=SAY_GROUP_ONE,#string=sLine);
+      poReplyTo = $;
+
+      return;
+   }
+
+end

@@ -1,0 +1,105 @@
+--- a/kod/object/active/holder/nomoveon/battler/player.kod
++++ b/kod/object/active/holder/nomoveon/battler/player.kod
+@@ -968,6 +968,9 @@
+    // piKarma is measured in hundredths of karma units
+    piKarma = 0
+ 
++   // Prime: class of the character (CLASS_* in prime.khd; 0 = none). See kod/object/prime/primeclasses.kod.
++   piPlayerClass = 0
++
+    // Percent stomach is full.
+    piStomach = 0
+ 
+@@ -2755,6 +2758,13 @@
+       lSpells = Nth(charinfo,5);
+       lSkills = Nth(charinfo,6);
+ 
++      // Prime: a chosen class fixes stats and abilities; the picked spells and skills are ignored
++      if Send(Send(SYS,@GetPrime),@NewCharClass,#who=self,#charinfo=charinfo)
++      {
++         lSpells = $;
++         lSkills = $;
++      }
++
+       iPoints = 0;
+       foreach i in lSpells
+       {
+@@ -3037,6 +3047,12 @@
+    {
+       local iInfo, oSpell, lReagents, lItems, cReagent, iNumber;
+ 
++      // Prime: classed characters get their own start objects
++      if Send(Send(SYS,@GetPrime),@GiveStartObjects,#who=self)
++      {
++         return;
++      }
++
+       // Give the poor newbie an weapon and a bit of cash.
+       Send(self,@NewHold,#what=Create(&Mace));
+       Send(self,@NewHold,#what=Create(&Shillings,#number=500));
+@@ -4219,6 +4235,12 @@
+          return FALSE;
+       }
+ 
++      // Prime: class equipment limits
++      if NOT Send(Send(SYS,@GetPrime),@ClassAllowsItem,#who=self,#what=what)
++      {
++         return FALSE;
++      }
++
+       if IsClass(what,&Bag)
+       {
+          if Send(what,@GetBagContents) = $
+@@ -7799,6 +7821,36 @@
+       return piMight + piIntellect + piAgility + piAim + piStamina + piMysticism;
+    }
+ 
++   // ---- Prime: class system accessors (the rules are in kod/object/prime/primeclasses.kod) ----
++
++   GetPlayerClass()
++   {
++      return piPlayerClass;
++   }
++
++   SetPlayerClass(value = 0)
++   {
++      piPlayerClass = value;
++
++      return;
++   }
++
++   PrimeSetStats(might = 1, intellect = 1, stamina = 1, agility = 1, mysticism = 1, aim = 1)
++   "Fixed stats of a class, set at creation. Mana is figured again from the new stats."
++   {
++      piMight = might;
++      piIntellect = intellect;
++      piStamina = stamina;
++      piAgility = agility;
++      piMysticism = mysticism;
++      piAim = aim;
++
++      piMax_mana = Send(self,@GetInitialMaxMana);
++      piMana = piMax_mana;
++
++      return;
++   }
++
+    GetKarma()
+    "Returns karma in natural units"
+    {
+@@ -12496,7 +12548,14 @@
+             iSamediv, iOtherdiv, aHigh, bHigh, cHigh, iBase, i, temp,
+             nObj, nSID, index, iNeed, nSchool, nLevel, msg, bKnowOne,
+             iWeapon, iKraanan, iShalille, iQor, iFaren, iRiija, iJala,
+-            iPoints;
++            iPoints, iPrimeResult;
++
++      // Prime: characters with a class use the class tables
++      iPrimeResult = Send(Send(SYS,@GetPrime),@PlayerCanLearn,#who=self,#spell_num=spell_num,#skill_num=skill_num);
++      if iPrimeResult <> $
++      {
++         return iPrimeResult;
++      }
+ 
+       // Phase one. Assert our data. Be sure we have been fed a valid spell
+       // and skill num for a spell item that actually exists.

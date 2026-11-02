@@ -1,0 +1,95 @@
+--- a/kod/object/active/holder/nomoveon/battler/monster.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster.kod
+@@ -3476,12 +3476,12 @@
+          return FALSE;
+       }
+ 
+-      Post(self,@ReportLevel,#iLevel=iLevel);
++      Post(self,@ReportLevel,#iLevel=iLevel,#who=what);
+ 
+       return TRUE;
+    }
+ 
+-   ReportLevel(iLevel=0)
++   ReportLevel(iLevel=0,who=$)
+    {
+       local i, oAbility, iNum, lAvailable;
+ 
+@@ -3491,7 +3491,7 @@
+       foreach i in nth(plFor_Sale,2)
+       {         
+          oAbility = Send(SYS,@FindSkillByNum,#num=i);
+-         if iLevel = Send(oAbility,@GetLevel)
++         if iLevel = Send(Send(SYS,@GetPrime),@AbilityLevelFor,#who=who,#oAbility=oAbility,#bSkill=TRUE)      // Prime: class level
+             AND Send(oAbility,@IsAccessible)
+          {
+             if oAbility <> $
+@@ -3504,7 +3504,7 @@
+       foreach i in nth(plFor_Sale,3)
+       {         
+          oAbility = Send(SYS,@FindSpellByNum,#num=i);
+-         if iLevel = Send(oAbility,@GetLevel)
++         if iLevel = Send(Send(SYS,@GetPrime),@AbilityLevelFor,#who=who,#oAbility=oAbility,#bSkill=FALSE)     // Prime: class level
+             AND Send(oAbility,@IsAccessible)
+          {
+             if oAbility <> $
+@@ -3519,6 +3519,14 @@
+          return;
+       }
+ 
++      // Prime: nothing here for a classed player's class
++      if lAvailable = $ AND Send(Send(SYS,@GetPrime),@IsClassed,#who=who)
++      {
++         Send(Send(SYS,@GetPrime),@SayElsewhere,#trainer=self);
++
++         return;
++      }
++
+       Send(self,@SendReportLevel,#lAvailable=lAvailable);
+ 
+       return;
+@@ -5988,6 +5996,14 @@
+          return FALSE;
+       }
+ 
++      // Prime: not part of the player's class
++      if iVal = PLAYER_LEARN_NOTCLASS
++      {
++         Send(Send(SYS,@GetPrime),@SayElsewhere,#trainer=self);
++
++         return FALSE;
++      }
++
+       if iVal = PLAYER_LEARN_SUCCESS
+       {
+          Send(poOwner,@SomeoneSaid,#type=SAY_RESOURCE,#what=self,
+--- a/kod/object/active/holder/nomoveon/battler/monster/temples/kranprst.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/temples/kranprst.kod
+@@ -86,9 +86,14 @@
+ 
+    SetForSale()
+    {
++      // Prime: she also teaches the Warrior skills and Magic Shield (a classed player is offered only what his class may learn)
+       plFor_Sale = [
+-         $,$,
++         $,
++         [ SKID_SLASH, SKID_PROFICIENCY_MACE, SKID_SECOND_WIND, SKID_DODGE, SKID_PROFICIENCY_SWORD,
++           SKID_PROFICIENCY_AXE, SKID_BLOCK, SKID_PROFICIENCY_HAMMER, SKID_PARRY,
++           SKID_PROFICIENCY_SCIMITAR, SKID_DISARM, SKID_SHIELD_SLAM ],
+          [
++            SID_MAGIC_SHIELD,
+             SID_BLESS,
+             SID_ENCHANT_WEAPON,
+             SID_SUPERSTRENGTH,
+--- a/kod/object/active/holder/nomoveon/battler/monster/temples/shalprst.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/temples/shalprst.kod
+@@ -139,6 +139,9 @@
+             SID_SACRED_RESONANCE,
+             SID_MARTYRS_GRACE,
+             SID_SPIRITUAL_SWORD,
++            // Prime: the rest of the Priest's list
++            SID_ZAP, SID_MANA_FOCUS, SID_HOSPICE, SID_LIGHTNING_BOLT, SID_HOLY_BLAZE,
++            SID_SHOCKING_FURY, SID_PURGE, SID_LIGHTNING_WALL, SID_TRUCE,
+             // Ours (docs/adr/0010-followers.md)
+             SID_RESTORE_COMPANION
+          ],

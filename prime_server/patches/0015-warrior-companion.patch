@@ -1,0 +1,276 @@
+--- a/kod/include/blakston.khd
++++ b/kod/include/blakston.khd
+@@ -154,7 +154,9 @@
+    COMPANION_DUKE = 1
+    COMPANION_PRINCESS = 2
+    COMPANION_REBEL = 3
+-   COMPANION_KINDS = 3
++   // Prime: our warrior companion (no faction, no leader: called with `companion call`)
++   COMPANION_WARRIOR = 4
++   COMPANION_KINDS = 4
+ 
+    // A companion's health is this much of its owner's base health (percent)
+    COMPANION_HEALTH_PCT = 70
+--- a/kod/util/companionkinds.kod
++++ b/kod/util/companionkinds.kod
+@@ -24,6 +24,21 @@
+    companion_kind_princess = "spellsword of the Princess"
+    companion_kind_rebel = "war-priest of the rebellion"
+ 
++   companion_kind_warrior = "warrior companion"
++
++   comp_name_w_m1 = "Brand"
++   comp_name_w_m2 = "Harkan"
++   comp_name_w_m3 = "Torvald"
++   comp_name_w_m4 = "Gunnar"
++   comp_name_w_m5 = "Ragnor"
++   comp_name_w_m6 = "Valdis"
++   comp_name_w_f1 = "Brunhild"
++   comp_name_w_f2 = "Hilda"
++   comp_name_w_f3 = "Thyra"
++   comp_name_w_f4 = "Sigrun"
++   comp_name_w_f5 = "Astrid"
++   comp_name_w_f6 = "Freya"
++
+    comp_name_d_m1 = "Aldric"
+    comp_name_d_m2 = "Bertram"
+    comp_name_d_m3 = "Corvin"
+@@ -159,6 +174,11 @@
+ 
+    GetKindName(kind = 0)
+    {
++      if kind = COMPANION_WARRIOR
++      {
++         return companion_kind_warrior;
++      }
++
+       if kind = COMPANION_PRINCESS
+       {
+          return companion_kind_princess;
+@@ -175,6 +195,11 @@
+    GetSchool(kind = 0)
+    "The school (SS_*) its robe and spells are of."
+    {
++      if kind = COMPANION_WARRIOR
++      {
++         return SS_KRAANAN;
++      }
++
+       if kind = COMPANION_PRINCESS
+       {
+          return SS_FAREN;
+@@ -238,6 +263,12 @@
+    {
+       local iKnown;
+ 
++      // Prime: the warrior companion only fights
++      if kind = COMPANION_WARRIOR
++      {
++         return $;
++      }
++
+       iKnown = Send(self,@SpellsKnown,#health=health);
+       if kind = COMPANION_DUKE
+       {
+@@ -307,6 +338,18 @@
+ 
+    GetNames(kind = 0,gender = GENDER_MALE)
+    {
++      if kind = COMPANION_WARRIOR
++      {
++         if gender = GENDER_MALE
++         {
++            return [comp_name_w_m1, comp_name_w_m2, comp_name_w_m3, comp_name_w_m4,
++                    comp_name_w_m5, comp_name_w_m6];
++         }
++
++         return [comp_name_w_f1, comp_name_w_f2, comp_name_w_f3, comp_name_w_f4,
++                 comp_name_w_f5, comp_name_w_f6];
++      }
++
+       if kind = COMPANION_PRINCESS
+       {
+          if gender = GENDER_MALE
+@@ -345,6 +388,12 @@
+    "[ least, most ] damage, in thousandths of the owner's base health."
+    {
+       // A monster of the owner's level hits for about 8 per 100 levels (Monster.GetDamage)
++      if kind = COMPANION_WARRIOR
++      {
++         // Prime: no spells, so its sword does all of it
++         return [ 55, 115 ];
++      }
++
+       if kind = COMPANION_REBEL
+       {
+          // It only buffs: its blade does the work
+@@ -359,6 +408,32 @@
+    "Its weapon and headgear at a bond tier (1-5), made and worn in turn. Its school's robe and "
+    "its faction's herald shield come with every tier (Companion.SetTier)."
+    {
++      // Prime: the warrior companion wears armour and its own shield (no robe, no herald shield)
++      if kind = COMPANION_WARRIOR
++      {
++         if tier <= 1
++         {
++            return [ &ShortSword, &MetalShield, &ChainArmor ];
++         }
++
++         if tier = 2
++         {
++            return [ &LongSword, &MetalShield, &ChainArmor, &SteelHelm ];
++         }
++
++         if tier = 3
++         {
++            return [ &LongSword, &Knightshield, &PlateArmor, &SteelHelm ];
++         }
++
++         if tier = 4
++         {
++            return [ &LongSword, &Knightshield, &PlateArmor, &WarHelm ];
++         }
++
++         return [ &NeruditeSword, &NeruditeShield, &NeruditeArmor, &KnightsHelm ];
++      }
++
+       if kind = COMPANION_DUKE
+       {
+          if tier <= 1
+@@ -467,6 +542,11 @@
+    GetPalette(kind = 0)
+    "The colours its clothes may be given (XLAT_TO_*); the first two are its own at first."
+    {
++      if kind = COMPANION_WARRIOR
++      {
++         return [ XLAT_TO_GRAY, XLAT_TO_BLUE, XLAT_TO_BLACK, XLAT_TO_RED, XLAT_TO_DGREEN ];
++      }
++
+       if kind = COMPANION_PRINCESS
+       {
+          return [ XLAT_TO_BLUE, XLAT_TO_SKY, XLAT_TO_YELLOW, XLAT_TO_GRAY, XLAT_TO_PURPLE ];
+--- a/kod/util/companionbook.kod
++++ b/kod/util/companionbook.kod
+@@ -166,6 +166,14 @@
+          return;
+       }
+ 
++      // Prime: our warrior companion, called at any time (no leader, no faction, no minimum health)
++      if StringEqual(sVerb,"call")
++      {
++         Send(self,@Call,#who=who);
++
++         return;
++      }
++
+       if StringEqual(sVerb,"pay")
+       {
+          Send(self,@Pay,#who=who);
+@@ -256,6 +264,42 @@
+       return;
+    }
+ 
++   Call(who = $)
++   "Prime: the warrior companion. None yet: a new one. Waiting, fallen or recovering: it comes at once, "
++   "healed. With us already: it comes to our side."
++   {
++      local oComp, iState;
++
++      oComp = Send(who,@GetCompanion);
++      if oComp = $
++      {
++         Send(self,@Grant,#who=who,#kind=COMPANION_WARRIOR);
++
++         return;
++      }
++
++      if Send(oComp,@GetKind) <> COMPANION_WARRIOR
++      {
++         Send(who,@MsgSendUser,#message_rsc=cbook_have_one);
++
++         return;
++      }
++
++      iState = Send(oComp,@GetCompanionState);
++      if iState <> COMP_ACTIVE
++      {
++         Send(oComp,@SetHealthPercent,#percent=100);
++         Send(self,@Rejoin,#comp=oComp,#who=who);
++
++         return;
++      }
++
++      Send(self,@PlaceWithOwner,#comp=oComp,#who=who);
++      Send(self,@SendStatus,#who=who);
++
++      return;
++   }
++
+    Grant(who = $,kind = COMPANION_DUKE)
+    "A new companion of this kind for who (Ask checked they may have one)."
+    {
+@@ -367,6 +411,14 @@
+ 
+       Send(comp,@SetMaster,#oMaster=$);
+       iKind = Send(comp,@GetKind);
++      // Prime: the warrior companion has no hall: it waits out of the world until called
++      if iKind = COMPANION_WARRIOR
++      {
++         Send(self,@ToLimbo,#comp=comp);
++
++         return;
++      }
++
+       oRoom = Send(SYS,@FindRoomByNum,#num=Send(self,@GetHallRoom,#kind=iKind));
+       if oRoom = $
+       {
+@@ -744,7 +796,12 @@
+       Send(self,@ToHall,#comp=oComp);
+ 
+       iKind = Send(oComp,@GetKind);
+-      oRoom = Send(SYS,@FindRoomByNum,#num=Send(self,@GetHallRoom,#kind=iKind));
++      oRoom = $;
++      if iKind <> COMPANION_WARRIOR
++      {
++         oRoom = Send(SYS,@FindRoomByNum,#num=Send(self,@GetHallRoom,#kind=iKind));
++      }
++
+       oLeader = $;
+       if oRoom <> $
+       {
+@@ -792,6 +849,7 @@
+       }
+ 
+       if Send(oComp,@GetOwner) <> Send(who,@GetOwner)
++         AND Send(oComp,@GetKind) <> COMPANION_WARRIOR
+       {
+          Send(who,@MsgSendUser,#message_rsc=cbook_not_here,#parm1=Send(oComp,@GetName));
+ 
+--- a/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
++++ b/kod/object/active/holder/nomoveon/battler/monster/human/companion.kod
+@@ -257,14 +257,18 @@
+          Send(self,@AddEquipmentObject,#what=Create(i,#school=iSchool));
+       }
+ 
+-      Send(self,@AddEquipmentObject,
+-           #what=Create(&DiscipleRobe,#school=iSchool,
+-                        #color=Nth(Send(oBook,@GetPalette,#kind=piKind),piColour1 + 1)));
++      // Prime: the warrior companion's armour and shield are in its gear (CompanionKinds.GetGear)
++      if piKind <> COMPANION_WARRIOR
++      {
++         Send(self,@AddEquipmentObject,
++              #what=Create(&DiscipleRobe,#school=iSchool,
++                           #color=Nth(Send(oBook,@GetPalette,#kind=piKind),piColour1 + 1)));
+ 
+-      lHerald = Send(oBook,@GetHeraldColours,#kind=piKind);
+-      oShield = Create(&GuildShield,#color1=First(lHerald),#color2=Nth(lHerald,2));
+-      Send(oShield,@ChangeGuildInsignia,#insignia=Send(oBook,@GetInsignia,#kind=piKind));
+-      Send(self,@AddEquipmentObject,#what=oShield);
++         lHerald = Send(oBook,@GetHeraldColours,#kind=piKind);
++         oShield = Create(&GuildShield,#color1=First(lHerald),#color2=Nth(lHerald,2));
++         Send(oShield,@ChangeGuildInsignia,#insignia=Send(oBook,@GetInsignia,#kind=piKind));
++         Send(self,@AddEquipmentObject,#what=oShield);
++      }
+ 
+       piAttackRange = Send(self,@GetAttackRange);
+       if poOwner <> $
