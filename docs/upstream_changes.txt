@@ -83,5 +83,7 @@ OUR PATCHES TO UPSTREAM SERVER FILES (prime_server/patches/, applied in this ord
   0076 [C] linux server fixes (from upstream 7f5e30cd, 7dfb4fb6, garbage.c) adminfn.c, nameid.c, session.c, mutex_linux.c, async_linux.c, garbage.c
   0077 [C] room file name case (Linux)             roomdata.c
   0078     makefile file name case                  deathrealmM, wanderer, pirates makefiles (Tyrant, jGeneral, Fortuna were never compiled on Linux)
+  0079     broadcast cooldown + bots hear broadcasts   user.kod: a player broadcast asks the Prime object for the wait (PBroadcastAllowed) and tells the bots afterwards (PBotHeardBroadcast)
+  0080     no map heat                                 dvalley1/2/4/5 DoHeat and desert (day cycle) no longer cast Heat on the room (the spell, scrolls and monsters are unchanged)
 
-Server binary: the one patched C server (blakserv) is built from the tree; built from patches 0001-0078.
+Server binary: the one patched C server (blakserv) is built from the tree; built from patches 0001-0080.

@@ -12,15 +12,33 @@ import { buildNavGrid, cellAt, cellCentre, findCells, isOpen, nearestCell, walka
 import { findWaterTextures } from "../assets/waterTextures.ts";
 
 const { values: o } = parseArgs({
-  options: { probe: { type: "string" }, assets: { type: "string" }, kod: { type: "string" }, out: { type: "string" }, json: { type: "string" }, blocked: { type: "string" }, objects: { type: "string" }, closer: { type: "string" }, relax: { type: "boolean" }, hard: { type: "string" }, prune: { type: "string" }, landings: { type: "string" }, trap: { type: "string" }, edges: { type: "string" } },
+  options: { probe: { type: "string" }, assets: { type: "string" }, kod: { type: "string" }, out: { type: "string" }, json: { type: "string" }, blocked: { type: "string" }, objects: { type: "string" }, closer: { type: "string" }, relax: { type: "boolean" }, hard: { type: "string" }, prune: { type: "string" }, landings: { type: "string" }, trap: { type: "string" }, noway: { type: "string" }, edges: { type: "string" } },
 });
 const ASSETS = o.assets!, KOD = o.kod!;
 // THE GAME'S OWN EXIT TABLES (claude_tools/kodexits.py -> docs/kod_exits.json): per room, the door squares with the square each one lands on, and the edge exits with theirs. A door of the bake takes the landing
 // of the nearest real door square (not a guess per room pair). TRAP = landings the planner cannot leave (claude_tools/reachmatrix.py): [destRid, row, col]; a door whose own landing is a trap takes another
 // square's landing of the same pair, or is dropped.
-const KODX: Record<string, { doors: number[][]; edges: [string, number, number, number][] }> = o.landings ? JSON.parse(readFileSync(o.landings, "utf8")) : {};
+const KODX: Record<string, { doors: number[][]; edges: [string, number, number, number, number[]?][] }> = o.landings ? JSON.parse(readFileSync(o.landings, "utf8")) : {};
 // EDGE LANDINGS (claude_tools/edgelanding.py --baker): where the SERVER's floor (the grid the bots walk) meets the side of a room, per edge exit {rid: {'toRoo:side': [row, col]}}; used when the baker's own floor disagrees.
+// The room a player lands in when he walks off `side` at square (row, col), by the game's own rule (room.kod StandardLeaveDir; claude_tools/kodexits.py edge_taken): an edge exit may be bound to
+// the row or column he leaves from (ROW_IS_LESS_THAN n ...), so the door square of an edge exit must be a square that leads to ITS room (Jixa west side: rows below 19 go to 2902, rows above 20 to 2952).
+const edgeTaken = (edges: [string, number, number, number, number[]?][], side: string, row: number, col: number): number | undefined => {
+  let fallback: number | undefined;
+  for (const e of edges) {
+    if (e[0] !== side) continue;
+    const c = e[4] ?? [];
+    if (!c.length) return e[1];
+    const [t, n] = c;
+    if ((t === 1 && row > n) || (t === 2 && row < n) || (t === 3 && col > n) || (t === 4 && col < n)) return e[1];
+    if (t === 5) fallback = e[1];
+  }
+  return fallback;
+};
 const EDGEL: Record<string, Record<string, [number, number]>> = o.edges ? JSON.parse(readFileSync(o.edges, "utf8")) : {};
+// NOWAY = the planner's verdict per arrival square and door of a room (claude_tools/reachmatrix.py -> docs/reach_matrix/matrix.json, "noway_pairs": "arrRow,arrCol>doorRow,doorCol"):
+// a bot that lands on that arrival square has no way to that door. Each door lists those arrival squares (row * 1000 + col) as BLOCKED, and the route search skips the door for a bot that came in there.
+const NOWAY = new Map<number, string[]>();
+if (o.noway) for (const e of JSON.parse(readFileSync(o.noway, "utf8")) as { rid: number; noway_pairs?: string[] }[]) if (e.noway_pairs?.length) NOWAY.set(e.rid, e.noway_pairs);
 const TRAP = new Set<string>((o.trap ? (JSON.parse(readFileSync(o.trap, "utf8")) as number[][]) : []).map((t) => t.join(",")));
 
 // ---- what gets a graph ---------------------------------------------------------------------------------------------------------------
@@ -165,7 +183,7 @@ const squareOf = (x: number, y: number) => ({ row: Math.floor(y / SQ) + 1, col: 
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
 interface Via { row: number; col: number; fr?: number; fc?: number }
-interface Door { row: number; col: number; to: string | null; node: number; kind: number; purpose: number; destRid: number; arrRow: number; arrCol: number; edge: number }
+interface Door { row: number; col: number; to: string | null; node: number; kind: number; purpose: number; destRid: number; arrRow: number; arrCol: number; edge: number; blocked?: number[] }
 interface Graph {
   roo: string; rid: number; name: string; kind: "street" | "inn" | "room"; region: number;
   nodes: { row: number; col: number }[]; adj: { to: number; via: Via[] }[][]; doors: Door[]; globes: { row: number; col: number; node: number }[];
@@ -345,10 +363,14 @@ function bake(roo: string, rid: number, kind: Graph["kind"], region: number, byR
       // a room-edge exit: the crossing is wherever the main floor reaches that border (not the middle of the side, which is often wall or water),
       // so take the main-floor square centre nearest the border, a little in favour of the middle of the side
       const W = room.cols * SQ, H = room.rows * SQ;
+      // an edge exit bound to a row or column of the side (see edgeTaken): only squares the game sends to THIS exit's room
+      const kxE = d.edgeSide ? KODX[String(ridOf(roo + ".roo"))]?.edges : undefined;
+      const destE = d.edgeSide && d.to ? byRoo.get(d.to.replace(/\.roo$/, "").toLowerCase()) : undefined;
       for (let i = 0; i < g.walk.length; i++) {
         if (!isOpen(g, i) || g.area[i] !== mainArea) continue;
         const q = cellCentre(g, i);
         if (Math.round((q.x - SQ / 2) % SQ) !== 0 || Math.round((q.y - SQ / 2) % SQ) !== 0) continue;
+        if (kxE?.length && destE !== undefined) { const s0 = squareOf(q.x, q.y); if (edgeTaken(kxE, side, s0.row, s0.col) !== destE) continue; }
         const border = side === "N" ? q.y : side === "S" ? H - q.y : side === "W" ? q.x : W - q.x;
         const ref = d.edgeSide ? { x: W / 2, y: H / 2 } : d.at;
         const along = side === "N" || side === "S" ? Math.abs(q.x - ref.x) : Math.abs(q.y - ref.y);
@@ -539,8 +561,10 @@ function bake(roo: string, rid: number, kind: Graph["kind"], region: number, byR
     // main-floor square where the floor reaches that side (the approach node). edge = 1 marks it (the walker may step on it while travelling elsewhere: it is not a door square).
     const isEdge = d.edgeSide !== undefined && !process.env.NAV_NO_LANDING;   // (NAV_NO_LANDING: control bake without the landing squares, for comparisons)
     const probed = isEdge ? EDGEL[String(ridOf(roo + ".roo"))] : undefined;      // a room that edgeprobe.py tested: an edge exit missing from its list has no landing the planner can reach
-    const ov = probed?.[`${toRoo}:${d.edgeSide}`];
-    if (probed && !ov) { console.log(`  ${roo}: edge exit ${d.edgeSide} to ${toRoo} dropped: no square on that side can be reached by the planner (edgeprobe.py)`); continue; }
+    const kxO = isEdge ? KODX[String(ridOf(roo + ".roo"))]?.edges : undefined;
+    const ov0 = probed?.[`${toRoo}:${d.edgeSide}`];
+    const ov = ov0 && kxO?.length && edgeTaken(kxO, d.edgeSide!, ov0[0], ov0[1]) !== byRoo.get(toRoo) ? undefined : ov0;      // (a probed landing on a square the game sends elsewhere is not used)
+    if (probed && !ov0) { console.log(`  ${roo}: edge exit ${d.edgeSide} to ${toRoo} dropped: no square on that side can be reached by the planner (edgeprobe.py)`); continue; }
     const sq = isEdge ? (ov ? { row: ov[0], col: ov[1] } : nodes[node]) : { row: d.row, col: d.col };
     if (isEdge) {
       // an edge exit whose side the floor never comes near cannot be walked to (nobody can leave there): left out, and logged for the manual audit
@@ -572,6 +596,11 @@ function bake(roo: string, rid: number, kind: Graph["kind"], region: number, byR
   // a hall's door is where its globe is read; more than MAX_DOORS cannot be written as one list (the portal doors always fit)
   doors.length = Math.min(doors.length, MAX_DOORS - portalDoors.length);
   doors.push(...portalDoors);
+  for (const pair of NOWAY.get(rid) ?? []) {
+    const [a, b] = pair.split(">").map((x) => x.split(",").map(Number));
+    const d = doors.find((x) => x.to !== "portal" && x.row === b[0] && x.col === b[1]);
+    if (d) (d.blocked ??= []).push(a[0] * 1000 + a[1]);
+  }
 
   const gl = (globes.get(roo + ".roo") ?? [])
     .map(([row, col]) => ({ row, col, node: nodeFor(centre(row, col)) }))
@@ -652,7 +681,7 @@ for (const g of graphs) {
   // not accumulate compiler temporaries in one message.
   routeRows.forEach((a, ni) => parts.push(`   NavA${g.rid}_${ni}()\n   {\n      return ${lit(a)};\n   }\n`));
   parts.push(`   NavR${g.rid}()\n   {\n      local l;\n\n      l = $;\n` + routeRows.map((_, ni) => `      l = Cons(Send(self,@NavA${g.rid}_${ni}),l);\n`).reverse().join("") + `\n      return l;\n   }\n`);
-  parts.push(`   NavD${g.rid}()\n   {\n      return ${lit(g.doors.map((d) => [d.row, d.col, d.node + 1, d.kind, d.purpose, d.destRid, d.arrRow, d.arrCol, d.edge]))};\n   }\n`);
+  parts.push(`   NavD${g.rid}()\n   {\n      return ${lit(g.doors.map((d) => [d.row, d.col, d.node + 1, d.kind, d.purpose, d.destRid, d.arrRow, d.arrCol, d.edge, d.blocked ?? []]))};\n   }\n`);
   parts.push(`   NavG${g.rid}()\n   {\n      return ${lit(g.globes.map((x) => [x.row, x.col, x.node + 1]))};\n   }\n`);
 }
 k += `      return $;\n   }\n\n` + parts.join("\n") + `\nend\n`;

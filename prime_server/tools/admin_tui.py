@@ -26,44 +26,67 @@ IN_FLATPAK = os.path.exists("/.flatpak-info")     # VS Code sandbox: the server 
 CLIENT_SCRIPTS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "prime_client", "scripts"))
 IN_BOX = bool(os.environ.get("CONTAINER_ID"))
 
-# The Prime rules (kod/object/prime/primerules.kod): name, what it does
-RULES = [
-    ("piDeathItemDrop", "Death costs belongings: 0 never, 1 killed by player, 2 killed by monster, 3 always"),
-    ("piDeathStatLoss", "Death costs max health / skill %: 0 never, 1 killed by player, 2 by monster, 3 always"),
-    ("piReagentMode", "Reagents: 0 mandatory, 1 not needed, 2 optional (weaker spell without them)"),
-    ("piNoReagentPercent", "Power (%) of a spell cast without reagents (mode 2)"),
-    ("pbUnlimitedEating", "Eating always possible: 1 yes, 0 no"),
-    ("pbBowNoAmmo", "Bows shoot without arrows: 1 yes, 0 no"),
-    ("piBowNoAmmoPercent", "Damage (%) of an arrowless shot"),
-    ("piDaggerDoublePercent", "Chance (%) that a dagger hit strikes twice"),
-    ("pbClassSystem", "Class system: 1 on (characters have a class), 0 off (original characters). Each character plays only in its own mode"),
-    ("pbCompanionBots", "Companion bots (temporary class companions): 1 on, 0 off"),
-    ("pbBotMoveLog", "TEST ONLY: log companion bot movement (BOTMOVE lines in the debug log, channel/debug.txt): 1 on, 0 off"),
-    ("piBotHuntFailLimit", "Playerbots: failed attempts in a row to find or reach a foe after which a hunter gives its hunt up and picks another activity (a kill resets the count)"),
-    ("piMobLeashSecs", "Monsters: seconds a chase may get nowhere before the monster gives its target up and walks back to where it stood (0 = off, it chases for ever)"),
-    ("pbMobLeashHeal", "Monsters: 1 = a monster that gave a chase up is healed to full"),
-    ("pbMobAggroScan", "Monsters: 1 = a monster with no target looks about once a second for someone in sight (also someone standing still); 0 = it notices only movement"),
-    ("pbMobAggroPath", "Monsters: 1 = a monster does not notice someone it has no walking route to (casters excepted); 0 = sight alone"),
-    ("pbMobAggroLOS", "Monsters: 1 = a monster notices someone only with a clear line of sight (not through walls); 0 = distance only, as before"),
-    ("pbMurderNotPermanent", "Murder is not permanent: 1 = a murderer (red) who dies becomes an outlaw (orange), an outlaw who dies is clean; 0 = murderers stay red until pardoned"),
-    ("piTownLife", "Town life: 0 wandering townsfolk (client crowds), 1 playerbots instead, 2 both"),
-    ("piBotTimeScale", "Playerbot activity timers in percent of real time (100 normal, 10 = ten times faster, for testing)"),
-    ("piPlayerBotCount", "How many playerbots are in the game at once"),
-    ("piBotShowDoing", "Playerbots: 1 = the info window of a bot says what it is doing (\"Currently: heading to the bank...\"), 0 = description only"),
-    ("pbFactionCompanions", "The old faction companion (bond, vault, hall): 1 on, 0 off (disabled; the code is kept for later)"),
-    ("piMaxBots", "Most companion bots at once (the group is 5 seats; a faction companion takes one)"),
-    ("piBotResummonSec", "Seconds before another bot may be summoned after one fell (0, 30, 60 or 300)"),
-    ("pbBotSplitXP", "XP split: with bots in the group, a kill's XP is divided by all seats: 1 on, 0 off"),
-    ("piSpiritManaPerHit", "Mana a paladin gets back for each hit that lands with a Spiritual Sword or Hammer"),
-    ("pbSpiritNeutral", "Spirit weapons ignore a monster's resistance to holy: 1 yes, 0 no"),
-    ("piBraxAutoSolveSec", "Brax arena solves itself every this many seconds (0 = off, the original game)"),
-    ("piBotNameType", "Bot names: 0 gamer handles (Amber, Strike), 1 human first and last names; a bot gets its name as it logs in, a restart renames all"),
-    ("piBotHuntMargin", "Bot hunting: a hunter picks a foe only if it kills it in this percent of the time it would take to die (200 = twice as fast)"),
-    ("piBotFightMargin", "Bot travel: the same test for a creature that blocks a bot's way (140)"),
-    ("piBotFleePct", "Bot travel: a bot fighting a blocker flees below this percent of its health (35)"),
-    ("piBotHuntBandLow", "Bot hunting: lowest room, as percent of the bot's own health (1)"),
-    ("piBotHuntBandHigh", "Bot hunting: highest room, as percent of the bot's own health (85)"),
-    ("piBotHuntPauseSecs", "Bot hunting: seconds a hunter stands still after a kill and its loot before the next foe (10)"),
+# The Prime rules (kod/object/prime/primerules.kod), by category: (name, what it does; the default in brackets). Keep in step with primerules.kod: every rule there is listed here.
+RULE_GROUPS = [
+    ("Game modes", [
+        ("pbClassSystem", "Class system: 1 on (characters have a class), 0 off (original characters). A character plays only in its own mode [1]"),
+        ("pbFactionCompanions", "Old faction companion (bond, vault, hall): 1 on, 0 off. Code kept for later [0]"),
+        ("pbMurderNotPermanent", "1 = a dead murderer (red) becomes an outlaw (orange) and a dead outlaw is clean; 0 = red until pardoned"),
+        ("piBraxAutoSolveSec", "Brax arena solves itself every this many seconds (0 = off, the original game)"),
+    ]),
+    ("Death and magic", [
+        ("piDeathItemDrop", "Death costs belongings: 0 never, 1 killed by a player, 2 by a monster, 3 always"),
+        ("piDeathStatLoss", "Death costs max health and skill %: 0 never, 1 by a player, 2 by a monster, 3 always"),
+        ("piReagentMode", "Reagents: 0 needed, 1 not needed, 2 optional (a weaker spell without them)"),
+        ("piNoReagentPercent", "Spell power (%) without reagents, in mode 2"),
+        ("piSpiritManaPerHit", "Mana a paladin regains per hit with a Spiritual Sword or Hammer"),
+        ("pbSpiritNeutral", "1 = spirit weapons ignore a monster's resistance to holy"),
+    ]),
+    ("Weapons and food", [
+        ("pbUnlimitedEating", "1 = eating is always possible"),
+        ("pbBowNoAmmo", "1 = bows shoot without arrows"),
+        ("piBowNoAmmoPercent", "Damage (%) of an arrowless shot"),
+        ("piDaggerDoublePercent", "Chance (%) that a dagger hit strikes twice"),
+    ]),
+    ("Monsters", [
+        ("piMobLeashSecs", "Seconds a chase may get nowhere before the monster gives up and walks back (0 = it chases for ever)"),
+        ("pbMobLeashHeal", "1 = a monster that gave up a chase is healed to full"),
+        ("pbMobAggroScan", "1 = a monster with no target looks about once a second (also sees someone standing still); 0 = it notices only movement"),
+        ("pbMobAggroPath", "1 = a monster ignores someone it has no walking route to (casters excepted); 0 = sight alone"),
+        ("pbMobAggroLOS", "1 = a monster notices someone only with a clear line of sight; 0 = distance only"),
+    ]),
+    ("Companion bots", [
+        ("pbCompanionBots", "Temporary class companions: 1 on, 0 off"),
+        ("piMaxBots", "Most companion bots at once (the group has 5 seats)"),
+        ("piBotResummonSec", "Seconds before another bot may be summoned after one fell (0, 30, 60 or 300)"),
+        ("pbBotSplitXP", "1 = a kill's XP is split by every seat in the group, bots included"),
+        ("pbBotMoveLog", "TEST ONLY: log companion movement (BOTMOVE lines in channel/debug.txt)"),
+    ]),
+    ("Playerbots: world", [
+        ("piTownLife", "Town life: 0 townsfolk crowds (client), 1 playerbots instead, 2 both [1]"),
+        ("piPlayerBotCount", "How many playerbots are in the game at once [50]"),
+        ("piBotNameType", "Names: 0 gamer handles (Amber, Strike), 1 human names; a restart renames all [0]"),
+        ("piBotShowDoing", "1 = a bot's info window says what it is doing; 0 = description only"),
+        ("piBotTimeScale", "Bot timers in % of real time (100 normal, 10 = ten times faster: TESTING ONLY)"),
+    ]),
+    ("Playerbots: hunting", [
+        ("piBotHuntMargin", "A hunter picks a foe only if it kills it in this % of the time it would take to die (200 = twice as fast)"),
+        ("piBotFightMargin", "The same test for a creature blocking a bot's way (140)"),
+        ("piBotFleePct", "A bot fighting a blocker flees below this % of its health (35)"),
+        ("piBotHuntBandLow", "Lowest hunting room, % of the bot's own health (1)"),
+        ("piBotHuntBandHigh", "Highest hunting room, % of the bot's own health (85)"),
+        ("piBotHuntPauseSecs", "Seconds a hunter stands after a kill and its loot (10)"),
+        ("piBotHuntFailLimit", "Failed tries in a row to find or reach a foe before a hunter picks another activity (3)"),
+    ]),
+    ("Playerbots: talk", [
+        ("pbBotSocialSay", "1 = bots say townsfolk lines in towns when a player is in the room"),
+        ("pbBotSocialGreet", "1 = a bot waves and greets a player near it (once per player per 1-5 min)"),
+        ("pbBotSocialBroadcast", "1 = bots chat now and then on the world broadcast channel while a player is online"),
+        ("pbBotSocialReply", "1 = one bot answers a player's hello or goodbye (said or told) and a hello broadcast"),
+    ]),
+    ("Chat", [
+        ("piBroadcastCooldownSecs", "Seconds a player (not a DM) waits between two broadcasts; bots too (0 = no wait) [5]"),
+    ]),
 ]
 
 
@@ -599,8 +622,10 @@ class PrimeAdmin(App):
             if "=" in ln:
                 left, right = ln.split("=", 1)
                 vals[left.strip(": ").strip()] = right.strip()
-        for name, doc in RULES:
-            table.add_row(name, vals.get(name, "?").replace("INT ", ""), doc, key=name)
+        for cat, rules in RULE_GROUPS:
+            table.add_row(f"── {cat} ──", "", "", key=f"hdr:{cat}")
+            for name, doc in rules:
+                table.add_row(name, vals.get(name, "?").replace("INT ", ""), doc, key=name)
         table.move_cursor(row=keep)
 
     @on(Button.Pressed, "#ruleset")
@@ -610,7 +635,10 @@ class PrimeAdmin(App):
         if table.row_count == 0 or not val.lstrip("-").isdigit():
             self.say("Select a rule and type a whole number.")
             return
-        name = RULES[table.cursor_row][0]
+        name = table.get_row_at(table.cursor_row)[0]
+        if name.startswith("──"):
+            self.say("Select a rule, not a category heading.")
+            return
         pid = await self.find_prime()
         await self.link.run(f"set object {pid} {name} int {val}")
         self.say(f"{name} = {val} (live now; press Save game to keep it over a restart).")

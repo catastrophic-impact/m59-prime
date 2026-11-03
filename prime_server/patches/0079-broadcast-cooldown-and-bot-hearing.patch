@@ -1,0 +1,16 @@
+--- a/kod/object/active/holder/nomoveon/battler/player/user.kod
++++ b/kod/object/active/holder/nomoveon/battler/player/user.kod
+@@ -6340,9 +6340,12 @@
+          }
+ 
+          // Send to everyone, if not squelched.
+-         if Send(self,@TryBroadcast)
++         // Prime: a short cooldown between the broadcasts of one player (rule piBroadcastCooldownSecs); then the playerbots may answer a greeting
++         if Send(Send(SYS,@GetPrime),@PBroadcastAllowed,#oWho=self)
++            AND Send(self,@TryBroadcast)
+          {
+             Send(SYS,@SystemBroadcast,#what=self,#type=type,#string=string);
++            Send(Send(SYS,@GetPrime),@PBotHeardBroadcast,#oUser=self,#string=string);
+          }
+ 
+          return;

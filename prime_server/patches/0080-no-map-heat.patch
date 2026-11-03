@@ -1,0 +1,125 @@
+--- a/kod/object/active/holder/room/monsroom/dvalley1.kod
++++ b/kod/object/active/holder/room/monsroom/dvalley1.kod
+@@ -112,8 +112,6 @@
+ 
+    DoHeat()
+    {
+-      local oHeat;
+-
+       if NOT Send(SYS,@IsPKAllowed)
+       {
+          return;
+@@ -125,16 +123,8 @@
+          return;
+       }
+ 
+-      oHeat = Send(SYS,@FindSpellByNum,#num=SID_HEAT);
+-
+-      if Send(self,@IsEnchanted,#what=oHeat)
+-      {
+-         return;
+-      }
+-
+-      // global effects of the enchantment
+-      Send(oHeat,@CastSpell,#who=self, #lTargets=[self], 
+-             #iSpellPower=99, #report=FALSE);
++      // Prime: the map no longer heats this room (owner's decision); the Heat spell itself is unchanged
++      return;
+       return;
+    }
+ 
+--- a/kod/object/active/holder/room/monsroom/dvalley2.kod
++++ b/kod/object/active/holder/room/monsroom/dvalley2.kod
+@@ -128,8 +128,6 @@
+ 
+    DoHeat()
+    {
+-      local oHeat;
+-
+       if NOT Send(SYS,@IsPKAllowed)
+       {
+          return;
+@@ -141,15 +139,7 @@
+          return;
+       }
+ 
+-      oHeat = Send(SYS,@FindSpellByNum,#num=SID_HEAT);
+-
+-      if Send(self,@IsEnchanted,#what=oHeat)
+-      {
+-         return;
+-      }
+-
+-      Send(oHeat,@CastSpell,#who=self, #lTargets=[self], 
+-             #iSpellPower=99, #report=FALSE);
++      // Prime: the map no longer heats this room (owner's decision); the Heat spell itself is unchanged
+ 
+       return;
+    }
+--- a/kod/object/active/holder/room/monsroom/dvalley4.kod
++++ b/kod/object/active/holder/room/monsroom/dvalley4.kod
+@@ -128,8 +128,6 @@
+ 
+    DoHeat()
+    {
+-      local oHeat;
+-
+       if NOT Send(SYS,@IsPKAllowed)
+       {
+          return;
+@@ -141,15 +139,7 @@
+          return;
+       }
+ 
+-      oHeat = Send(SYS,@FindSpellByNum,#num=SID_HEAT);
+-
+-      if Send(self,@IsEnchanted,#what=oHeat)
+-      {
+-         return;
+-      }
+-
+-      Send(oHeat,@CastSpell,#who=self, #lTargets=[self], 
+-             #iSpellPower=99, #report=FALSE);
++      // Prime: the map no longer heats this room (owner's decision); the Heat spell itself is unchanged
+ 
+       return;
+    }
+--- a/kod/object/active/holder/room/monsroom/dvalley5.kod
++++ b/kod/object/active/holder/room/monsroom/dvalley5.kod
+@@ -165,8 +165,6 @@
+    
+    DoHeat()
+    {
+-      local oHeat;
+-
+       if NOT Send(SYS,@IsPKAllowed)
+       {
+          return;
+@@ -178,15 +176,7 @@
+          return;
+       }
+ 
+-      oHeat = Send(SYS,@FindSpellByNum,#num=SID_HEAT);
+-
+-      if Send(self,@IsEnchanted,#what=oHeat)
+-      {
+-         return;
+-      }
+-
+-      Send(oHeat,@CastSpell,#who=self, #lTargets=[self], 
+-             #iSpellPower=99, #report=FALSE);
++      // Prime: the map no longer heats this room (owner's decision); the Heat spell itself is unchanged
+ 
+       return;
+    }
+--- a/kod/object/active/holder/room/monsroom/desert.kod
++++ b/kod/object/active/holder/room/monsroom/desert.kod
+@@ -88,7 +88,7 @@
+                             ];
+          }
+ 
+-         Send(oHeat,@CastSpell,#who=self,#spellpower=99);
++         // Prime: the map no longer casts Heat on this room (owner's decision); the day-time spawns above stay
+       }
+       else if iHour >= 6 AND iHour <= 7
+       {  

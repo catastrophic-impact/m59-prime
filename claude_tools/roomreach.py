@@ -51,7 +51,7 @@ _EXITS = None
 def edges_of(roo):
     global _EXITS
     if _EXITS is None: _EXITS = json.load(open(os.path.join(W, "assets", "roomexits.json")))
-    return {e["to"].replace(".roo", ""): e["side"] for e in _EXITS.get(roo + ".roo", {}).get("edges", [])}
+    return {e["to"].replace(".roo", ""): e["side"] for e in _EXITS.get(roo + ".roo", {}).get("edges", []) if e.get("to")}
 def edge_reached(side, ncols, nrows, cell, comp, main, rows_sq, cols_sq, margin=1536):
     """an exit in a room's EDGE: walking off that side leaves the room, so the main region only has to come within 1.5 squares of the side"""
     H = rows_sq * 1024; Wd = cols_sq * 1024

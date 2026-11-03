@@ -10,8 +10,9 @@ import asyncio, json, os, re, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from botscenario import Scenario, ROOT
 import roomreach as R, edgelanding as E, reachmatrix as M
+from kodexits import edge_taken
 
-def side_cells(rid, bake, server, side, rows, cols, touch=1.0, limit=10):
+def side_cells(rid, bake, server, side, rows, cols, touch=1.0, limit=10, ok=lambda q: True):
     g = E.floor_grid(server, bake[rid]["roo"])
     if not g: return []
     ncols, nrows, cell, links, hts = g; comp, main = E.main_floor_region(g)
@@ -21,11 +22,15 @@ def side_cells(rid, bake, server, side, rows, cols, touch=1.0, limit=10):
         rr, cc = divmod(i, ncols); y = (rr + 0.5) * cell / 1024.0; x = (cc + 0.5) * cell / 1024.0
         d = {"N": y, "W": x, "S": rows - y, "E": cols - x}[side]
         if d > touch: continue
-        sq = (int(y) + 1, int(x) + 1); along = abs((y if side in "WE" else x) - mid)
+        sq = (int(y) + 1, int(x) + 1)
+        if not ok(sq): continue
+        along = abs((y if side in "WE" else x) - mid)
         if sq not in seen or along < seen[sq]: seen[sq] = along
     out = sorted(seen, key=lambda q: seen[q])
     # spread: the nearest few and then every k-th, so a pocket next to the middle does not use up every try
     return (out[:4] + out[4::max(1, len(out) // 6)])[:limit]
+
+KOD = json.load(open(os.path.join(ROOT, "docs", "kod_exits.json")))
 
 async def probe_room(sc, bot, bake, rid, trap, server):
     r = bake[rid]; body = await sc.body(bot)
@@ -45,12 +50,14 @@ async def probe_room(sc, bot, bake, rid, trap, server):
         return False
     done = {}
     for d in exits:
-        side = sides[d["to"]]; key = (side, d["row"], d["col"])
+        side = sides[d["to"]]; key = (side, d["row"], d["col"], d["destRid"])
+        # the game sends a player who leaves by that side to a room by the square he walks off from (ROW_IS_LESS_THAN ...): only squares that lead to THIS exit's room count
+        ok = lambda q, side=side, dest=d["destRid"]: not KOD.get(str(rid), {}).get("edges") or edge_taken(KOD[str(rid)]["edges"], side, q[0], q[1]) == dest
         if key not in done:
             pick = None
-            if await reach((d["row"], d["col"])): pick = (d["row"], d["col"])
+            if ok((d["row"], d["col"])) and await reach((d["row"], d["col"])): pick = (d["row"], d["col"])
             else:
-                for q in side_cells(rid, bake, server, side, rows, cols):
+                for q in side_cells(rid, bake, server, side, rows, cols, ok=ok):
                     if q != (d["row"], d["col"]) and await reach(q): pick = q; break
             done[key] = pick
         pick = done[key]

@@ -142,6 +142,87 @@ resources:
    pbc_p8_3 = "Bergensdorf builds 'em tough."
    pbc_p9_1 = "Strange folk come through Jixa."
    pbc_p9_2 = "Mind the desert."
+   // goodbyes (an answer to a player's farewell)
+   pbc_bye1 = "Farewell."
+   pbc_bye2 = "Safe travels, friend."
+   pbc_bye3 = "Until next time."
+   pbc_bye4 = "Take care out there."
+   pbc_bye5 = "Bye for now."
+   // broadcast chatter (ChatThread): talk between two bots on the world-wide broadcast channel, speakers A and B in turn; the first group of threads has two to four lines, the last ones are single calls
+   pbt1_1 = "Anyone hunting around Marion tonight?"
+   pbt1_2 = "I might. Bring a healer."
+   pbt1_3 = "No healer, but I have a pile of vials."
+   pbt2_1 = "Does anyone know the way to the Jasper docks?"
+   pbt2_2 = "Take the portal to Jasper and walk east."
+   pbt2_3 = "Thanks, I always get lost there."
+   pbt3_1 = "Never fight a troll hungry."
+   pbt3_2 = "Never fight a troll at all."
+   pbt4_1 = "Just lost half my gear to some skeletons. Lovely."
+   pbt4_2 = "Did you go back for it?"
+   pbt4_3 = "Tried. They were still there."
+   pbt4_4 = "Take a friend next time."
+   pbt5_1 = "What is the best spell to learn first?"
+   pbt5_2 = "Anything that heals. Trust me."
+   pbt6_1 = "Selling a good sword, fair price."
+   pbt6_2 = "How fair?"
+   pbt6_3 = "Fairer than the smith in Tos."
+   pbt7_1 = "Is the Cor Noth inn open late?"
+   pbt7_2 = "Always. The ale is bad but it is open."
+   pbt8_1 = "Rats again. They are in my cellar and in my boots."
+   pbt8_2 = "Get a cat."
+   pbt9_1 = "Shal'ille bless whoever healed me back there."
+   pbt9_2 = "That was me. You owe me a drink."
+   pbt9_3 = "Done. Find me at the inn."
+   pbt10_1 = "Bergensdorf is quiet today."
+   pbt10_2 = "Quiet is good. Quiet means no wraiths."
+   pbt11_1 = "Anyone else keep getting turned away from the guild halls?"
+   pbt11_2 = "Wrong door. Happens to everyone."
+   pbt12_1 = "Qor take me, my feet hurt."
+   pbt12_2 = "You walked all the way from Ko'catan?"
+   pbt12_3 = "Twice. I forgot my purse."
+   pbt13_1 = "Ever been to Raza at night?"
+   pbt13_2 = "Once. Never again."
+   pbt14_1 = "New here. Where do I get a decent robe?"
+   pbt14_2 = "Any tailor will do, and the plain ones are cheap."
+   pbt15_1 = "Is it true the old mines are haunted?"
+   pbt15_2 = "So they say. Also full of ants."
+   pbt15_3 = "Both sound bad."
+   pbt16_1 = "Reached my next level today!"
+   pbt16_2 = "Congratulations. Now the hard part starts."
+   pbt17_1 = "Looking for a group, around level 10, anywhere."
+   pbt18_1 = "Selling mushrooms, cheap. Find me in town."
+   pbt19_1 = "The Rescue spell is the best spell ever made."
+   pbt20_1 = "Good evening, Meridian."
+   pbt21_1 = "Jala, grant me a quiet night."
+   pbt22_1 = "Watch out for the wraiths near the graveyard."
+   pbt23_1 = "Tos market is full of bargains today."
+   pbt24_1 = "Heading out to hunt. Wish me luck."
+   pbt25_1 = "Back from the hunt, alive and slightly poorer."
+   pbt26_1 = "Do not trust the cheap potions."
+   pbt27_1 = "Faren's fire is a wonderful thing when it is not pointed at you."
+   // words a player says that a bot answers (PBotSpeechKind): whole message (hi, hey ...) and parts of a message (hello ...)
+   pbk_hi = "hi"
+   pbk_hey = "hey"
+   pbk_yo = "yo"
+   pbk_hiya = "hiya"
+   pbk_hibang = "hi!"
+   pbk_heybang = "hey!"
+   pbk_hiall = "hi all"
+   pbk_hieveryone = "hi everyone"
+   pbk_heyall = "hey all"
+   pbk_heyeveryone = "hey everyone"
+   pbk_hello = "hello"
+   pbk_hail = "hail"
+   pbk_greetings = "greetings"
+   pbk_howdy = "howdy"
+   pbk_goodday = "good day"
+   pbk_goodmorning = "good morning"
+   pbk_goodevening = "good evening"
+   pbk_bye = "bye"
+   pbk_farewell = "farewell"
+   pbk_seeyou = "see you"
+   pbk_cya = "cya"
+   pbk_goodnight = "good night"
    pbot_ouch_m1 = ouchm1.ogg
    pbot_ouch_m2 = ouchm2.ogg
    pbot_ouch_m3 = ouchm3.ogg
@@ -390,6 +471,8 @@ properties:
    ptAway = $
    ptReply = $
    poReplyTo = $
+   // what the answer in ptReply is: 0 a tell, 1 a hello said in the room, 2 a goodbye said in the room
+   piReplyKind = 0
    // GetTime() before which it does not speak in the room again
    piNextChat = 0
    // Where it is while inside a shop (it is in limbo): room and node it comes out at, and what for
@@ -2544,7 +2627,7 @@ messages:
    }
 
    SayPool(iKind = 1,iPlace = 0)
-   "The townsfolk lines of one kind: 1 any, 2 morning, 3 evening, 4 night, 5 greeting, 6 night greeting, 7 inn patrons, 8 the town iPlace (1 Tos, 2 Barloque, 3 Cor Noth, 4 Marion, 5 Raza, 6 Jasper, 7 Ko'catan, 8 Bergensdorf, 9 Jixa)."
+   "The townsfolk lines of one kind: 1 any, 2 morning, 3 evening, 4 night, 5 greeting, 6 night greeting, 7 inn patrons, 9 goodbyes, 8 the town iPlace (1 Tos, 2 Barloque, 3 Cor Noth, 4 Marion, 5 Raza, 6 Jasper, 7 Ko'catan, 8 Bergensdorf, 9 Jixa)."
    {
       if iKind = 1
       {
@@ -2579,6 +2662,11 @@ messages:
       if iKind = 7
       {
          return [ pbc_pat1, pbc_pat2, pbc_pat3, pbc_pat4, pbc_pat5 ];
+      }
+
+      if iKind = 9
+      {
+         return [ pbc_bye1, pbc_bye2, pbc_bye3, pbc_bye4, pbc_bye5 ];
       }
 
       if iKind = 8 AND iPlace = 1
@@ -2624,6 +2712,153 @@ messages:
       if iKind = 8 AND iPlace = 9
       {
          return [ pbc_p9_1, pbc_p9_2 ];
+      }
+
+      return $;
+   }
+
+   ChatThreadCount()
+   "How many broadcast chats ChatThread knows."
+   {
+      return 27;
+   }
+
+   ChatThread(iNum = 1)
+   "Broadcast chat number iNum: the lines of one talk between two bots, said in turn by A and B (a single line is a call-out)."
+   {
+      if iNum = 1
+      {
+         return [ pbt1_1, pbt1_2, pbt1_3 ];
+      }
+
+      if iNum = 2
+      {
+         return [ pbt2_1, pbt2_2, pbt2_3 ];
+      }
+
+      if iNum = 3
+      {
+         return [ pbt3_1, pbt3_2 ];
+      }
+
+      if iNum = 4
+      {
+         return [ pbt4_1, pbt4_2, pbt4_3, pbt4_4 ];
+      }
+
+      if iNum = 5
+      {
+         return [ pbt5_1, pbt5_2 ];
+      }
+
+      if iNum = 6
+      {
+         return [ pbt6_1, pbt6_2, pbt6_3 ];
+      }
+
+      if iNum = 7
+      {
+         return [ pbt7_1, pbt7_2 ];
+      }
+
+      if iNum = 8
+      {
+         return [ pbt8_1, pbt8_2 ];
+      }
+
+      if iNum = 9
+      {
+         return [ pbt9_1, pbt9_2, pbt9_3 ];
+      }
+
+      if iNum = 10
+      {
+         return [ pbt10_1, pbt10_2 ];
+      }
+
+      if iNum = 11
+      {
+         return [ pbt11_1, pbt11_2 ];
+      }
+
+      if iNum = 12
+      {
+         return [ pbt12_1, pbt12_2, pbt12_3 ];
+      }
+
+      if iNum = 13
+      {
+         return [ pbt13_1, pbt13_2 ];
+      }
+
+      if iNum = 14
+      {
+         return [ pbt14_1, pbt14_2 ];
+      }
+
+      if iNum = 15
+      {
+         return [ pbt15_1, pbt15_2, pbt15_3 ];
+      }
+
+      if iNum = 16
+      {
+         return [ pbt16_1, pbt16_2 ];
+      }
+
+      if iNum = 17
+      {
+         return [ pbt17_1 ];
+      }
+
+      if iNum = 18
+      {
+         return [ pbt18_1 ];
+      }
+
+      if iNum = 19
+      {
+         return [ pbt19_1 ];
+      }
+
+      if iNum = 20
+      {
+         return [ pbt20_1 ];
+      }
+
+      if iNum = 21
+      {
+         return [ pbt21_1 ];
+      }
+
+      if iNum = 22
+      {
+         return [ pbt22_1 ];
+      }
+
+      if iNum = 23
+      {
+         return [ pbt23_1 ];
+      }
+
+      if iNum = 24
+      {
+         return [ pbt24_1 ];
+      }
+
+      if iNum = 25
+      {
+         return [ pbt25_1 ];
+      }
+
+      if iNum = 26
+      {
+         return [ pbt26_1 ];
+      }
+
+      if iNum = 27
+      {
+         return [ pbt27_1 ];
       }
 
       return $;
@@ -3603,20 +3838,52 @@ messages:
    // ---- tells ----
 
    SomeoneSaid(what = $,type = $,string = $)
-   "A tell to it is answered a few seconds later, by a line as a busy player might give; what is said near it is not (yet)."
+   "A tell to it is answered a few seconds later, by a line as a busy player might give. A hello or goodbye said by a player near it in the room is answered by one bot only (rule pbBotSocialReply). Anything else it hears is ignored."
    {
-      if type = SAY_GROUP_ONE AND what <> $ AND IsClass(what,&User) AND ptReply = $
+      local oPrime, iKind, iSq;
+
+      if what = $ OR NOT IsClass(what,&User) OR ptReply <> $
+      {
+         return;
+      }
+
+      if type = SAY_GROUP_ONE
       {
          poReplyTo = what;
+         piReplyKind = 0;
          ptReply = CreateTimer(self,@ReplyTimer,Random(2500,7000));
+
+         return;
+      }
+
+      oPrime = Send(SYS,@GetPrime);
+      if type <> SAY_NORMAL OR NOT Send(oPrime,@PBotReplyOn) OR poOwner = $ OR poTarget <> $
+         OR piDoing = PBD_HUNT OR piDoing = PBD_DEAD
+      {
+         return;
+      }
+
+      iSq = 12 * FINENESS;
+      if Send(self,@SquaredFineDistanceTo3D,#what=what) > iSq * iSq
+      {
+         return;
+      }
+
+      iKind = Send(oPrime,@PBotSpeechKind,#string=string);
+      if iKind > 0 AND Send(oPrime,@PBotReplyAllowed,#oUser=what,#iSecs=20)
+      {
+         poReplyTo = what;
+         piReplyKind = iKind;
+         ptReply = CreateTimer(self,@ReplyTimer,Random(2000,6000));
       }
 
       return;
    }
 
    ReplyTimer()
+   "The answer to a tell (in a tell) or to a hello or goodbye said in the room (a line said in the room, if the player is still here)."
    {
-      local rLine, sLine;
+      local rLine, sLine, lPool;
 
       ptReply = $;
       if poReplyTo = $ OR NOT Send(poReplyTo,@IsLoggedOn)
@@ -3626,9 +3893,30 @@ messages:
          return;
       }
 
-      rLine = Nth([pbot_reply1,pbot_reply2,pbot_reply3,pbot_reply4,pbot_reply5],Random(1,5));
-      sLine = SetString($,rLine);
-      Send(poReplyTo,@SomeoneSaid,#what=self,#type=SAY_GROUP_ONE,#string=sLine);
+      if piReplyKind = 0
+      {
+         rLine = Nth([pbot_reply1,pbot_reply2,pbot_reply3,pbot_reply4,pbot_reply5],Random(1,5));
+         sLine = SetString($,rLine);
+         Send(poReplyTo,@SomeoneSaid,#what=self,#type=SAY_GROUP_ONE,#string=sLine);
+         poReplyTo = $;
+
+         return;
+      }
+
+      if poOwner <> $ AND Send(poReplyTo,@GetOwner) = poOwner
+      {
+         if piReplyKind = 1
+         {
+            Send(self,@FaceBot,#oWho=poReplyTo);
+            Send(poOwner,@SomeoneSaid,#what=self,#type=SAY_RESOURCE,#string=Send(self,@AmbientLine,#bGreet=TRUE));
+         }
+         else
+         {
+            lPool = Send(self,@SayPool,#iKind=9);
+            Send(poOwner,@SomeoneSaid,#what=self,#type=SAY_RESOURCE,#string=Nth(lPool,Random(1,Length(lPool))));
+         }
+      }
+
       poReplyTo = $;
 
       return;

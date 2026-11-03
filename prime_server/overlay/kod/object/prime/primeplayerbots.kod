@@ -22,6 +22,8 @@ constants:
 
 resources:
 
+   pbc_cooldown = "You must wait a few seconds before you broadcast again."
+
    // Info window of a bot that is away (the first four %s are the description parts and the class of its body, see PlayerBot.ShowDesc)
    pbr_hunt = "%s %s %s\n\nClass: %s.\nCurrently: farming %s in %s."
    pbr_shop = "%s %s %s\n\nClass: %s.\nCurrently: out shopping around %s."
@@ -588,6 +590,13 @@ properties:
    // townsfolk lines: [ room, when it may speak again ] per room, and [ player, when a bot may greet them again ] per player (the lists keep only what is still waiting)
    plPBotRoomSay = $
    plPBotGreeted = $
+   // [ when, bot id, line ] of the broadcast lines waiting their turn (a chat thread, or an answer to a player's greeting), [ number ] of the last chats told (so they do not repeat soon),
+   // when the next chat may start, [ who, when they may broadcast again ] and [ player, when a bot may answer them again ]
+   plPBotCast = $
+   plPBotChatRecent = $
+   piPBotChatNext = 0
+   plPBroadcastLast = $
+   plPBotReplied = $
    // GetTime() of the last PBotsTick: a gap of more than 30 s means the server was down (a restart): every bot is then taken home like a Rescue and chooses a new activity (PBotRestartReset)
    piPBotSeen = 0
    piPBotNoRisk = 0
@@ -1149,6 +1158,215 @@ messages:
       return pbBotSocialGreet;
    }
 
+   PBotReplyOn()
+   "The rule pbBotSocialReply: bots answer a player's hello or goodbye."
+   {
+      return pbBotSocialReply;
+   }
+
+   PBroadcastAllowed(oWho = $)
+   "The broadcast wait (rule piBroadcastCooldownSecs): TRUE when this player (or bot) may broadcast now, and it starts their wait; a DM may always. A player who must wait is told so."
+   {
+      local i, lKeep, bOk;
+
+      if oWho = $ OR IsClass(oWho,&DM) OR piBroadcastCooldownSecs <= 0
+      {
+         return TRUE;
+      }
+
+      bOk = TRUE;
+      lKeep = $;
+      foreach i in plPBroadcastLast
+      {
+         if GetTime() < Nth(i,2)
+         {
+            lKeep = Cons(i,lKeep);
+            if First(i) = oWho
+            {
+               bOk = FALSE;
+            }
+         }
+      }
+
+      if bOk
+      {
+         lKeep = Cons([oWho,GetTime() + piBroadcastCooldownSecs],lKeep);
+      }
+      else if IsClass(oWho,&User)
+      {
+         Send(oWho,@MsgSendUser,#message_rsc=pbc_cooldown);
+      }
+
+      plPBroadcastLast = lKeep;
+
+      return bOk;
+   }
+
+   PBotSpeechKind(string = $)
+   "What a player said, for the bots to answer: 1 a hello, 2 a goodbye, 0 anything else. Short greetings (hi, hey) count only as the whole message."
+   {
+      if string = $
+      {
+         return 0;
+      }
+
+      if StringEqual(string,pbk_hi) OR StringEqual(string,pbk_hey) OR StringEqual(string,pbk_yo) OR StringEqual(string,pbk_hiya)
+         OR StringEqual(string,pbk_hibang) OR StringEqual(string,pbk_heybang) OR StringEqual(string,pbk_hiall)
+         OR StringEqual(string,pbk_hieveryone) OR StringEqual(string,pbk_heyall) OR StringEqual(string,pbk_heyeveryone)
+         OR StringContain(string,pbk_hello) OR StringContain(string,pbk_hail) OR StringContain(string,pbk_greetings)
+         OR StringContain(string,pbk_howdy) OR StringContain(string,pbk_goodday) OR StringContain(string,pbk_goodmorning)
+         OR StringContain(string,pbk_goodevening)
+      {
+         return 1;
+      }
+
+      if StringContain(string,pbk_bye) OR StringContain(string,pbk_farewell) OR StringContain(string,pbk_seeyou)
+         OR StringContain(string,pbk_cya) OR StringContain(string,pbk_goodnight)
+      {
+         return 2;
+      }
+
+      return 0;
+   }
+
+   PBotReplyAllowed(oUser = $,iSecs = 20)
+   "A player's line is answered by one bot only, and then by none for iSecs seconds: TRUE when this player may be answered now (the wait starts)."
+   {
+      local i, lKeep, bOk;
+
+      bOk = TRUE;
+      lKeep = $;
+      foreach i in plPBotReplied
+      {
+         if GetTime() < Nth(i,2)
+         {
+            lKeep = Cons(i,lKeep);
+            if First(i) = oUser
+            {
+               bOk = FALSE;
+            }
+         }
+      }
+
+      if bOk
+      {
+         lKeep = Cons([oUser,GetTime() + iSecs],lKeep);
+      }
+
+      plPBotReplied = lKeep;
+
+      return bOk;
+   }
+
+   PBotHeardBroadcast(oUser = $,string = $)
+   "Called after a player's broadcast went out: a greeting in it (hello everyone) is answered by one bot with a greeting of its own, a few seconds later (rule pbBotSocialReply, once per player per 5 minutes)."
+   {
+      local lBot, lPool;
+
+      if NOT pbBotSocialReply OR plPBotBodies = $ OR Send(self,@PBotSpeechKind,#string=string) <> 1
+         OR NOT Send(self,@PBotReplyAllowed,#oUser=oUser,#iSecs=300)
+      {
+         return;
+      }
+
+      lBot = Nth(plPBotBodies,Random(1,Length(plPBotBodies)));
+      lPool = Send(Nth(lBot,2),@SayPool,#iKind=5);
+      plPBotCast = Cons([GetTime() + Random(3,8),First(lBot),Nth(lPool,Random(1,Length(lPool)))],plPBotCast);
+
+      return;
+   }
+
+   PBotChatterTick()
+   "Every few seconds: the broadcast lines whose time has come are said by their bots (one per tick; a bot that is gone, or must still wait, loses its line); and, rule pbBotSocialBroadcast, a new chat (two to four lines between two bots, or a single call) starts every 1 to 5 minutes while a real player is online."
+   {
+      local i, lDue, oBody, iNum, lThread, lA, lB, iAt, iLine, iTry;
+
+      // one line per tick, the earliest that is due (so a chat keeps its order and the lines come at least a tick apart)
+      lDue = $;
+      foreach i in plPBotCast
+      {
+         if GetTime() >= First(i) AND (lDue = $ OR First(i) <= First(lDue))
+         {
+            lDue = i;
+         }
+      }
+
+      if lDue <> $
+      {
+         plPBotCast = DelListElem(plPBotCast,lDue);
+         oBody = Send(self,@PBotBodyOf,#id=Nth(lDue,2));
+         if oBody <> $ AND Send(self,@PBroadcastAllowed,#oWho=oBody)
+         {
+            Send(SYS,@SystemBroadcast,#what=oBody,#type=SAY_EVERYONE,#string=SetString($,Nth(lDue,3)));
+         }
+      }
+
+      if NOT pbBotSocialBroadcast OR plPBotCast <> $ OR Length(plPBotBodies) < 2
+      {
+         return;
+      }
+
+      // nobody to hear it: the next chat waits half a minute to a minute and a half after somebody is there
+      if Send(SYS,@GetUsersLoggedOn) = $
+      {
+         piPBotChatNext = GetTime() + Send(self,@PBotScale,#seconds=Random(30,90));
+
+         return;
+      }
+
+      if GetTime() < piPBotChatNext
+      {
+         return;
+      }
+
+      piPBotChatNext = GetTime() + Send(self,@PBotScale,#seconds=Random(60,300));
+
+      // a chat that was not told lately
+      iTry = 0;
+      iNum = Random(1,Send(Nth(First(plPBotBodies),2),@ChatThreadCount));
+      while iTry < 20 AND FindListElem(plPBotChatRecent,iNum) <> 0
+      {
+         iNum = Random(1,Send(Nth(First(plPBotBodies),2),@ChatThreadCount));
+         ++iTry;
+      }
+
+      plPBotChatRecent = Cons(iNum,plPBotChatRecent);
+      if Length(plPBotChatRecent) > 10
+      {
+         plPBotChatRecent = Cons(iNum,$);
+      }
+
+      lThread = Send(Nth(First(plPBotBodies),2),@ChatThread,#iNum=iNum);
+      lA = Nth(plPBotBodies,Random(1,Length(plPBotBodies)));
+      lB = lA;
+      while lB = lA
+      {
+         lB = Nth(plPBotBodies,Random(1,Length(plPBotBodies)));
+      }
+
+      iAt = GetTime();
+      iLine = 0;
+      foreach i in lThread
+      {
+         ++iLine;
+         if iLine > 1
+         {
+            iAt = iAt + Send(self,@PBotScale,#seconds=Random(6,12));
+         }
+
+         if iLine & 1
+         {
+            plPBotCast = Cons([iAt,First(lA),i],plPBotCast);
+         }
+         else
+         {
+            plPBotCast = Cons([iAt,First(lB),i],plPBotCast);
+         }
+      }
+
+      return;
+   }
+
    PBotPlaceOf(rid = 0)
    "Which town a street or inn room belongs to: 1 Tos, 2 Barloque, 3 Cor Noth, 4 Marion, 5 Raza, 6 Jasper, 7 Ko'catan, 8 Bergensdorf, 9 Jixa; 0 when it is none."
    {
@@ -1254,9 +1472,9 @@ messages:
    }
 
    PBotDoorsOf(rid = 0)
-   "[ doors, squares, nodes, components ] of a baked room, from a cache made once per bake: NavRoom builds the whole graph from literals on every call and the server frees such lists only at its garbage collection (list node numbers run out at 2^27, 2026-10-30), so the route search must not call it per step."
+   "[ doors, squares, nodes, components, restricted ] of a baked room (restricted: some door cannot be reached from some arrival square, see the route search), from a cache made once per bake: NavRoom builds the whole graph from literals on every call and the server frees such lists only at its garbage collection (list node numbers run out at 2^27, 2026-10-30), so the route search must not call it per step."
    {
-      local lEntry, lRoom;
+      local lEntry, lRoom, lDoor, bRestricted;
 
       if piPBotNavStamp <> Send(self,@NavVersion)
       {
@@ -1268,7 +1486,7 @@ messages:
       foreach lEntry in plPBotDoorCache
       {
          // (an entry of an older format, fewer parts than now, made before the nodes or the components were added and kept in the save, is made again)
-         if First(lEntry) = rid AND (Nth(lEntry,2) = $ OR Length(Nth(lEntry,2)) >= 4)
+         if First(lEntry) = rid AND (Nth(lEntry,2) = $ OR Length(Nth(lEntry,2)) >= 5)
          {
             return Nth(lEntry,2);
          }
@@ -1281,7 +1499,16 @@ messages:
       }
       else
       {
-         lEntry = [rid,[Nth(lRoom,3),Bound(Length(First(lRoom)) / 2,1,$),First(lRoom),Send(self,@PBotComponents,#lRoom=lRoom)]];
+         bRestricted = FALSE;
+         foreach lDoor in Nth(lRoom,3)
+         {
+            if Nth(lDoor,10) <> $
+            {
+               bRestricted = TRUE;
+            }
+         }
+
+         lEntry = [rid,[Nth(lRoom,3),Bound(Length(First(lRoom)) / 2,1,$),First(lRoom),Send(self,@PBotComponents,#lRoom=lRoom),bRestricted]];
       }
 
       plPBotDoorCache = Cons(lEntry,plPBotDoorCache);
@@ -1370,8 +1597,8 @@ messages:
    PBotRouteEstimate(fromRid = 0,fromNode = 0,toRid = 0,iHealth = 1)
    "Risk-weighted room-door search constrained to survivable sprint routes. toRid 0 returns the list of reachable room numbers, toRid > 0 returns [ first door, cost, damage ] or $."
    {
-      local lStates, lState, lBest, lRoomInfo, lDoors, lDoor, iDoor, iBestScore, i, iRid, iNextRid, iCost, iDamage, iScore, iFirst,
-         iExisting, iIterations, lResult;
+      local lStates, lState, lBest, lRoomInfo, lNextInfo, lDoors, lDoor, iDoor, iBestScore, i, iRid, iNextRid, iCost, iDamage, iScore, iFirst,
+         iExisting, iIterations, lResult, iArrive, iNextArrive;
 
       if toRid > 0 AND fromRid = toRid
       {
@@ -1383,8 +1610,9 @@ messages:
          return $;
       }
 
-      // a state is [ room, cost, damage, first door as room * 100 + door number (0 = none yet), score, closed ]
-      lStates = [ [fromRid,0,0,0,0,FALSE] ];
+      // a state is [ room, cost, damage, first door as room * 100 + door number (0 = none yet), score, closed, arrival square (row * 1000 + col) it came in by ]:
+      // the arrival square only counts in a room where some door cannot be reached from some arrival (the planner's verdict, baked into the doors), else it is 0 and one state serves the room
+      lStates = [ [fromRid,0,0,0,0,FALSE,0] ];
       iIterations = 0;
       lResult = $;
 
@@ -1431,14 +1659,28 @@ messages:
             continue;
          }
 
+         iArrive = Nth(lBest,7);
          iDoor = 0;
          foreach lDoor in First(lRoomInfo)
          {
             ++iDoor;
             iNextRid = Nth(lDoor,6);
-            if Nth(lDoor,4) <> 1 OR Send(self,@PBotDoorsOf,#rid=iNextRid) = $
+            lNextInfo = Send(self,@PBotDoorsOf,#rid=iNextRid);
+            if Nth(lDoor,4) <> 1 OR lNextInfo = $
             {
                continue;
+            }
+
+            // a bot that came in on an arrival square from which this door cannot be reached does not take it
+            if iArrive <> 0 AND FindListElem(Nth(lDoor,10),iArrive)
+            {
+               continue;
+            }
+
+            iNextArrive = 0;
+            if Nth(lNextInfo,5)
+            {
+               iNextArrive = Nth(lDoor,7) * 1000 + Nth(lDoor,8);
             }
 
             iCost = Nth(lBest,2) + 1;
@@ -1452,7 +1694,7 @@ messages:
             iExisting = $;
             foreach lState in lStates
             {
-               if First(lState) = iNextRid
+               if First(lState) = iNextRid AND Nth(lState,7) = iNextArrive
                {
                   iExisting = lState;
                }
@@ -1460,7 +1702,7 @@ messages:
 
             if iExisting = $
             {
-               lStates = Cons([iNextRid,iCost,iDamage,iFirst,iScore,FALSE],lStates);
+               lStates = Cons([iNextRid,iCost,iDamage,iFirst,iScore,FALSE,iNextArrive],lStates);
             }
             else if NOT Nth(iExisting,6) AND iScore < Nth(iExisting,5)
             {
@@ -1476,7 +1718,10 @@ messages:
       {
          foreach lState in lStates
          {
-            lResult = Cons(First(lState),lResult);
+            if FindListElem(lResult,First(lState)) = 0
+            {
+               lResult = Cons(First(lState),lResult);
+            }
          }
       }
 
@@ -3061,6 +3306,8 @@ messages:
       {
          Send(self,@PBotThink,#id=First(i));
       }
+
+      Send(self,@PBotChatterTick);
 
       iWant = 0;
       if piTownLife >= 1

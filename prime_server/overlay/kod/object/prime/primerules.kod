@@ -85,6 +85,12 @@ properties:
    pbBotSocialSay = TRUE
    // Bot social: TRUE = a bot waves and says hello to a player near it (one greeting per player every 1-5 minutes, from any bot, also while it walks)
    pbBotSocialGreet = TRUE
+   // Bot social: TRUE = now and then (every 1-5 minutes, only while a real player is online) two to four bots hold a short chat on the world-wide broadcast channel, or one calls out a line
+   pbBotSocialBroadcast = TRUE
+   // Bot social: TRUE = a bot answers a player's hello or goodbye said in its room or told to it, and one bot answers a player's broadcast greeting (templates, one bot per line)
+   pbBotSocialReply = TRUE
+   // Broadcast: seconds a player (not a DM) must wait between two broadcasts; broadcasting costs no mana. The bots' broadcasts obey it too. 0 = no wait
+   piBroadcastCooldownSecs = 5
    // Playerbot hunting (owner, 2026-11-01), all in percent: a hunter only picks a foe whose time to kill times piBotHuntMargin is still under its own time to die
    // (200: it must win in half the time it would take to lose); a creature that blocks a bot's way is fought only when the same test with piBotFightMargin
    // passes (140); a bot that fights a blocker below piBotFleePct of its health gives the fight up and flees (35).
