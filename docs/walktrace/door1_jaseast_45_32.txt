@@ -1,0 +1,1 @@
+t+   0.4s room 350 square 44,36 fine 32,32 angle 2048

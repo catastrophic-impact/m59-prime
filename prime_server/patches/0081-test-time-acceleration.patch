@@ -1,0 +1,124 @@
+--- a/blakserv/time.c
++++ b/blakserv/time.c
+@@ -29,9 +29,63 @@
+     */
+ }
+ 
++/* PRIME (patch 0081): TEST-ONLY TIME ACCELERATION. While a file timescale.txt (one number, e.g. 30) exists in the server folder, the server's clock runs that many times
++   faster: GetTime() and GetMilliCount() (every timer, regeneration, respawn, bot tick) use one virtual clock. The file is read once per real second; when the number
++   changes the clock is rebased, so time never jumps. No file = factor 1 = real time. Use only on the test server (a savegame made while accelerated holds future times: wipe it). */
++static double ts_scale = 1.0, ts_real0 = 0.0, ts_virt0 = 0.0;
++static time_t ts_checked = 0;
++
++static double RealMsNow()
++{
++#ifdef BLAK_PLATFORM_WINDOWS
++	return (double)time(NULL) * 1000.0;
++#else
++	struct timeval tv;
++	gettimeofday(&tv, NULL);
++	return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
++#endif
++}
++
++static double VirtMsNow()
++{
++	double r = RealMsNow();
++	time_t sec = (time_t)(r / 1000.0);
++
++	if (ts_real0 == 0.0)
++	{
++		ts_real0 = r;
++		ts_virt0 = r;
++	}
++	if (sec != ts_checked)
++	{
++		ts_checked = sec;
++		double want = 1.0;
++		FILE *f = fopen("timescale.txt", "r");
++		if (f)
++		{
++			double v;
++			if (fscanf(f, "%lf", &v) == 1 && v >= 1.0 && v <= 1000.0)
++				want = v;
++			fclose(f);
++		}
++		if (want != ts_scale)
++		{
++			ts_virt0 = ts_virt0 + (r - ts_real0) * ts_scale;
++			ts_real0 = r;
++			ts_scale = want;
++		}
++	}
++	return ts_virt0 + (r - ts_real0) * ts_scale;
++}
++
++double GetTimeScale()
++{
++	return ts_scale;
++}
++
+ int GetTime()
+ {
+-	return (int)time(NULL);
++	return (int)(VirtMsNow() / 1000.0);
+ }
+ 
+ const char * TimeStr(time_t time)
+@@ -127,33 +181,7 @@
+ 
+ UINT64 GetMilliCount()
+ {
+-#ifdef BLAK_PLATFORM_WINDOWS
+-   
+-	static LARGE_INTEGER frequency;
+-	LARGE_INTEGER now;
+-
+-	if (frequency.QuadPart == 0)
+-		QueryPerformanceFrequency(&frequency);
+-
+-	if (frequency.QuadPart == 0)
+-	{
+-		eprintf("GetMilliCount can't get frequency\n");
+-		return 0;
+-	}
+-
+-	QueryPerformanceCounter(&now);
+-	return (now.QuadPart*1000)/frequency.QuadPart;
+-
+-#else
+-
+-   struct timeval tv;
+-   gettimeofday(&tv, NULL);
+-   
+-   double time_in_ms = tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
+-
+-   return (UINT64) time_in_ms;
+-   
+-#endif
++   return (UINT64)VirtMsNow();
+ }
+ 
+ double GetMicroCountDouble()
+--- a/blakserv/timer.c
++++ b/blakserv/timer.c
+@@ -406,6 +406,9 @@
+             ms = 500;
+       }	 
+       
++      if (GetTimeScale() > 1.0)
++         ms = (int)(ms / GetTimeScale());      /* PRIME patch 0081: the wait is real time, the timers are on the accelerated clock */
++
+       if (WaitForAnyMessageWithTimeout(ms))
+       {
+          while (MessagePeek(&msg,NULL,0,0,PM_REMOVE))
+--- a/blakserv/btime.h
++++ b/blakserv/btime.h
+@@ -15,6 +15,7 @@
+ 
+ void InitTime();
+ int GetTime();
++double GetTimeScale();     /* PRIME patch 0081: test-only clock factor (1 = real time) */
+ 
+ const char * TimeStr(time_t time);
+ const char * ShortTimeStr(time_t time);

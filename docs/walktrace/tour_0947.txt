@@ -1,0 +1,68 @@
+TOUR of 10 dead doors; the character is object 6314
+=== DOOR 1/10: room jaseast (350) kind DOOR door square 45,32 -> jaswest; you stand at 44,33 facing it. Walk to it and use it.
+  t+  0.4s room 350 square 44,33 fine 32,32 angle 1536
+  t+ 33.0s room 350 square 44,33 fine 32,29 angle 2028
+  t+ 33.5s room 350 square 44,32 fine 32,16 angle 2028
+  t+ 34.5s room 382 square 51,35 fine 32,32 angle 2028
+  --> LEFT the room: now in room 382 at 51,35  (door 45,32 WORKS)
+=== DOOR 2/10: room forest4 (4) kind ZONE door square 57,49 -> forest3; you stand at 47,4 facing it. Walk to it and use it.
+  t+  0.4s room 4 square 47,4 fine 32,32 angle 143
+  t+ 10.9s room 4 square 47,4 fine 35,32 angle 991
+  t+ 11.4s room 6 square 7,55 fine 32,48 angle 991
+  --> LEFT the room: now in room 6 at 7,55  (door 57,49 WORKS)
+=== DOOR 3/10: room temple (48) kind EDGE door square 10,33 -> c4; you stand at 9,31 facing it. Walk to it and use it.
+  t+  0.4s room 48 square 9,31 fine 32,32 angle 302
+  t+  2.1s room 48 square 9,31 fine 30,34 angle 3671
+  t+  2.6s room 48 square 9,31 fine 13,51 angle 3462
+  t+  3.0s room 48 square 8,32 fine 38,14 angle 3487
+  t+  3.6s room 534 square 20,15 fine 32,32 angle 691
+  --> LEFT the room: now in room 534 at 20,15  (door 10,33 WORKS)
+=== DOOR 4/10: room a5 (515) kind EDGE door square 48,27 -> a6; you stand at 50,31 facing it. Walk to it and use it.
+  t+  0.4s room 515 square 50,31 fine 32,32 angle 2350
+  t+  3.5s room 515 square 50,31 fine 33,34 angle 408
+  t+  4.0s room 516 square 1,20 fine 32,32 angle 410
+  --> LEFT the room: now in room 516 at 1,20  (door 48,27 WORKS)
+=== DOOR 5/10: room a6 (516) kind ZONE door square 0,20 -> a5; you stand at 1,20 facing it. Walk to it and use it.
+  t+  0.2s room 516 square 1,20 fine 32,32 angle 3072
+  t+  3.4s room 515 square 50,31 fine 32,32 angle 3072
+  --> LEFT the room: now in room 515 at 50,31  (door 0,20 WORKS)
+=== DOOR 6/10: room g9 (579) kind EDGE door square 37,74 -> h9; you stand at 39,71 facing it. Walk to it and use it.
+  t+  0.4s room 579 square 39,71 fine 32,32 angle 3713
+  t+  3.1s room 579 square 39,71 fine 33,29 angle 1630
+  t+  3.5s room 579 square 39,70 fine 56,61 angle 1757
+  t+  4.0s room 579 square 40,70 fine 8,16 angle 1843
+  t+  4.4s room 579 square 40,68 fine 36,59 angle 1824
+  t+  4.9s room 579 square 40,68 fine 39,51 angle 3932
+  t+  5.3s room 579 square 40,69 fine 21,30 angle 3705
+  t+  5.7s room 579 square 39,70 fine 52,48 angle 11
+  t+  6.2s room 579 square 39,72 fine 50,10 angle 3986
+  t+  6.6s room 579 square 39,72 fine 42,55 angle 3982
+  t+  7.1s room 579 square 39,74 fine 29,17 angle 3982
+  t+  7.6s room 589 square 46,5 fine 32,32 angle 4039
+  --> LEFT the room: now in room 589 at 46,5  (door 37,74 WORKS)
+=== DOOR 7/10: room h7 (587) kind ZONE door square 17,6 -> cave2; you stand at 19,3 facing it. Walk to it and use it.
+  t+  0.4s room 587 square 19,3 fine 32,32 angle 3713
+  t+  3.0s room 587 square 19,3 fine 29,31 angle 2910
+  t+  3.5s room 587 square 18,3 fine 60,25 angle 2975
+  t+  3.9s room 587 square 18,3 fine 15,20 angle 3077
+  t+  4.5s room 27 square 57,46 fine 17,32 angle 3077
+  --> LEFT the room: now in room 27 at 57,46  (door 17,6 WORKS)
+=== DOOR 8/10: room desertriver1 (1510) kind ZONE door square 1,14 -> waylayoasis; you stand at 37,18 facing it. Walk to it and use it.
+  t+  0.4s room 1510 square 37,18 fine 32,32 angle 3000
+  t+  3.5s room 1510 square 37,18 fine 32,32 angle 871
+  t+  3.9s room 1510 square 37,18 fine 55,33 angle 827
+  t+  4.5s room 1511 square 4,17 fine 59,16 angle 1197
+  --> LEFT the room: now in room 1511 at 4,17  (door 1,14 WORKS)
+=== DOOR 9/10: room desertriver1 (1510) kind ZONE door square 1,21 -> waylayoasis; you stand at 37,18 facing it. Walk to it and use it.
+  t+  0.2s room 1510 square 37,18 fine 32,32 angle 3126
+  t+  3.3s room 1510 square 37,18 fine 32,32 angle 860
+  t+  3.8s room 1510 square 37,18 fine 51,37 angle 774
+  t+  4.2s room 1511 square 4,17 fine 11,23 angle 826
+  --> LEFT the room: now in room 1511 at 4,17  (door 1,21 WORKS)
+=== DOOR 10/10: room mardun03 (2602) kind DOOR door square 35,27 -> marcrypt4; you stand at 31,17 facing it. Walk to it and use it.
+  t+  0.4s room 2602 square 31,17 fine 32,32 angle 248
+  t+  7.1s room 2602 square 31,17 fine 29,32 angle 3211
+  t+  7.5s room 2602 square 30,17 fine 45,41 angle 3251
+  t+  8.1s room 2601 square 37,27 fine 32,32 angle 3251
+  --> LEFT the room: now in room 2601 at 37,27  (door 35,27 WORKS)
+TOUR DONE

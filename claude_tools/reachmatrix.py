@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """REACH MATRIX BY THE PLANNER'S OWN RULES: for every room, from EVERY arrival square (every square the GAME's door and edge exit tables put a player on: docs/kod_exits.json from kodexits.py) the server's planner is asked for a way to EVERY door / edge landing
 of that room. (The grid lattice of roomreach.py says 'reachable' where the planner says 'no way' in about a third of the cases; bots live by the planner.) TEST SERVER ONLY (it sets test bots down):
-  PRIME_ADMIN_PORT=9998 PRIME_SERVER_DIR=server2 python claude_tools/reachmatrix.py [ROOM ..] [--all-open | --all-baked] [--out docs/reach_matrix] [--write-trap] [--workers 4]
+  PRIME_ADMIN_PORT=9998 PRIME_SERVER_DIR=server2 python claude_tools/reachmatrix.py [ROOM ..] [--all-open | --all-baked] [--out docs/reach_matrix] [--write-trap] [--workers 4] [--full] [--merge]
 Method: a test bot is put down EXACTLY on the arrival square (PBotTestPlace; PBotTestPath would move a bot out of a pocket) and told to walk to the door (PlayerBot.TestPathTo): the first plan is made at once and PathState says 3 = no way.
-To stay short each arrival tries doors until one has a way, then only the doors no earlier arrival reached. An arrival the bot cannot be put on exactly is listed as 'unplaceable' (not judged).
+To stay short each arrival tries doors until one has a way, then only the doors no earlier arrival reached (--full tests EVERY arrival x door pair: the short way left pairs untested, e.g. 578 (46,18) to its portal (46,47), found 2026-11-03 by botwatch; --merge puts the rooms of this run into the existing matrix.json instead of replacing it). An arrival the bot cannot be put on exactly is listed as 'unplaceable' (not judged).
 Output: docs/reach_matrix/matrix.json and report.md: per room the arrivals with NO way to any door (SEALED ARRIVAL: a bot put down there can never leave), the doors NO arrival can reach (DEAD DOOR),
 and the single failing pairs (partial). 'Doors' include edge exits (their landing square) and portals; arrivals that are also door squares count as doors reached by themselves.
 --write-trap writes the sealed landings and the POCKETS (reach under a third of the room's doors) as [destRid, row, col] to docs/trap_landings.json, which navbake.ts (via navrebake.sh) keeps bots from using. Use it after ANY change to the walker, the planner or the nav data; feed the sealed arrivals/dead doors into docs/world_map_exclusions.json (worldmap.py) after the owner has seen them."""
@@ -48,7 +48,7 @@ async def place_exact(sc, bot, body, rid, a, tries=60):
         if k % 20 == 19: await sc.L.run(f"send object {sc.prime} PBotTestPlace id int {bot} rid int {rid} row int {a[0]} col int {a[1]} hp int 99999")
     return False
 
-async def check_room(sc, bot, bake, rid):
+async def check_room(sc, bot, bake, rid, full=False):
     """arrivals x doors, cheaply: each arrival tries doors until one has a way (then only the doors no earlier arrival has reached); a bot is put down EXACTLY on the arrival before every try"""
     arr, doors = room_pairs(bake, rid)
     if not arr or not doors: return {"rid": rid, "name": bake[rid]["name"], "skipped": "no arrivals" if not arr else "no doors"}
@@ -58,7 +58,7 @@ async def check_room(sc, bot, bake, rid):
         for d in sorted(doors):
             if a == d: res[(a, d)] = "same"; reached.add(d); ok_any = True; continue
             if ((a[0] - d[0]) ** 2 + (a[1] - d[1]) ** 2) ** 0.5 <= 1.5: res[(a, d)] = "near"; reached.add(d); continue   # a door walk ends within 1.5 squares of the door: the bot is there already (the planner answers 'no way' for a goal it stands at)
-            if ok_any and d in reached: continue
+            if ok_any and d in reached and not full: continue
             if not await place_exact(sc, bot, body, rid, a):
                 unplaceable.append(list(a)); break
             await sc.L.run(f"send object {body} TestPathTo iRow int {d[0]} iCol int {d[1]}")
@@ -106,7 +106,7 @@ async def main():
             rid = queue.pop(0); r = None
             for tries in range(3):
                 if not mine: break
-                r = await check_room(sc, mine[bi % len(mine)], bake, rid)
+                r = await check_room(sc, mine[bi % len(mine)], bake, rid, "--full" in a)
                 if r.get("skipped") == "placement did not take": bi += 1; continue
                 break
             r = r or {"rid": rid, "skipped": "no test bot could be placed"}; results[rid] = r
@@ -114,6 +114,9 @@ async def main():
             print(f"[{int(time.time() - t0):>5}s] {len(results)}/{len(rooms)} room {rid} {r.get('name', '')[:28]}: " + (r.get("skipped") or f"{len(r['pairs'])} tries, {len(r['noway_pairs'])} no way" + (f", unplaceable {r['unplaceable']}" if r['unplaceable'] else "")) + flag, flush=True)
     await asyncio.gather(*[worker(w) for w in range(nw)])
     for sc in scs: await sc.close()
+    if "--merge" in a:
+        old = os.path.join(outd, "matrix.json")
+        if os.path.exists(old): results = {**{e["rid"]: e for e in json.load(open(old))}, **results}
     results = [results[k] for k in sorted(results)]; json.dump(results, open(os.path.join(outd, "matrix.json"), "w"))
     L = [f"# Reach matrix by the planner ({time.strftime('%Y-%m-%d %H:%M')}), {len(results)} rooms", "",
          "SEALED ARRIVAL = a bot put down there has no way to any door of the room. DEAD DOOR = no arrival square of the room has a way to it.", ""]

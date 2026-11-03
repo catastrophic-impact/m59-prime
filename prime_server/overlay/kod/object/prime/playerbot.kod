@@ -456,6 +456,12 @@ properties:
    piHuntMyHp = 0
    piHuntLook = 0
    poWalkFoe = $
+   // THE APPROACH (owner's mob pathfinding complaint, 2026-11-03): the monster brain's own chase gets nowhere in a crowded room (it walks into other mobs and bots), so a chase that gains nothing in 3 s is replaced
+   // by OUR planner walking to the foe (pbApproach, goal = the foe's square, renewed each second) until it is within 3 squares; then the brain's short chase takes over. poApproachFoe/piApproachTries: two approaches per foe, then it is let be as before
+   pbApproach = FALSE
+   poApproachFoe = $
+   piApproachTries = 0
+   piApproachLook = 0
    plHuntSkip = $
    // Hunting: foes beaten on this hunt; where the last one fell and until when (GetTime()) its drops are worth picking up; ticks spent on that
    piKills = 0
@@ -626,6 +632,7 @@ messages:
    {
       Send(self,@Trace,#what="stop moving: was phase",#a=piPhase,#b="doing",#c=piDoing,#d="at",#e=Send(self,@GetRow),#f=Send(self,@GetCol));
       plNavDoor = $;
+      pbApproach = FALSE;
       piPhase = PBH_IDLE;
       piStuck = 0;
       piBestDist2 = 0;
@@ -1192,7 +1199,7 @@ messages:
    PathStepInner()
    "PATH PROTOTYPE (test speed): twelve steps (16 fine units each) towards the next point of the planned way; the way is planned again when there is none, the point is reached, or the server refused a step."
    {
-      local iAr, iAc, iBr, iBc, iDr, iDc, iDist, iNr, iNc, iFr, iFc, iTry, iMax, iGr, iGc, iGfr, iGfc, iOk, iMoved, iEx, iO1, iO2, iO3, iO4;
+      local iAr, iAc, iBr, iBc, iDr, iDc, iDist, iNr, iNc, iFr, iFc, iTry, iMax, iGr, iGc, iGfr, iGfc, iOk, iMoved, iEx, iEx2, iO1, iO2, iO3, iO4;
 
       if piPathState = 6 AND poOwner <> $
       {
@@ -1320,6 +1327,34 @@ messages:
             // the reason: 0 allowed, 1 a wall (o1..o4 = its two end points, roo units), 2 a body (o1 = object, o2/o3 = its position), 3 no room data
             iEx = ExplainMoveBSP(Send(poOwner,@GetRoomData),iAr / FINENESS,iAc / FINENESS,iAr - (iAr / FINENESS) * FINENESS,iAc - (iAc / FINENESS) * FINENESS,
                                  iNr / FINENESS,iNc / FINENESS,iFr,iFc,self,*iO1,*iO2,*iO3,*iO4);
+            // a WALL (or a bot / player standing in the way: no monster, those are PathBlocked's) keeps it off its goal square again and again (the goal lies in or behind the wall line: a hunting spot,
+            // 2026-11-03 room 74 at 2,5; or another bot stands on the way to the spot, room 382): within a square of the goal (two for a body) is as good as there
+            if (iEx = 1 OR iEx = 2) AND piPathSlides >= 12
+            {
+               iDr = piPathRow * FINENESS + piPathFr - iAr;
+               iDc = piPathCol * FINENESS + piPathFc - iAc;
+               iEx2 = FINENESS;
+               if iEx = 2 OR plNavDoor <> $
+               {
+                  iEx2 = 2 * FINENESS;
+               }
+
+               if Abs(iDr) <= iEx2 AND Abs(iDc) <= iEx2 AND (iEx = 1 OR Send(self,@PathFindBlocker) = $)
+               {
+                  piPathState = 5;
+                  Send(self,@Trace,#what="PLANNER wall or body keeps it off the goal: next to it is as good as there, slides",#a=piPathSlides);
+                  Send(self,@Arrived);
+
+                  return;
+               }
+            }
+
+            // a CREATURE keeps blocking after 40 slides/sidesteps: fight it or flee NOW (2026-11-03 room 2813: a hurt bot sidestepped a Spinebeast for minutes because the sidestep kept succeeding and this check only ran after a failed one)
+            if iEx = 2 AND piPathSlides >= 40 AND Send(self,@PathBlocked)
+            {
+               return;
+            }
+
             if (iEx = 1 AND Send(self,@PathSlide,#iAr=iAr,#iAc=iAc,#iNr=iNr,#iNc=iNc,#iO1=iO1,#iO2=iO2,#iO3=iO3,#iO4=iO4))
                OR (iEx = 2 AND Send(self,@PathSidestep,#iAr=iAr,#iAc=iAc,#iNr=iNr,#iNc=iNc,#iBodyX=iO2,#iBodyY=iO3))
             {
@@ -1725,6 +1760,74 @@ messages:
       return;
    }
 
+   ApproachFoe(oFoe = $)
+   "The chase got nowhere: drop it and walk to the foe with the planner (pbApproach, WalkStep keeps the goal on the foe). FALSE after two approaches to the same foe (it is let be then)."
+   {
+      if oFoe <> poApproachFoe
+      {
+         poApproachFoe = oFoe;
+         piApproachTries = 0;
+      }
+
+      if piApproachTries >= 2 OR pbFleeing
+      {
+         return FALSE;
+      }
+
+      ++piApproachTries;
+      Send(self,@Trace,#what="hunt: the chase is stuck, the planner walks to the foe, try",#a=piApproachTries,#b="foe at",#c=Send(oFoe,@GetRow),#d=Send(oFoe,@GetCol));
+      Send(self,@EnterStateWait,#actnow=TRUE);
+      pbApproach = TRUE;
+      piApproachLook = GetTime();
+      poWalkFoe = oFoe;
+      piDoing = PBD_HUNT;
+      plNavDoor = $;
+      Send(self,@WalkTo,#iRow=Send(oFoe,@GetRow),#iCol=Send(oFoe,@GetCol),#iFr=Send(oFoe,@GetFineRow),#iFc=Send(oFoe,@GetFineCol));
+
+      return TRUE;
+   }
+
+   ApproachStep()
+   "WalkStep of an approach: TRUE when the walk is over (the foe is near, gone or taken), FALSE to go on stepping. The goal follows the foe."
+   {
+      local oFoe, iDist;
+
+      oFoe = poWalkFoe;
+      if oFoe = $ OR poOwner = $ OR Send(oFoe,@GetOwner) <> poOwner OR poTarget <> $
+      {
+         pbApproach = FALSE;
+         poWalkFoe = $;
+         Send(self,@StopMoving,#bHold=FALSE);
+
+         return TRUE;
+      }
+
+      iDist = Send(self,@SquaredFineDistanceTo3D,#what=oFoe);
+      if iDist <= 9 * FINENESS_SQUARED
+      {
+         pbApproach = FALSE;
+         poWalkFoe = $;
+         Send(self,@Trace,#what="hunt: the planner has brought it near the foe, the chase takes over");
+         Send(self,@StopMoving,#bHold=FALSE);
+
+         return TRUE;
+      }
+
+      if GetTime() <> piApproachLook
+      {
+         piApproachLook = GetTime();
+         piPathRow = Send(oFoe,@GetRow);
+         piPathCol = Send(oFoe,@GetCol);
+         piPathFr = Send(oFoe,@GetFineRow);
+         piPathFc = Send(oFoe,@GetFineCol);
+         piPathWpR = 0;
+         piBestDist2 = 0;
+         piStuck = 0;
+      }
+
+      return FALSE;
+   }
+
    HuntFight(iPct = 100)
    "Something is on it: give up a foe it cannot reach, run for a door when badly hurt (it fights back if followed)."
    {
@@ -1766,6 +1869,10 @@ messages:
          // getting closer (by more than a square)
          piHuntDistBest = iDist;
          piHuntDistAt = GetTime();
+      }
+      else if GetTime() - piHuntDistAt >= 3 AND iDist > 9 * FINENESS_SQUARED AND Send(self,@ApproachFoe,#oFoe=poTarget)
+      {
+         return;
       }
       else if GetTime() - piHuntDistAt >= 8 AND iDist > 9 * FINENESS_SQUARED
       {
@@ -3130,7 +3237,7 @@ messages:
    }
 
    GoToDoor(lDoor = $,doing = 1)
-   "Walk to a door of this room: to its square (it never steps on it: within a square and a half the walk is over, WalkStep, and the registry puts it through)."
+   "Walk to a door of this room: onto its square (arrived at half a square of its middle, WalkStep; then the registry puts it through into the next room)."
    {
       piDoing = doing;
       if doing = PBD_ERRAND
@@ -3155,7 +3262,22 @@ messages:
    WalkStep()
    "Walking, every tick: hunters stop for a foe, a hurt traveller runs, at a door the walk ends within a square and a half, else one step of the planner (PathStep). A walk that gets no closer for PB_WALK_STALL_TICKS ticks is given up."
    {
-      local iDr, iDc, iDist2, oFoe;
+      local iDr, iDc, iDist2, oFoe, iRoomNum;
+
+      // the GAME carried the body into another room (it stepped onto an exit square, as a player does; or any other cause): its own record follows, exactly as when the registry puts it through a door
+      if poOwner <> $
+      {
+         iRoomNum = Send(poOwner,@GetRoomNum);
+         if iRoomNum <> piNavRid AND iRoomNum <> 0 AND piNavRid <> RID_UNDERWORLD
+         {
+            Send(self,@Trace,#what="the game moved the body into room",#a=iRoomNum,#b="from",#c=piNavRid);
+            plNavDoor = $;
+            Send(self,@EnterStateWait);
+            Send(self,@StartLife,#rid=iRoomNum,#row=Send(self,@GetRow),#col=Send(self,@GetCol));
+
+            return;
+         }
+      }
 
       if piPathState <> 1 AND piPathState <> 6
       {
@@ -3165,8 +3287,13 @@ messages:
          return;
       }
 
+      if pbApproach AND Send(self,@ApproachStep)
+      {
+         return;
+      }
+
       // hunting: set upon on the way between two spots, it stops and fights
-      if piDoing = PBD_HUNT AND poTarget <> $ AND NOT pbFleeing
+      if piDoing = PBD_HUNT AND poTarget <> $ AND NOT pbFleeing AND NOT pbApproach
       {
          Send(self,@StopMoving,#bHold=FALSE);
 
@@ -3174,7 +3301,7 @@ messages:
       }
 
       // hunting, on the way to a far foe or round the room: a foe in sight ends the walk (HuntStep then fights it)
-      if piDoing = PBD_HUNT AND poTarget = $ AND NOT pbFleeing AND GetTime() <> piHuntLook
+      if piDoing = PBD_HUNT AND poTarget = $ AND NOT pbFleeing AND NOT pbApproach AND GetTime() <> piHuntLook
       {
          piHuntLook = GetTime();
          oFoe = Send(self,@HuntFoe);
@@ -3197,14 +3324,16 @@ messages:
          piTravelHp = Send(self,@GetHealth);
       }
 
-      // a door's square lies in the room's wall line and is not floor to the planner: within a square and a half of its middle the walk is over
+      // a door: the bot walks ONTO the door square (owner 2026-11-03: it used to be put through from a square and a half away, a shortcut). Arrived at half a square of the square's middle;
+      // when something keeps it off the square (a wall or body within two squares: PathStepInner's 'next to it is as good as there', state 5) the old rule still ends the walk, and the trace says how far away it was
       if plNavDoor <> $
       {
          iDr = (Send(self,@GetRow) * FINENESS + Send(self,@GetFineRow)) - (First(plNavDoor) * FINENESS + FINENESS_HALF);
          iDc = (Send(self,@GetCol) * FINENESS + Send(self,@GetFineCol)) - (Nth(plNavDoor,2) * FINENESS + FINENESS_HALF);
-         if iDr * iDr + iDc * iDc <= (FINENESS + FINENESS_HALF) * (FINENESS + FINENESS_HALF)
+         if iDr * iDr + iDc * iDc <= FINENESS_HALF * FINENESS_HALF
          {
             piPathState = 2;
+            Send(self,@Trace,#what="door: standing on the door square, away (fine units squared)",#a=iDr * iDr + iDc * iDc);
             Send(self,@Arrived);
 
             return;
@@ -3414,6 +3543,7 @@ messages:
       oPrime = Send(SYS,@GetPrime);
       bDead = (piDoing = PBD_DEAD);
       piAbandon = 0;
+      pbApproach = FALSE;
       poWalkFoe = $;
       lDoor = plNavDoor;
       plNavDoor = $;

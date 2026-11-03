@@ -1,0 +1,10 @@
+{
+ "_note": "Exit squares the GAME itself fired when the owner walked out (claude_tools/doortour.py trace, live server, 2026-11-03): { 'room:destination': [row, col] }. They replace the baked door square for exits at a room border where the baker's own square is beyond the floor.",
+ "exits": {
+  "temple:c4": [8, 32],
+  "a5:a6": [50, 31],
+  "a6:a5": [1, 20],
+  "g9:h9": [39, 74],
+  "h7:cave2": [18, 3]
+ }
+}

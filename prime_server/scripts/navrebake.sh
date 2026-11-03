@@ -4,7 +4,8 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 W="${PRIME_WORK:-$HOME/boxes/m59-box/src/prime_work}"
 OV="$HERE/../prime_client/overlay/tools/prime"
 mkdir -p "$W/client_build/tree/tools/prime" "$W/navtmp"
-cp "$OV/navbake.ts" "$OV/roomzones.json" "$W/client_build/tree/tools/prime/"
+cp "$OV/navbake.ts" "$OV/roomzones.json" "$OV/exit_overrides.json" "$W/client_build/tree/tools/prime/"
+cp "$HERE/../docs/exit_audit/squares.json" "$W/client_build/tree/tools/prime/exit_squares.json" 2>/dev/null || echo '{}' > "$W/client_build/tree/tools/prime/exit_squares.json"
 mkdir -p "$W/navtmp/navprobe"; cp "$OV"/navprobe/*_x2.json "$W/navtmp/navprobe/" 2>/dev/null
 if [ -n "$NAV_NO_BLOCKED" ]; then echo '{}' > "$W/navtmp/navhard.json"; echo '{}' > "$W/navtmp/navprune.json"; else cp "$OV/navhard.json" "$OV/navprune.json" "$W/navtmp/" 2>/dev/null; fi
 if [ -n "$NAV_NO_BLOCKED" ]; then echo '{}' > "$W/navtmp/navblocked.json"; else cp "$OV/navblocked.json" "$W/navtmp/navblocked.json" 2>/dev/null || echo '{}' > "$W/navtmp/navblocked.json"; fi

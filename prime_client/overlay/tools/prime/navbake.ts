@@ -5,7 +5,8 @@
 // Options: --closer N (cells closed round a server-refused point, default 1), --relax / --hard <file> / --prune <file> (relaxed rooms routes, server-checked: see claude_dev_notes.txt SESSION 14).
 // Per room: nodes on its walkable floor, routes between neighbouring nodes, and links to other rooms. Town regions remain separately listed for current town-life behavior.
 import { readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { FINENESS, SF, parseRoo } from "../../packages/formats/src/index.ts";
 import { buildNavGrid, cellAt, cellCentre, findCells, isOpen, nearestCell, walkable as walkableGeom, type NavGrid } from "../../packages/world/src/navGrid.ts";
@@ -15,6 +16,11 @@ const { values: o } = parseArgs({
   options: { probe: { type: "string" }, assets: { type: "string" }, kod: { type: "string" }, out: { type: "string" }, json: { type: "string" }, blocked: { type: "string" }, objects: { type: "string" }, closer: { type: "string" }, relax: { type: "boolean" }, hard: { type: "string" }, prune: { type: "string" }, landings: { type: "string" }, trap: { type: "string" }, noway: { type: "string" }, edges: { type: "string" } },
 });
 const ASSETS = o.assets!, KOD = o.kod!;
+// ZONE EXITS (prime_server/scripts/extract_zones.py from the Kod): a room's SomethingMoved sends a body that steps on ANY square satisfying a condition (Marion: row > 83 and col > 48 goes to c5). roomexits.json
+// holds only a CORNER square of such a zone ((84,49) in Marion, which lies in a floor pocket nobody can walk to): the door square of a zone exit is a floor square INSIDE the zone that the main floor reaches.
+const SQUARES: Record<string, Record<string, [number, number]>> = (() => { try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "exit_squares.json"), "utf8")); } catch { return {}; } })();
+const OVR: Record<string, [number, number]> = (() => { try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "exit_overrides.json"), "utf8")).exits ?? {}; } catch { return {}; } })();
+const ZONES: Record<string, { to: string; when: string }[]> = (() => { try { return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "roomzones.json"), "utf8")).zones ?? {}; } catch { return {}; } })();
 // THE GAME'S OWN EXIT TABLES (claude_tools/kodexits.py -> docs/kod_exits.json): per room, the door squares with the square each one lands on, and the edge exits with theirs. A door of the bake takes the landing
 // of the nearest real door square (not a guess per room pair). TRAP = landings the planner cannot leave (claude_tools/reachmatrix.py): [destRid, row, col]; a door whose own landing is a trap takes another
 // square's landing of the same pair, or is dropped.
@@ -270,8 +276,17 @@ function bake(roo: string, rid: number, kind: Graph["kind"], region: number, byR
     if (c >= 0 && g.area[c]) hits.set(g.area[c], (hits.get(g.area[c]) ?? 0) + w);
   };
   for (const d of groups) {
-    const row = Math.round(mean(d.rows)), col = Math.round(mean(d.cols));
-    const at = { x: (mean(d.cols) - 1) * SQ + SQ / 2, y: (mean(d.rows) - 1) * SQ + SQ / 2 };
+    let row = Math.round(mean(d.rows)), col = Math.round(mean(d.cols));
+    // a doorway is often several adjacent squares the game lists with one landing; the AVERAGE square can be one no body can walk to (Jixa inn (9,8) of (8,8)+(9,8), the floor ends at row 8): the door
+    // square is the member the planner reaches from the most arrival squares (docs/exit_audit/squares.json from claude_tools/exitaudit.py), the one nearest the average on a tie
+    const sqr = SQUARES[String(rid)];
+    if (sqr && d.rows.length > 0) {
+      let bk = -1, bs = -1, bd = Infinity;
+      d.rows.forEach((r0, k) => { const v = sqr[`${r0},${d.cols[k]}`]; if (!v) return; const sc = v[1] ? v[0] / v[1] : 0, dd = Math.hypot(r0 - mean(d.rows), d.cols[k] - mean(d.cols)); if (sc > bs + 1e-9 || (Math.abs(sc - bs) < 1e-9 && dd < bd)) { bk = k; bs = sc; bd = dd; } });
+      const cur = sqr[`${row},${col}`]; const curSc = cur && cur[1] ? cur[0] / cur[1] : -1;   // (the average square stays unless a member is better: no churn)
+      if (bk >= 0 && bs > curSc + 1e-9 && (d.rows[bk] !== row || d.cols[bk] !== col)) { console.log(`  ${roo}: door to ${d.to}: square ${row},${col} -> ${d.rows[bk]},${d.cols[bk]} (the member of the doorway the planner reaches from ${Math.round(bs * 100)} percent of the arrivals)`); row = d.rows[bk]; col = d.cols[bk]; }
+    }
+    const at = { x: (col - 1) * SQ + SQ / 2, y: (row - 1) * SQ + SQ / 2 };
     // a door square on (or next to) the room border is a border crossing too: its square may be wall, so it is placed like an edge exit (below), near its own position
     const borderSide = row <= 2 ? "N" : row >= room.rows - 1 ? "S" : col <= 2 ? "W" : col >= room.cols - 1 ? "E" : undefined;
     doorAt.push({ at, to: d.to, row, col, borderSide, land: d.land });
@@ -565,13 +580,44 @@ function bake(roo: string, rid: number, kind: Graph["kind"], region: number, byR
     const ov0 = probed?.[`${toRoo}:${d.edgeSide}`];
     const ov = ov0 && kxO?.length && edgeTaken(kxO, d.edgeSide!, ov0[0], ov0[1]) !== byRoo.get(toRoo) ? undefined : ov0;      // (a probed landing on a square the game sends elsewhere is not used)
     if (probed && !ov0) { console.log(`  ${roo}: edge exit ${d.edgeSide} to ${toRoo} dropped: no square on that side can be reached by the planner (edgeprobe.py)`); continue; }
-    const sq = isEdge ? (ov ? { row: ov[0], col: ov[1] } : nodes[node]) : { row: d.row, col: d.col };
+    let sq = isEdge ? (ov ? { row: ov[0], col: ov[1] } : nodes[node]) : { row: d.row, col: d.col };
+    if (!isEdge) {
+      // a ZONE exit: the door square is the zone square on the main floor nearest the approach node (not the zone's corner, which may be unreachable)
+      const zs = (ZONES[roo + ".roo"] ?? []).filter((z) => z.to.toLowerCase() === d.to!.toLowerCase());
+      if (zs.length) {
+        const fns = zs.map((z) => new Function("new_row", "new_col", "ROWS", "COLS", `return !!(${z.when});`) as (r: number, c: number, R: number, C: number) => boolean);
+        const from = centre(nodes[node].row, nodes[node].col);
+        let best = -1, bd = Infinity, bsq = sq;
+        for (let i = 0; i < g.walk.length; i++) {
+          if (!isOpen(g, i) || g.area[i] !== mainArea) continue;
+          const q = cellCentre(g, i);
+          if (Math.round((q.x - SQ / 2) % SQ) !== 0 || Math.round((q.y - SQ / 2) % SQ) !== 0) continue;
+          const s2 = squareOf(q.x, q.y);
+          if (!fns.some((f) => f(s2.row, s2.col, room.rows, room.cols))) continue;
+          const dd = dist(q, from);
+          if (dd < bd) { bd = dd; best = i; bsq = s2; }
+        }
+        if (best >= 0) { if (bsq.row !== sq.row || bsq.col !== sq.col) console.log(`  ${roo}: zone exit to ${toRoo}: door square ${sq.row},${sq.col} -> ${bsq.row},${bsq.col} (a zone square on the main floor)`); sq = bsq; }
+        else console.log(`  ${roo}: zone exit to ${toRoo}: no main-floor square inside the zone, door square ${sq.row},${sq.col} kept`);
+      }
+    }
     if (isEdge) {
       // an edge exit whose side the floor never comes near cannot be walked to (nobody can leave there): left out, and logged for the manual audit
       const gap = d.edgeSide === "N" ? sq.row - 1 : d.edgeSide === "S" ? room.rows - sq.row : d.edgeSide === "W" ? sq.col - 1 : room.cols - sq.col;
       if (gap > 2.5) { console.log(`  ${roo}: edge exit ${d.edgeSide} to ${toRoo} dropped: the floor ends ${gap} squares short of that side`); continue; }
     }
+    { const ov2 = OVR[`${roo}:${toRoo}`]; if (ov2) { if (ov2[0] !== sq.row || ov2[1] !== sq.col) console.log(`  ${roo}: exit to ${toRoo}: square ${sq.row},${sq.col} -> ${ov2[0]},${ov2[1]} (the square the game fired when the owner walked out)`); sq = { row: ov2[0], col: ov2[1] }; } }
     doors.push({ row: sq.row, col: sq.col, to: toRoo, node, kind: kindD, purpose, destRid, arrRow, arrCol, edge: isEdge ? 1 : 0 });
+  }
+  // a door square NO arrival can reach (exit audit: 0 of N) while another door of the room leads to the same room is a dead duplicate (Jasper East (45,32) next to (44,32), both to Jasper West): left out,
+  // so no route is planned through a door a bot cannot walk to. A room's only door to a destination is kept even when unreachable (the audit lists it for a look).
+  {
+    const sq0 = SQUARES[String(rid)];
+    for (let k = doors.length - 1; k >= 0 && sq0; k--) {
+      const d0 = doors[k], v = sq0[`${d0.row},${d0.col}`];
+      if (d0.edge || !v || v[1] === 0 || v[0] > 0) continue;
+      if (doors.some((o, j) => j !== k && !o.edge && o.to === d0.to && (sq0[`${o.row},${o.col}`]?.[0] ?? 0) > 0)) { console.log(`  ${roo}: door ${d0.row},${d0.col} to ${d0.to} left out: no arrival reaches it and another door to ${d0.to} does`); doors.splice(k, 1); }
+    }
   }
   // a town with a travel portal: a free transit door to every other portal's arrival square, standing at the portal itself
   const myPortal = PORTALS.find((p) => p.rid === rid);

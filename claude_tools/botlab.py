@@ -105,7 +105,7 @@ class Lab:
 _DSTR = {}
 def debug_strings(cls="playerbot", anchor=b"stop moving: was phase"):
     """The class's debug-string table (what the admin shows as 'DEBUGSTR n'), read from its compiled .bof: id n = the n-th string of the table.
-    The table is the run of printable nul-separated strings around `anchor` (any string known to be in it); the run starts with two empty entries, then id 0.
+    The table is the run of printable nul-separated strings around `anchor` (any string known to be in it); the run starts with 1-3 empty entries (the NULs of the integer before the table), then id 0.
     (Do NOT hardcode the anchor's id: adding a message or a docstring above it shifts every id.)  Re-read after every Kod compile: call with a fresh process."""
     if cls in _DSTR: return _DSTR[cls]
     W = os.environ.get("PRIME_WORK", os.path.expanduser("~/boxes/m59-box/src/prime_work"))
@@ -113,6 +113,7 @@ def debug_strings(cls="playerbot", anchor=b"stop moving: was phase"):
     b = open(path, "rb").read(); i = b.find(anchor); j = i
     while j > 0 and (b[j - 1] == 0 or 32 <= b[j - 1] < 127): j -= 1
     parts = b[j:].split(b"\0")
-    assert parts[0] == b"" and parts[1] == b"", "unexpected string table layout"
-    _DSTR[cls] = {n - 2: p.decode("latin-1") for n, p in enumerate(parts) if n >= 2}
+    lead = next((n for n, p in enumerate(parts) if p), 0)      # the leading NULs belong to the 4-byte integer before the table (1, 2 or 3 of them depending on that integer): id 0 is the first string
+    assert 1 <= lead <= 3, "unexpected string table layout"
+    _DSTR[cls] = {n - lead: p.decode("latin-1") for n, p in enumerate(parts) if n >= lead}
     return _DSTR[cls]

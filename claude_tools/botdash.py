@@ -3,7 +3,7 @@
   PRIME_ADMIN_PORT=9998 $PRIME_WORK/admin-venv/bin/python claude_tools/botdash.py [--once] [--every 5] [--secs 60] [--max-bots 200]
 Columns: bot id, body object, room id, square (row,col), doing, stuck count, health, in-world, planner state (if the path prototype is used), journey room.
 FLAGS (printed under the table): STUCK (piStuck > 0), NOMOVE (same square and not parked for the last 3 refreshes while 'walking'/'hunt'), NOROOM (in-world body with no room),
-PILE (3+ bots on the same square), PLANNER (planner state 3/4 while walking), The summary line counts bots per activity and per room.
+MISMATCH (piNavRid differs from the room the body really stands in: the bot plans for the wrong room), PILE (3+ bots on the same square), PLANNER (planner state 3/4 while walking), The summary line counts bots per activity and per room.
 Many bots = many admin calls (about 0.05 s each): use --every 10 for 100 bots. Use botinspect.py BOT on a flagged bot."""
 import asyncio, collections, os, re, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -12,14 +12,18 @@ from botlab import Lab, DOING, PATH_STATE
 def num(t, n):
     m = re.search(rf"\b{n}\s*=\s*(?:INT|OBJECT)\s+(-?\d+)", t); return int(m.group(1)) if m else 0
 
+_room_num = {}      # room object id -> its room number (a room object keeps its id while the server runs)
+
 async def snapshot(lab, ids):
     rows = []
     for b in ids:
         body = await lab.body(b)
         if not body: continue
         t = await lab.run(f"show object {body}")
-        rows.append({"bot": b, "body": body, "rid": num(t, "piNavRid"), "row": num(t, "piRow"), "col": num(t, "piCol"), "doing": num(t, "piDoing"), "stuck": num(t, "piStuck"),
-                     "hp": num(t, "piHit_points") // 100, "inworld": bool(re.search(r"poOwner\s*=\s*OBJECT", t)), "plan": num(t, "piPathState"), "jrid": num(t, "piJourneyRid")})
+        mo = re.search(r"poOwner\s*=\s*OBJECT\s+(\d+)", t); owner = int(mo.group(1)) if mo else 0
+        if owner and owner not in _room_num: _room_num[owner] = num(await lab.run(f"show object {owner}"), "piRoom_num")
+        rows.append({"roomnum": _room_num.get(owner, 0), "bot": b, "body": body, "rid": num(t, "piNavRid"), "row": num(t, "piRow"), "col": num(t, "piCol"), "doing": num(t, "piDoing"), "stuck": num(t, "piStuck"),
+                     "hp": num(t, "piHit_points") // 100, "inworld": bool(re.search(r"poOwner\s*=\s*OBJECT", t)), "plan": num(t, "piPathState"), "jrid": num(t, "piJourneyRid"), "tries": num(t, "piPathSteps") + num(t, "piPathRefused")})
     return rows
 
 async def main():
@@ -37,6 +41,7 @@ async def main():
             print(f"{r['bot']:>4} {r['body']:>6} {r['rid']:>5} {str(r['row']) + ',' + str(r['col']):>8} {str(DOING.get(r['doing'], r['doing'])):<8} {r['stuck']:>5} {r['hp']:>6} {int(r['inworld']):>5} {PATH_STATE.get(r['plan'], r['plan']) if r['plan'] else '':<12} {r['jrid'] or '':>5}")
             if r["stuck"] > 0: flags.append(f"STUCK bot {r['bot']} (stuck {r['stuck']}) room {r['rid']} at {r['row']},{r['col']}")
             if r["plan"] in (3, 4) and len(h) >= 3 and len(set(h[-3:])) == 1 and r["doing"] in (3, 4, 6, 8, 11): flags.append(f"PLANNER bot {r['bot']} {PATH_STATE[r['plan']]} (and not moving for 3 refreshes) room {r['rid']} at {r['row']},{r['col']}")
+            if r["inworld"] and r["rid"] and r["roomnum"] and r["rid"] != r["roomnum"]: flags.append(f"MISMATCH bot {r['bot']} thinks it is in room {r['rid']} (piNavRid) but its body stands in room {r['roomnum']} at {r['row']},{r['col']}")
             if r["inworld"] and not r["rid"]: flags.append(f"NOROOM bot {r['bot']} is in a room object but piNavRid is 0")
             if r["doing"] in (3, 4, 11) and len(h) >= 4 and len(set(h)) == 1: flags.append(f"NOMOVE bot {r['bot']} {DOING.get(r['doing'])} but on the same square for 4 refreshes: room {r['rid']} at {r['row']},{r['col']}")
         for k, v in at.items():

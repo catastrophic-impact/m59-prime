@@ -1,0 +1,6 @@
+t+   0.4s room 200 square 83,52 fine 32,32 angle 1838
+t+  21.1s room 200 square 83,51 fine 47,48 angle 1838
+t+  21.6s room 200 square 83,51 fine 62,6 angle 1536
+t+  22.2s room 535 square 4,22 fine 3,60 angle 1536
+t+  22.6s room 535 square 4,22 fine 57,7 angle 1536
+t+  23.0s room 535 square 5,21 fine 23,40 angle 1536

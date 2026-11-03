@@ -1,0 +1,11 @@
+--- a/blakserv/roofile.c
++++ b/blakserv/roofile.c
+@@ -1384,7 +1384,7 @@
+ #define FPG_BUILD_MS       15000       // longest build
+ #define FPG_MAX_EXPAND     900000
+ #define FPG_MAX_MS         250
+-#define FPG_GOAL_RADIUS    1536.0f
++#define FPG_GOAL_RADIUS    512.0f       // half a square (was 1536 = one and a half: a path could end on the wrong side of a wall; patch 0082)
+ 
+ struct FPGrid
+ {
